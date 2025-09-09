@@ -33,7 +33,7 @@ $ yarn test:cov
 ```
 
 ## RUN docker container
-Before running the following commands, ensure that docker is correctly set up correctly and that the env variables are set up properly
+Before running the following commands, ensure that docker is set up correctly and that the env variables are set up properly
 ```bash
 $ docker build -t backend-app .
 $ docker run -p 3000:3000 --env-file .env backend-app
