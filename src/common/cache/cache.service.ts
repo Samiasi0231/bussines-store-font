@@ -1,0 +1,35 @@
+import { Injectable } from '@nestjs/common';
+import Redis from 'ioredis';
+import { ConfigService } from '@nestjs/config';
+
+@Injectable()
+export class CacheService {
+  private cache: Redis;
+
+  constructor(private readonly configService: ConfigService) {
+    const options = {
+      port: this.configService.getOrThrow('REDIS_PORT'),
+      host: this.configService.getOrThrow('REDIS_HOST'),
+    };
+    this.cache = new Redis(options);
+  }
+
+  async get(key: string): Promise<string> {
+    return this.cache.get(key);
+  }
+
+  async set(key: string, value: any, ttl?: number) {
+    if (ttl !== undefined && ttl !== null)
+      await this.cache.set(key, value, 'EX', ttl);
+    else await this.cache.set(key, value);
+  }
+
+  async del(key: string) {
+    await this.cache.del(key);
+  }
+
+  async exists(key: string): Promise<boolean> {
+    const numberOfMatches = await this.cache.exists(key);
+    return numberOfMatches > 0;
+  }
+}
