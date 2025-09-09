@@ -4,7 +4,7 @@
 BizVantage monolithic backend application built on top on Node.js/typescript using the NestJS framework.
 
 ## Prerequisites
-- Install Node.j, yarn and NestJS CLI
+- Install Node.js, yarn and NestJS CLI
 
 ## Running the app
 ```bash
