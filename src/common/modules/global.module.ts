@@ -3,12 +3,12 @@ import { CacheService } from '../cache/cache.service';
 import { CacheModule } from '../cache/cache.module';
 import { UserRepository } from '../../repositories/user.repository';
 import { StatusRepository } from '../../repositories/status.repository';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../../entities/user.entity';
 import { Status } from '../../entities/status.entity';
+import { Response } from '../response';
 
-const providers = [CacheService, UserRepository, StatusRepository];
+const providers = [CacheService, UserRepository, StatusRepository, Response];
 
 @Global()
 @Module({
