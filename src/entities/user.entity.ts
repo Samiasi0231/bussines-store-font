@@ -10,6 +10,7 @@ import { Status } from './status.entity';
 import { v7 as uuidv7 } from 'uuid';
 import { BaseEntity } from './base.entity';
 import { UUID } from 'crypto';
+import { Exclude } from 'class-transformer';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -32,6 +33,10 @@ export class User extends BaseEntity {
 
   @Column({ type: 'varchar', length: 150, unique: true })
   email: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  @Exclude()
+  password: string;
 
   @Column({ name: 'email_verified', type: 'boolean', default: false })
   emailVerified?: boolean;
