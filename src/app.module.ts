@@ -9,10 +9,12 @@ import { AppService } from './app.service';
 import { HttpExceptionFilter } from './common/filter/http-exception.filter';
 import { UserModule } from './user/user.module';
 import { GlobalModule } from './common/modules/global.module';
+import appConfig from './common/config/app.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
+      load: [appConfig],
       isGlobal: true,
     }),
     TypeOrmModule.forRootAsync({
@@ -20,14 +22,15 @@ import { GlobalModule } from './common/modules/global.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
-        host: config.get<string>('DB_HOST'),
-        port: config.get<number>('DB_PORT'),
-        username: config.get<string>('DB_USERNAME'),
-        password: config.get<string>('DB_PASSWORD'),
-        database: config.get<string>('DB_NAME'),
+        host: config.get<string>('database.host'),
+        port: config.get<number>('database.port'),
+        username: config.get<string>('database.username'),
+        password: config.get<string>('database.password'),
+        database: config.get<string>('database.name'),
         autoLoadEntities: true,
+        retryAttempts: 3,
         extra: {
-          connectionLimit: config.get<number>('DB_CONNECTION_LIMIT'),
+          connectionLimit: config.get<number>('database.connectionLimit'),
         },
       }),
     }),

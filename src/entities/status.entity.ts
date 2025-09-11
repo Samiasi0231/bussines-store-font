@@ -1,11 +1,5 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  DeleteDateColumn,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { BaseEntity } from './base.entity';
 
 export enum StatusType {
   ACTIVE = 'active',
@@ -18,9 +12,9 @@ export enum StatusType {
 }
 
 @Entity('statuses')
-export class Status {
-  @PrimaryGeneratedColumn()
-  id: number;
+export class Status extends BaseEntity {
+  @PrimaryGeneratedColumn('increment')
+  id?: number;
 
   @Column({
     type: 'enum',
@@ -28,15 +22,6 @@ export class Status {
   })
   name: StatusType;
 
-  @Column({ type: 'text', nullable: true })
-  description?: string;
-
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
-  updatedAt: Date;
-
-  @DeleteDateColumn({ name: 'deleted_at', type: 'timestamptz' })
-  deletedAt?: Date;
+  @Column({ type: 'text' })
+  description: string;
 }

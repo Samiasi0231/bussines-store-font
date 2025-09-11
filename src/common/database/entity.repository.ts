@@ -1,5 +1,5 @@
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { UUID } from 'crypto';
+import { DeepPartial, FindOptionsRelations, Repository } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity.js';
 
 export class EntityRepository<T> extends Repository<T> {
@@ -7,16 +7,26 @@ export class EntityRepository<T> extends Repository<T> {
     super(repo.target, repo.manager, repo.queryRunner);
   }
 
-  async softDeleteById(id: string): Promise<void> {
+  async createStrict(
+    data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<T> {
+    const entity = super.create(data as DeepPartial<T>);
+    return this.save(entity);
+  }
+
+  async softDeleteById(id: UUID | number): Promise<void> {
     await this.softDelete(id);
   }
 
-  async findById(id: string | number): Promise<T | null> {
-    return this.findOne({ where: { id } as any });
+  async findById(
+    id: UUID | number,
+    relations?: FindOptionsRelations<T>,
+  ): Promise<T | null> {
+    return this.findOne({ where: { id } as any, relations });
   }
 
   async findbyIdAndUpdate(
-    id: string | number,
+    id: UUID | number,
     updateData: QueryDeepPartialEntity<T>,
   ): Promise<T> {
     const result = await this.createQueryBuilder()
