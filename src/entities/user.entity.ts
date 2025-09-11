@@ -13,6 +13,7 @@ import { UUID } from 'crypto';
 
 @Entity('users')
 export class User extends BaseEntity {
+export class User extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id?: UUID;
 
@@ -34,6 +35,7 @@ export class User extends BaseEntity {
   email: string;
 
   @Column({ name: 'email_verified', type: 'boolean', default: false })
+  emailVerified?: boolean;
   emailVerified?: boolean;
 
   @Column({ name: 'last_logged_in_at', type: 'timestamptz', nullable: true })

@@ -10,10 +10,12 @@ import { HttpExceptionFilter } from './common/filter/http-exception.filter';
 import { UserModule } from './user/user.module';
 import { GlobalModule } from './common/modules/global.module';
 import appConfig from './common/config/app.config';
+import appConfig from './common/config/app.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
+      load: [appConfig],
       load: [appConfig],
       isGlobal: true,
     }),
@@ -27,9 +29,15 @@ import appConfig from './common/config/app.config';
         username: config.get<string>('database.username'),
         password: config.get<string>('database.password'),
         database: config.get<string>('database.name'),
+        host: config.get<string>('database.host'),
+        port: config.get<number>('database.port'),
+        username: config.get<string>('database.username'),
+        password: config.get<string>('database.password'),
+        database: config.get<string>('database.name'),
         autoLoadEntities: true,
         retryAttempts: 3,
         extra: {
+          connectionLimit: config.get<number>('database.connectionLimit'),
           connectionLimit: config.get<number>('database.connectionLimit'),
         },
       }),
