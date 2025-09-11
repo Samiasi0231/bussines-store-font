@@ -2,24 +2,23 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  DeleteDateColumn,
   ManyToOne,
   JoinColumn,
   BeforeInsert,
 } from 'typeorm';
 import { Status } from './status.entity';
 import { v7 as uuidv7 } from 'uuid';
+import { BaseEntity } from './base.entity';
+import { UUID } from 'crypto';
 
 @Entity('users')
-export class User {
+export class User extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id?: UUID;
 
   @BeforeInsert()
   private generateId() {
-    this.id = uuidv7();
+    this.id = uuidv7() as UUID;
   }
 
   @Column({ name: 'first_name', type: 'varchar', length: 100 })
@@ -35,13 +34,7 @@ export class User {
   email: string;
 
   @Column({ name: 'email_verified', type: 'boolean', default: false })
-  emailVerified: boolean;
-
-  @CreateDateColumn({ name: 'created_at', type: 'date' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
-  updatedAt: Date;
+  emailVerified?: boolean;
 
   @Column({ name: 'last_logged_in_at', type: 'timestamptz', nullable: true })
   lastLoggedInAt?: Date;
@@ -49,7 +42,4 @@ export class User {
   @ManyToOne(() => Status, { eager: true })
   @JoinColumn({ name: 'status' })
   status: Status;
-
-  @DeleteDateColumn({ name: 'deleted_at', type: 'timestamptz' })
-  deletedAt?: Date;
 }
