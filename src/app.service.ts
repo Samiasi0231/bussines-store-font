@@ -1,13 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import {
-  ServiceResponse,
-  successResponse,
-} from './common/utilities/response.utility';
 import { SuccessMessage } from './common/constants/message.constant';
+import { IResponse, Response } from './common/response';
 
 @Injectable()
 export class AppService {
-  getHello(): ServiceResponse<null> {
-    return successResponse(SuccessMessage.OPERATION_SUCCESSFUL);
+  constructor(private readonly response: Response) {}
+  getHello(): IResponse<null> {
+    return this.response.sendSuccess(SuccessMessage.OPERATION_SUCCESSFUL);
   }
 }
