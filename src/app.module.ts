@@ -8,6 +8,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HttpExceptionFilter } from './common/filter/http-exception.filter';
 import { UserModule } from './user/user.module';
+import { AuthModule } from './auth/auth.module';
 import { GlobalModule } from './common/modules/global.module';
 import appConfig from './common/config/app.config';
 
@@ -28,6 +29,7 @@ import appConfig from './common/config/app.config';
         password: config.get<string>('database.password'),
         database: config.get<string>('database.name'),
         autoLoadEntities: true,
+        synchronize: true,
         retryAttempts: 3,
         extra: {
           connectionLimit: config.get<number>('database.connectionLimit'),
@@ -42,6 +44,7 @@ import appConfig from './common/config/app.config';
       throttlers: [{ ttl: 60, limit: 20 }],
     }),
     UserModule,
+    AuthModule,
     GlobalModule,
   ],
   controllers: [AppController],

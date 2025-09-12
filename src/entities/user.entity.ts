@@ -44,6 +44,34 @@ export class User extends BaseEntity {
   @Column({ name: 'last_logged_in_at', type: 'timestamptz', nullable: true })
   lastLoggedInAt?: Date;
 
+  @Column({
+    name: 'verification_otp',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  @Exclude()
+  verificationOtp?: string;
+
+  @Column({ name: 'otp_expiration', type: 'timestamptz', nullable: true })
+  otpExpiration?: Date;
+
+  @Column({
+    name: 'password_reset_token',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  @Exclude()
+  passwordResetToken?: string;
+
+  @Column({
+    name: 'password_reset_expiration',
+    type: 'timestamptz',
+    nullable: true,
+  })
+  passwordResetExpiration?: Date;
+
   @ManyToOne(() => Status, { eager: true })
   @JoinColumn({ name: 'status' })
   status: Status;
