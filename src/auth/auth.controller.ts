@@ -26,51 +26,26 @@ export class AuthController {
 
   @Post('signup')
   async register(@Body() registerDto: RegisterDto) {
-    const data = await this.authService.register(registerDto);
-    return {
-      status: HttpStatus.CREATED,
-      success: true,
-      message:
-        'User registered successfully. Please check your email for verification code.',
-      data,
-    };
+    return await this.authService.register(registerDto);
   }
 
   @UseGuards(LocalAuthGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto) {
-    const data = await this.authService.login(loginDto);
-    return {
-      status: HttpStatus.OK,
-      success: true,
-      message: 'Login successful',
-      data,
-    };
+    return await this.authService.login(loginDto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@CurrentUser() user: User) {
-    const data = await this.authService.getProfile(user.id);
-    return {
-      status: HttpStatus.OK,
-      success: true,
-      message: 'Profile retrieved successfully',
-      data,
-    };
+    return await this.authService.getProfile(user.id);
   }
 
   @Post('email')
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
-    await this.authService.verifyEmail(verifyEmailDto);
-    return {
-      status: HttpStatus.OK,
-      success: true,
-      message: 'Email verified successfully',
-      data: null,
-    };
+    return await this.authService.verifyEmail(verifyEmailDto);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -80,49 +55,24 @@ export class AuthController {
     @CurrentUser() user: User,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
-    await this.authService.changePassword(user.id, changePasswordDto);
-    return {
-      status: HttpStatus.OK,
-      success: true,
-      message: 'Password changed successfully',
-      data: null,
-    };
+    return await this.authService.changePassword(user.id, changePasswordDto);
   }
 
   @Post('password/forgot')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-    await this.authService.forgotPassword(forgotPasswordDto);
-    return {
-      status: HttpStatus.OK,
-      success: true,
-      message:
-        'If an account with that email exists, a password reset link has been sent.',
-      data: null,
-    };
+    return await this.authService.forgotPassword(forgotPasswordDto);
   }
 
   @Post('email/resend')
   @HttpCode(HttpStatus.OK)
   async resendEmail(@Body() resendEmailDto: ResendEmailDto) {
-    await this.authService.resendVerificationEmail(resendEmailDto);
-    return {
-      status: HttpStatus.OK,
-      success: true,
-      message: 'Verification email sent successfully',
-      data: null,
-    };
+    return await this.authService.resendVerificationEmail(resendEmailDto);
   }
 
   @Post('password/reset')
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-    await this.authService.resetPassword(resetPasswordDto);
-    return {
-      status: HttpStatus.OK,
-      success: true,
-      message: 'Password reset successfully',
-      data: null,
-    };
+    return await this.authService.resetPassword(resetPasswordDto);
   }
 }

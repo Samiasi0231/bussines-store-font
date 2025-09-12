@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  ConflictException,
-  UnauthorizedException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, HttpStatus } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from '../repositories/user.repository';
 import { StatusRepository } from '../repositories/status.repository';
@@ -22,7 +17,13 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { CacheService } from '../common/cache/cache.service';
+import { Response } from '../common/response';
+
 import { ResendEmailDto } from './dto/resend-email.dto';
+import {
+  ErrorMessage,
+  SuccessMessage,
+} from '../common/constants/message.constant';
 
 @Injectable()
 export class AuthService {
@@ -32,6 +33,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly mailerService: MailerService,
     private readonly cacheService: CacheService,
+    private readonly responseService: Response,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<any> {
@@ -40,7 +42,11 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new ConflictException('User with this email already exists');
+      return this.responseService.sendError(
+        ErrorMessage.USER_ALREADY_EXISTS,
+        null,
+        HttpStatus.CONFLICT,
+      );
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 12);
@@ -50,7 +56,11 @@ export class AuthService {
     });
 
     if (!activeStatus) {
-      throw new InternalServerErrorException('Active status not found');
+      return this.responseService.sendError(
+        ErrorMessage.AN_ERROR_OCCURED,
+        null,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     const userData = {
@@ -81,14 +91,17 @@ export class AuthService {
 
     await this.mailerService.sendEmail(emailData);
 
-    return user;
+    return this.responseService.sendSuccess(
+      SuccessMessage.USER_REGISTERED,
+      user,
+    );
   }
 
   async login(loginDto: LoginDto) {
     const user = await this.validateUser(loginDto.email, loginDto.password);
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      return this.responseService.sendError(ErrorMessage.INVALID_CREDENTIALS);
     }
 
     await this.userRepository.findbyIdAndUpdate(user.id, {
@@ -106,7 +119,10 @@ export class AuthService {
       user,
     };
 
-    return userData;
+    return this.responseService.sendSuccess(
+      SuccessMessage.USER_LOGGED_IN,
+      userData,
+    );
   }
 
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {
@@ -124,40 +140,37 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      return this.responseService.sendError(ErrorMessage.USER_NOT_FOUND);
     }
 
     if (user.emailVerified) {
-      throw new ConflictException('Email already verified');
+      return this.responseService.sendError(
+        ErrorMessage.EMAIL_ALREADY_VERIFIED,
+      );
     }
 
     if (!user.verificationOtp || !user.otpExpiration) {
-      throw new UnauthorizedException('No verification OTP found');
+      return this.responseService.sendError(
+        ErrorMessage.NO_VERIFICATION_OTP_FOUND,
+      );
     }
 
     if (new Date() > user.otpExpiration) {
-      throw new UnauthorizedException('OTP has expired');
+      return this.responseService.sendError(ErrorMessage.OTP_HAS_EXPIRED);
     }
 
     const isOtpValid = await bcrypt.compare(otp, user.verificationOtp);
     if (!isOtpValid) {
-      throw new UnauthorizedException('Invalid OTP');
-    }
-
-    const verifiedStatus = await this.statusRepository.findOne({
-      where: { name: StatusType.ACTIVE },
-    });
-
-    if (!verifiedStatus) {
-      throw new Error('Verified status not found');
+      return this.responseService.sendError(ErrorMessage.INVALID_OTP);
     }
 
     await this.userRepository.findbyIdAndUpdate(user.id, {
       emailVerified: true,
       verificationOtp: null,
       otpExpiration: null,
-      status: verifiedStatus,
     });
+
+    return this.responseService.sendSuccess(SuccessMessage.EMAIL_VERIFIED);
   }
 
   async changePassword(userId: UUID, changePasswordDto: ChangePasswordDto) {
@@ -169,7 +182,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      return this.responseService.sendError(ErrorMessage.USER_NOT_FOUND);
     }
 
     const isCurrentPasswordValid = await bcrypt.compare(
@@ -178,7 +191,9 @@ export class AuthService {
     );
 
     if (!isCurrentPasswordValid) {
-      throw new UnauthorizedException('Current password is incorrect');
+      return this.responseService.sendError(
+        ErrorMessage.CURRENT_PASSWORD_INCORRECT,
+      );
     }
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 12);
@@ -189,6 +204,8 @@ export class AuthService {
 
     const userKey = `user:${userId}`;
     await this.cacheService.del(userKey);
+
+    return this.responseService.sendSuccess(SuccessMessage.PASSWORD_CHANGED);
   }
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
@@ -200,20 +217,18 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      return this.responseService.sendError(ErrorMessage.USER_NOT_FOUND);
     }
 
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const hashedResetToken = await bcrypt.hash(resetToken, 12);
+    const otp = crypto.randomBytes(3).toString('hex');
+    const hashedOtp = await bcrypt.hash(otp, 12);
 
-    const resetExpiration = new Date(Date.now() + 1000 * 60 * 60);
+    const otpExpiration = new Date(Date.now() + 1000 * 60 * 60);
 
     await this.userRepository.findbyIdAndUpdate(user.id, {
-      passwordResetToken: hashedResetToken,
-      passwordResetExpiration: resetExpiration,
+      passwordResetToken: hashedOtp,
+      passwordResetExpiration: otpExpiration,
     });
-
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/password/reset?token=${resetToken}`;
 
     const emailData: SendEmailDto = {
       recipients: [{ name: user.firstName, address: user.email }],
@@ -223,7 +238,7 @@ export class AuthService {
 
     const context = {
       name: user.firstName,
-      resetUrl,
+      otp,
     };
 
     emailData.html = await renderFile(
@@ -232,10 +247,14 @@ export class AuthService {
     );
 
     await this.mailerService.sendEmail(emailData);
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.PASSWORD_RESET_EMAIL_SENT,
+    );
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
-    const { token, newPassword, email } = resetPasswordDto;
+    const { otp, newPassword, email } = resetPasswordDto;
 
     const user = await this.userRepository.findOne({
       where: { email },
@@ -243,21 +262,20 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      return this.responseService.sendError(ErrorMessage.USER_NOT_FOUND);
     }
 
-    if (
-      user.passwordResetToken &&
-      (await bcrypt.compare(token, user.passwordResetToken))
-    ) {
-      throw new UnauthorizedException('Invalid or expired reset token');
+    if (!user.passwordResetToken || !user.passwordResetExpiration) {
+      return this.responseService.sendError(ErrorMessage.INVALID_RESET_TOKEN);
     }
 
-    if (
-      !user.passwordResetExpiration ||
-      new Date() > user.passwordResetExpiration
-    ) {
-      throw new UnauthorizedException('Reset token has expired');
+    if (new Date() > user.passwordResetExpiration) {
+      return this.responseService.sendError(ErrorMessage.INVALID_RESET_TOKEN);
+    }
+
+    const isOtpValid = await bcrypt.compare(otp, user.passwordResetToken);
+    if (!isOtpValid) {
+      return this.responseService.sendError(ErrorMessage.INVALID_RESET_TOKEN);
     }
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 12);
@@ -267,6 +285,8 @@ export class AuthService {
       passwordResetToken: null,
       passwordResetExpiration: null,
     });
+
+    return this.responseService.sendSuccess(SuccessMessage.PASSWORD_RESET);
   }
 
   async resendVerificationEmail(resendEmailDto: ResendEmailDto) {
@@ -278,11 +298,13 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      return this.responseService.sendError(ErrorMessage.USER_NOT_FOUND);
     }
 
     if (user.emailVerified) {
-      throw new ConflictException('Email is already verified');
+      return this.responseService.sendError(
+        ErrorMessage.EMAIL_ALREADY_VERIFIED,
+      );
     }
 
     const otp = crypto.randomBytes(3).toString('hex');
@@ -304,6 +326,10 @@ export class AuthService {
     emailData.html = await renderFile('src/common/emails/OTP.ejs', context);
 
     await this.mailerService.sendEmail(emailData);
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.EMAIL_VERIFICATION_EMAIL_SENT,
+    );
   }
 
   async validateUser(email: string, password: string): Promise<User | null> {
@@ -343,6 +369,9 @@ export class AuthService {
       await this.cacheService.set(userKey, JSON.stringify(user), 3600);
     }
 
-    return user;
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      user,
+    );
   }
 }
