@@ -10,6 +10,7 @@ import { Status } from './status.entity';
 import { v7 as uuidv7 } from 'uuid';
 import { BaseEntity } from './base.entity';
 import { UUID } from 'crypto';
+import { Exclude } from 'class-transformer';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -33,11 +34,43 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', length: 150, unique: true })
   email: string;
 
+  @Column({ type: 'varchar', length: 255 })
+  @Exclude()
+  password: string;
+
   @Column({ name: 'email_verified', type: 'boolean', default: false })
   emailVerified?: boolean;
 
   @Column({ name: 'last_logged_in_at', type: 'timestamptz', nullable: true })
   lastLoggedInAt?: Date;
+
+  @Column({
+    name: 'verification_otp',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  @Exclude()
+  verificationOtp?: string;
+
+  @Column({ name: 'otp_expiration', type: 'timestamptz', nullable: true })
+  otpExpiration?: Date;
+
+  @Column({
+    name: 'password_reset_token',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  @Exclude()
+  passwordResetToken?: string;
+
+  @Column({
+    name: 'password_reset_expiration',
+    type: 'timestamptz',
+    nullable: true,
+  })
+  passwordResetExpiration?: Date;
 
   @ManyToOne(() => Status, { eager: true })
   @JoinColumn({ name: 'status' })

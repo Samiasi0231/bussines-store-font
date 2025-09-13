@@ -7,4 +7,8 @@ export default () => ({
     port: parseInt(process.env.DB_PORT, 10),
     connectionLimit: process.env.DB_CONNECTION_LIMIT,
   },
+  jwt: {
+    secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key',
+    expiresIn: process.env.JWT_EXPIRES_IN || '24h',
+  },
 });
