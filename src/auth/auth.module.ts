@@ -8,10 +8,16 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { User } from '../entities/user.entity';
-import { Status } from '../entities/status.entity';
 import { UserRepository } from '../repositories/user.repository';
-import { StatusRepository } from '../repositories/status.repository';
-import { MailerModule } from '../mailer/mailer.module';
+import { NotificationModule } from '../notification/notification.module';
+import { TokenService } from './token/token.service';
+import { UserSanitizer } from '../user/sanitizers/user.sanitizer';
+import { UserService } from '../user/user.service';
+import { Kyc } from '../entities/kyc.entity';
+import { KycRepository } from '../repositories/kyc.repository';
+import { VerificationService } from '../verification/verification.service';
+import { VerificationRepository } from '../repositories/verification.repository';
+import { Verification } from '../entities/verification.entity';
 
 @Module({
   imports: [
@@ -26,8 +32,8 @@ import { MailerModule } from '../mailer/mailer.module';
         },
       }),
     }),
-    TypeOrmModule.forFeature([User, Status]),
-    MailerModule,
+    TypeOrmModule.forFeature([User, Kyc, Verification]),
+    NotificationModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -35,7 +41,12 @@ import { MailerModule } from '../mailer/mailer.module';
     JwtStrategy,
     LocalStrategy,
     UserRepository,
-    StatusRepository,
+    TokenService,
+    UserSanitizer,
+    KycRepository,
+    UserService,
+    VerificationService,
+    VerificationRepository,
   ],
   exports: [AuthService],
 })

@@ -6,11 +6,15 @@ import { ClsModule } from 'nestjs-cls';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { HttpExceptionFilter } from './common/filter/http-exception.filter';
+import { HttpExceptionFilter } from './@common/filter/http-exception.filter';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
-import { GlobalModule } from './common/modules/global.module';
-import appConfig from './common/config/app.config';
+import { KycModule } from './kyc/kyc.module';
+import appConfig from './@common/config/app.config';
+import { GlobalModule } from './@common/modules/global.module';
+import { VerificationModule } from './verification/verification.module';
+import { ImageRecognitionModule } from './image-recognition/image-recognition.module';
+import { SeederModule } from './seeder/seeder.module';
 
 @Module({
   imports: [
@@ -23,16 +27,15 @@ import appConfig from './common/config/app.config';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
-        host: config.get<string>('database.host'),
-        port: config.get<number>('database.port'),
-        username: config.get<string>('database.username'),
-        password: config.get<string>('database.password'),
-        database: config.get<string>('database.name'),
+        host: config.get<string>('db.host'),
+        port: config.get<number>('db.port'),
+        username: config.get<string>('db.username'),
+        password: config.get<string>('db.password'),
+        database: config.get<string>('db.name'),
         autoLoadEntities: true,
-        synchronize: true,
         retryAttempts: 3,
         extra: {
-          connectionLimit: config.get<number>('database.connectionLimit'),
+          connectionLimit: config.get<number>('db.connectionLimit'),
         },
       }),
     }),
@@ -46,6 +49,10 @@ import appConfig from './common/config/app.config';
     UserModule,
     AuthModule,
     GlobalModule,
+    KycModule,
+    VerificationModule,
+    ImageRecognitionModule,
+    SeederModule,
   ],
   controllers: [AppController],
   providers: [

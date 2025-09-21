@@ -1,44 +1,51 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from '../repositories/user.repository';
-import { StatusRepository } from '../repositories/status.repository';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
-import { User } from '../entities/user.entity';
-import { StatusType } from '../entities/status.entity';
-import * as bcrypt from 'bcryptjs';
-import * as crypto from 'crypto';
-import { MailerService } from '../mailer/mailer.service';
+import { SignupDTO } from './dto/register.dto';
+import { LoginDTO } from './dto/login.dto';
+import bcrypt from 'bcryptjs';
+import { EmailService } from '../notification/services/email.service';
 import { UUID } from 'crypto';
-import { SendEmailDto } from '../mailer/dto/send-mail.dto';
-import { renderFile } from 'ejs';
-import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { CacheService } from '../common/cache/cache.service';
-import { Response } from '../common/response';
-
-import { ResendEmailDto } from './dto/resend-email.dto';
+import { CacheService } from '../@common/cache/cache.service';
 import {
   ErrorMessage,
   SuccessMessage,
-} from '../common/constants/message.constant';
+} from '../@common/constants/message.constant';
+import { ResponseService } from '../@common/response';
+import { Status } from '../@common/constants/status.constant';
+import { Util } from '../@common/utilities/helpers.utility';
+import { Status as StatusEntity } from '../entities/status.entity';
+import { TokenService } from './token/token.service';
+import { UserService } from '../user/user.service';
+import {
+  CachedUserProfileData,
+  UserProfile,
+} from '../user/interfaces/user.interface';
+import { UserSanitizer } from '../user/sanitizers/user.sanitizer';
+import { KycRepository } from '../repositories/kyc.repository';
+import { VerificationService } from '../verification/verification.service';
+import { VerificationIntent } from '../@common/constants/verification.constant';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userRepository: UserRepository,
-    private readonly statusRepository: StatusRepository,
-    private readonly jwtService: JwtService,
-    private readonly mailerService: MailerService,
+    private readonly tokenService: TokenService,
+    private readonly mailerService: EmailService,
     private readonly cacheService: CacheService,
-    private readonly responseService: Response,
+    private readonly responseService: ResponseService,
+    private readonly userService: UserService,
+    private readonly userSanitizer: UserSanitizer,
+    private readonly kycRepository: KycRepository,
+    private readonly verificationService: VerificationService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<any> {
+  async register(payload: SignupDTO): Promise<any> {
+    const { phoneNumber, password, otp } = payload;
+
     const existingUser = await this.userRepository.findOne({
-      where: { email: registerDto.email },
+      where: { phoneNumber },
     });
 
     if (existingUser) {
@@ -49,56 +56,35 @@ export class AuthService {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(registerDto.password, 12);
+    const verificationResponse =
+      await this.verificationService.verifyVerification({
+        intent: VerificationIntent.PHONE_NUMBER,
+        entityId: phoneNumber,
+        verificationData: otp,
+      });
 
-    const activeStatus = await this.statusRepository.findOne({
-      where: { name: StatusType.PENDING },
-    });
-
-    if (!activeStatus) {
-      return this.responseService.sendError(
-        ErrorMessage.AN_ERROR_OCCURED,
-        null,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    if (!verificationResponse.success) return verificationResponse;
 
     const userData = {
-      ...registerDto,
-      password: hashedPassword,
-      status: activeStatus,
+      ...payload,
+      password,
+      status: { name: Status.ACTIVE } as StatusEntity,
     };
 
     const user = await this.userRepository.createStrict(userData);
 
-    const otp = crypto.randomBytes(3).toString('hex');
-    const hashedOtp = await bcrypt.hash(otp, 12);
+    await this.kycRepository.createStrict({ user: user.id });
 
-    await this.userRepository.findbyIdAndUpdate(user.id, {
-      verificationOtp: hashedOtp,
-      otpExpiration: new Date(Date.now() + 1000 * 60 * 5),
+    return this.responseService.sendSuccess(SuccessMessage.USER_REGISTERED, {
+      id: user.id,
     });
-
-    const emailData: SendEmailDto = {
-      recipients: [{ name: user.firstName, address: user.email }],
-      subject: 'Your OTP Code',
-      html: ``,
-    };
-
-    const context = { name: user.firstName, otp };
-
-    emailData.html = await renderFile('src/common/emails/OTP.ejs', context);
-
-    await this.mailerService.sendEmail(emailData);
-
-    return this.responseService.sendSuccess(
-      SuccessMessage.USER_REGISTERED,
-      user,
-    );
   }
 
-  async login(loginDto: LoginDto) {
-    const user = await this.validateUser(loginDto.email, loginDto.password);
+  async login(loginDto: LoginDTO) {
+    const user = await this.validateUser(
+      loginDto.identifier,
+      loginDto.password,
+    );
 
     if (!user) {
       return this.responseService.sendError(ErrorMessage.INVALID_CREDENTIALS);
@@ -108,69 +94,25 @@ export class AuthService {
       lastLoggedInAt: new Date(),
     });
 
-    const userKey = `user:${user.id}`;
-    await this.cacheService.set(userKey, JSON.stringify(user), 3600);
+    const userId = user.id;
 
-    const payload = { email: user.email, sub: user.id };
-    const access_token = this.jwtService.sign(payload);
+    const { accessToken, hashedAccessToken } =
+      await this.tokenService.generateJWTToken(userId);
 
     const userData = {
-      access_token,
+      accessToken,
       user,
     };
+
+    await this.userService.cacheUserData({
+      ...user,
+      hashedAccessToken,
+    } as CachedUserProfileData);
 
     return this.responseService.sendSuccess(
       SuccessMessage.USER_LOGGED_IN,
       userData,
     );
-  }
-
-  async verifyEmail(verifyEmailDto: VerifyEmailDto) {
-    const { email, otp } = verifyEmailDto;
-
-    const user = await this.userRepository.findOne({
-      where: { email },
-      select: [
-        'id',
-        'email',
-        'verificationOtp',
-        'otpExpiration',
-        'emailVerified',
-      ],
-    });
-
-    if (!user) {
-      return this.responseService.sendError(ErrorMessage.USER_NOT_FOUND);
-    }
-
-    if (user.emailVerified) {
-      return this.responseService.sendError(
-        ErrorMessage.EMAIL_ALREADY_VERIFIED,
-      );
-    }
-
-    if (!user.verificationOtp || !user.otpExpiration) {
-      return this.responseService.sendError(
-        ErrorMessage.NO_VERIFICATION_OTP_FOUND,
-      );
-    }
-
-    if (new Date() > user.otpExpiration) {
-      return this.responseService.sendError(ErrorMessage.OTP_HAS_EXPIRED);
-    }
-
-    const isOtpValid = await bcrypt.compare(otp, user.verificationOtp);
-    if (!isOtpValid) {
-      return this.responseService.sendError(ErrorMessage.INVALID_OTP);
-    }
-
-    await this.userRepository.findbyIdAndUpdate(user.id, {
-      emailVerified: true,
-      verificationOtp: null,
-      otpExpiration: null,
-    });
-
-    return this.responseService.sendSuccess(SuccessMessage.EMAIL_VERIFIED);
   }
 
   async changePassword(userId: UUID, changePasswordDto: ChangePasswordDto) {
@@ -196,61 +138,15 @@ export class AuthService {
       );
     }
 
-    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+    const hashedNewPassword = await Util.hash(newPassword);
 
     await this.userRepository.findbyIdAndUpdate(userId, {
       password: hashedNewPassword,
     });
 
-    const userKey = `user:${userId}`;
-    await this.cacheService.del(userKey);
+    await this.cacheService.del(userId);
 
     return this.responseService.sendSuccess(SuccessMessage.PASSWORD_CHANGED);
-  }
-
-  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
-    const { email } = forgotPasswordDto;
-
-    const user = await this.userRepository.findOne({
-      where: { email },
-      select: ['id', 'email', 'firstName'],
-    });
-
-    if (!user) {
-      return this.responseService.sendError(ErrorMessage.USER_NOT_FOUND);
-    }
-
-    const otp = crypto.randomBytes(3).toString('hex');
-    const hashedOtp = await bcrypt.hash(otp, 12);
-
-    const otpExpiration = new Date(Date.now() + 1000 * 60 * 60);
-
-    await this.userRepository.findbyIdAndUpdate(user.id, {
-      passwordResetToken: hashedOtp,
-      passwordResetExpiration: otpExpiration,
-    });
-
-    const emailData: SendEmailDto = {
-      recipients: [{ name: user.firstName, address: user.email }],
-      subject: 'Reset Your Password',
-      html: ``,
-    };
-
-    const context = {
-      name: user.firstName,
-      otp,
-    };
-
-    emailData.html = await renderFile(
-      'src/common/emails/password-reset.ejs',
-      context,
-    );
-
-    await this.mailerService.sendEmail(emailData);
-
-    return this.responseService.sendSuccess(
-      SuccessMessage.PASSWORD_RESET_EMAIL_SENT,
-    );
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
@@ -258,83 +154,37 @@ export class AuthService {
 
     const user = await this.userRepository.findOne({
       where: { email },
-      select: ['id', 'passwordResetToken', 'passwordResetExpiration'],
+      select: ['id'],
     });
 
     if (!user) {
       return this.responseService.sendError(ErrorMessage.USER_NOT_FOUND);
     }
 
-    if (!user.passwordResetToken || !user.passwordResetExpiration) {
-      return this.responseService.sendError(ErrorMessage.INVALID_RESET_TOKEN);
-    }
+    const verificationResponse =
+      await this.verificationService.verifyVerification({
+        intent: VerificationIntent.PASSWORD_UPDATE,
+        entityId: email,
+        verificationData: otp,
+      });
 
-    if (new Date() > user.passwordResetExpiration) {
-      return this.responseService.sendError(ErrorMessage.INVALID_RESET_TOKEN);
-    }
+    if (!verificationResponse.success) return verificationResponse;
 
-    const isOtpValid = await bcrypt.compare(otp, user.passwordResetToken);
-    if (!isOtpValid) {
-      return this.responseService.sendError(ErrorMessage.INVALID_RESET_TOKEN);
-    }
-
-    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+    const hashedNewPassword = await Util.hash(newPassword);
 
     await this.userRepository.findbyIdAndUpdate(user.id, {
       password: hashedNewPassword,
-      passwordResetToken: null,
-      passwordResetExpiration: null,
     });
 
     return this.responseService.sendSuccess(SuccessMessage.PASSWORD_RESET);
   }
 
-  async resendVerificationEmail(resendEmailDto: ResendEmailDto) {
-    const { email } = resendEmailDto;
-
+  async validateUser(
+    identifier: string,
+    password: string,
+  ): Promise<UserProfile | null> {
     const user = await this.userRepository.findOne({
-      where: { email },
-      select: ['id', 'email', 'firstName', 'emailVerified'],
-    });
-
-    if (!user) {
-      return this.responseService.sendError(ErrorMessage.USER_NOT_FOUND);
-    }
-
-    if (user.emailVerified) {
-      return this.responseService.sendError(
-        ErrorMessage.EMAIL_ALREADY_VERIFIED,
-      );
-    }
-
-    const otp = crypto.randomBytes(3).toString('hex');
-    const hashedOtp = await bcrypt.hash(otp, 12);
-
-    await this.userRepository.findbyIdAndUpdate(user.id, {
-      verificationOtp: hashedOtp,
-      otpExpiration: new Date(Date.now() + 1000 * 60 * 5),
-    });
-
-    const emailData: SendEmailDto = {
-      recipients: [{ name: user.firstName, address: user.email }],
-      subject: 'Your New OTP Code',
-      html: ``,
-    };
-
-    const context = { name: user.firstName, otp };
-
-    emailData.html = await renderFile('src/common/emails/OTP.ejs', context);
-
-    await this.mailerService.sendEmail(emailData);
-
-    return this.responseService.sendSuccess(
-      SuccessMessage.EMAIL_VERIFICATION_EMAIL_SENT,
-    );
-  }
-
-  async validateUser(email: string, password: string): Promise<User | null> {
-    const user = await this.userRepository.findOne({
-      where: { email },
+      where: [{ email: identifier }, { phoneNumber: identifier }],
       select: [
         'id',
         'email',
@@ -342,36 +192,20 @@ export class AuthService {
         'firstName',
         'lastName',
         'otherName',
-        'emailVerified',
-        'lastLoggedInAt',
+        'phoneNumber',
+        'avatar',
       ],
       relations: ['status'],
     });
 
-    if (user && (await bcrypt.compare(password, user.password))) {
-      return user;
+    if (!user) return null;
+
+    const passwordsMatch = await Util.verifyHash(user.password, password);
+
+    if (user && passwordsMatch) {
+      return this.userSanitizer.formatUserProfileData(user as UserProfile);
     }
 
     return null;
-  }
-
-  async getProfile(userId: UUID) {
-    const userKey = `user:${userId}`;
-
-    const cachedUser = await this.cacheService.get(userKey);
-
-    if (cachedUser) {
-      return JSON.parse(cachedUser);
-    }
-
-    const user = await this.userRepository.findById(userId);
-    if (user) {
-      await this.cacheService.set(userKey, JSON.stringify(user), 3600);
-    }
-
-    return this.responseService.sendSuccess(
-      SuccessMessage.OPERATION_SUCCESSFUL,
-      user,
-    );
   }
 }

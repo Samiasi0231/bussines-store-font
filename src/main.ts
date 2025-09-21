@@ -1,14 +1,14 @@
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { VersioningType, ValidationPipe, Logger } from '@nestjs/common';
 import { json, urlencoded } from 'express';
-import * as morgan from 'morgan-body';
-import { TrimPipe } from './common/pipes/trim-pipe';
-import { Environment } from './common/constants/environment.constant';
+import morgan from 'morgan-body';
+import { TrimPipe } from './@common/pipes/trim-pipe';
+import { Environment } from './@common/constants/environment.constant';
 import helmet from 'helmet';
 import { ConfigService } from '@nestjs/config';
-import { APIVersion } from './common/constants/api-version.constant';
-import { HttpInterceptor } from './common/interceptors/http.interceptor';
-import { HttpExceptionFilter } from './common/filter/http-exception.filter';
+import { APIVersion } from './@common/constants/api-version.constant';
+import { HttpInterceptor } from './@common/interceptors/http.interceptor';
+import { HttpExceptionFilter } from './@common/filter/http-exception.filter';
 import { AppModule } from './app.module';
 
 async function bootstrap() {

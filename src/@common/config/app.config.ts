@@ -1,0 +1,41 @@
+export default () => ({
+  db: {
+    username: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    name: process.env.DB_NAME,
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT, 10),
+    connectionLimit: process.env.DB_CONNECTION_LIMIT,
+  },
+  jwt: {
+    secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key',
+    expiresIn: process.env.JWT_EXPIRES_IN || '24h',
+  },
+  dojah: {
+    baseUrl: process.env.DOJAH_BASE_URL,
+    headers: {
+      Authorization: `Bearer ${process.env.DOJAH_API_KEY}`,
+      AppId: process.env.DOJAH_APP_ID,
+    },
+    urls: {
+      nin: '/api/v1/kyc/nin?nin=',
+      bvn: '/api/v1/kyc/bvn/full?bvn=',
+    },
+  },
+  aws: {
+    region: process.env.AWS_REGION,
+    serviceKey: process.env.AWS_SERVICE_KEY,
+    secretKey: process.env.AWS_SECRET_KEY,
+  },
+  smtp: {
+    password: process.env.SMTP_PASSWORD,
+    host: process.env.SMTP_HOST,
+    user: process.env.SMTP_USER,
+    port: process.env.SMTP_PORT,
+    service: process.env.SMTP_SERVICE,
+  },
+  appEmail: {
+    name: process.env.SENDER_EMAIL_NAME,
+    address: process.env.SENDER_EMAIL_ADDRESS,
+  },
+});
