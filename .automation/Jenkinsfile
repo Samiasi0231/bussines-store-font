@@ -9,5 +9,8 @@ pipelineTemplate(
     includeToken: true,
     featureDeploys: false,
     skipApproval: false,
-    requireApprovalBranches: "main"
+    requireApprovalBranches: "main",
+    runMigrations: true,
+    migrationCommand: "yarn seed",
+    migrationBranches: "staging",
 )
