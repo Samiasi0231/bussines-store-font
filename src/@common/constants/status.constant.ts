@@ -1,0 +1,14 @@
+export enum Status {
+  ACTIVE = 'active',
+  DELETED = 'deleted',
+  INACTIVE = 'inactive',
+  PENDING = 'pending',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  SUCCESSFUL = 'successful',
+  VERIFIED = 'verified',
+  PROCESSING = 'processing',
+  CANCELLED = 'cancelled',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+}

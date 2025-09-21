@@ -1,20 +1,10 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 import { BaseEntity } from './base.entity';
-
-export enum StatusType {
-  ACTIVE = 'active',
-  DELETED = 'deleted',
-  INACTIVE = 'inactive',
-  PENDING = 'pending',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  SUCCESSFUL = 'successful',
-}
-
+import { Status as StatusType } from '../@common/constants/status.constant';
 @Entity('statuses')
 export class Status extends BaseEntity {
   @PrimaryGeneratedColumn('increment')
-  id?: number;
+  declare id?: number;
 
   @Column({
     type: 'enum',

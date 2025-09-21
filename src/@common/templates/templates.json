@@ -1,0 +1,16 @@
+[
+  {
+    "key": "otp",
+    "email": {
+      "subject": "Your One-Time Password For Verification",
+      "path": "otp"
+    }
+  },
+  {
+    "key": "password-reset",
+    "email": {
+      "subject": "Password Reset",
+      "path": "otp"
+    }
+  }
+]
