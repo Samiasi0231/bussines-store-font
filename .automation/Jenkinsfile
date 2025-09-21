@@ -8,4 +8,6 @@ pipelineTemplate(
     hasEnvFile: "config/.bizvantage-platform.env",
     includeToken: true,
     featureDeploys: false,
+    skipApproval: false,
+    requireApprovalBranches: "main"
 )
