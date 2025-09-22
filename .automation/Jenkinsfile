@@ -1,0 +1,16 @@
+@Library('JenkinsfileLoader') _
+
+pipelineTemplate(
+    artifactRegistryURL: "registry.digitalocean.com/ams-data-registry/bizvantage-platform-api",
+    serviceName: "bizvantage-platform-api",
+    servicePort: "8093",
+    serviceInternalPort: "3000",
+    hasEnvFile: "config/.bizvantage-platform.env",
+    includeToken: true,
+    featureDeploys: false,
+    skipApproval: false,
+    requireApprovalBranches: "main",
+    runMigrations: true,
+    migrationCommand: "yarn seed",
+    migrationBranches: "staging",
+)
