@@ -1,5 +1,5 @@
 export const ErrorMessage = {
-  AN_ERROR_OCCURED: 'Something went wrong. Please try again.',
+  AN_ERROR_OCCURRED: 'Something went wrong. Please try again.',
   USER_NOT_FOUND: 'User not found',
   USER_ALREADY_EXISTS: 'User with this email already exists',
   ACTIVE_STATUS_NOT_FOUND: 'Active status not found',
@@ -36,8 +36,7 @@ export const SuccessMessage = {
   IDENTITY_VERIFICATION: (type: string) => `${type} verified successfully`,
   GENERIC_IDENTITY_VERIFICATION: 'Identity verified successfully',
   OPERATION_SUCCESSFUL: 'Operation successful',
-  USER_REGISTERED:
-    'User registered successfully. Please check your email for verification code.',
+  USER_REGISTERED: 'Signup successful',
   USER_LOGGED_IN: 'User logged in successfully',
   EMAIL_VERIFIED: 'Email verified successfully',
   PASSWORD_CHANGED: 'Password changed successfully',
@@ -46,7 +45,7 @@ export const SuccessMessage = {
   EMAIL_VERIFICATION_EMAIL_SENT: 'Email verification email sent successfully',
   FACE_COMPARISON: 'Faces compared successfully',
   EMAIL_SENT: 'Email sent successfully',
-  SUCCESSFUL_VERIFICATION: ' Verification successful',
+  SUCCESSFUL_VERIFICATION: 'Verification successful',
   INITIATE_VERIFICATION: 'Verification initiated successfully',
 };
 

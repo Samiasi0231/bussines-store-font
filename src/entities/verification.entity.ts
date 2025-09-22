@@ -13,6 +13,7 @@ import {
   VerificationChannel,
   VerificationIntent,
 } from '../@common/constants/verification.constant';
+import { IsNotEmpty } from 'class-validator';
 
 @Entity('verifications')
 export class Verification extends BaseEntity {
@@ -39,7 +40,8 @@ export class Verification extends BaseEntity {
   @Column({ name: 'expires_at', type: 'timestamptz' })
   expiresAt: Date;
 
-  @ManyToOne(() => Status, { eager: true })
+  @ManyToOne(() => Status, { nullable: false, eager: true })
   @JoinColumn({ name: 'status' })
+  @IsNotEmpty()
   status: Status;
 }

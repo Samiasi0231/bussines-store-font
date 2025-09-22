@@ -11,6 +11,7 @@ import { BaseEntity } from './base.entity';
 import { Util } from '../@common/utilities/helpers.utility';
 import { UUID } from 'crypto';
 import { uuidv7 } from 'uuidv7';
+import { IsNotEmpty } from 'class-validator';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -49,8 +50,9 @@ export class User extends BaseEntity {
   @Column({ name: 'date_of_birth', type: 'timestamptz', nullable: true })
   dateOfBirth?: Date;
 
-  @ManyToOne(() => Status, { eager: true })
+  @ManyToOne(() => Status, { nullable: false, eager: true })
   @JoinColumn({ name: 'status' })
+  @IsNotEmpty()
   status: Status;
 
   @Column({ select: false, type: 'varchar' })

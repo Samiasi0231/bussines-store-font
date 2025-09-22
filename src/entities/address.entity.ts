@@ -10,6 +10,7 @@ import { User } from './user.entity';
 import { Kyc } from './kyc.entity';
 import { uuidv7 } from 'uuidv7';
 import { UUID } from 'crypto';
+import { IsNotEmpty } from 'class-validator';
 
 @Entity('addresses')
 export class Address extends BaseEntity {
@@ -38,15 +39,26 @@ export class Address extends BaseEntity {
   })
   buildingNumber: string;
 
-  @ManyToOne(() => User, (user) => user, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'user_id' })
   @Column({ name: 'user_id' })
+  @IsNotEmpty()
   user: User;
 
-  @Column({ name: 'kyc_id' })
+  @Column({
+    nullable: false,
+    name: 'kyc_id',
+  })
   kycId: User;
 
-  @ManyToOne(() => Kyc, (kyc) => kyc, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Kyc, (kyc) => kyc, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
+  @IsNotEmpty()
   @JoinColumn({ name: 'kyc_id' })
   kyc: Kyc;
 }
