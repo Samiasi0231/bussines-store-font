@@ -2,7 +2,6 @@ import { Injectable, HttpStatus } from '@nestjs/common';
 import { UserRepository } from '../repositories/user.repository';
 import { SignupDTO } from './dto/register.dto';
 import { LoginDTO } from './dto/login.dto';
-import bcrypt from 'bcryptjs';
 import { EmailService } from '../notification/services/email.service';
 import { UUID } from 'crypto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -15,7 +14,6 @@ import {
 import { ResponseService } from '../@common/response';
 import { Status } from '../@common/constants/status.constant';
 import { Util } from '../@common/utilities/helpers.utility';
-import { Status as StatusEntity } from '../entities/status.entity';
 import { TokenService } from './token/token.service';
 import { UserService } from '../user/user.service';
 import {
@@ -141,9 +139,9 @@ export class AuthService {
       return this.responseService.sendError(ErrorMessage.USER_NOT_FOUND);
     }
 
-    const isCurrentPasswordValid = await bcrypt.compare(
-      currentPassword,
+    const isCurrentPasswordValid = await Util.verifyHash(
       user.password,
+      currentPassword,
     );
 
     if (!isCurrentPasswordValid) {
