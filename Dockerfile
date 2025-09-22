@@ -25,8 +25,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY yarn.lock ./
 
-# Install only production dependencies
-RUN yarn install --frozen-lockfile --production && yarn cache clean
+# Install ALL dependencies (including dev) temporarily
+RUN yarn install --frozen-lockfile
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
