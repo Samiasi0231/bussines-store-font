@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import {
   InitiateVerificationDTO,
   VerifyVerificationDTO,
@@ -14,13 +14,15 @@ import {
   SuccessMessage,
 } from '../@common/constants/message.constant';
 import { ConfigService } from '@nestjs/config';
-import { Status as StatusEntity } from '../entities/status.entity';
 import {
   VerificationChannel,
   VerificationIntent,
 } from '../@common/constants/verification.constant';
 import { EmailTemplate } from '../@common/constants/email.constant';
 import { EmailService } from '../notification/services/email.service';
+import { StatusRepository } from '../repositories/status.repository';
+import dayjs from 'dayjs';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class VerificationService {
@@ -31,11 +33,13 @@ export class VerificationService {
     private readonly responseService: ResponseService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
+    private readonly statusRepository: StatusRepository,
+    private readonly userService: UserService,
   ) {
     //TODO: move to system settings
     this.DEFAULT_VERIFICATION_EXPIRATION_TIME = this.configService.get<number>(
       'DEFAULT_VERIFICATION_EXPIRATION_TIME',
-      1000 * 60 * 5,
+      60 * 5,
     );
   }
 
@@ -47,15 +51,28 @@ export class VerificationService {
     const verificationCode = this.generateOTPCode();
     const hashedVerificationCode = await Util.hash(verificationCode);
 
+    const pendingStatus = await this.statusRepository.findByName(
+      Status.PENDING,
+    );
+
+    if (!pendingStatus) {
+      //TODO: log error
+      return this.responseService.sendError(
+        ErrorMessage.AN_ERROR_OCCURRED,
+        {},
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
     const verification = await this.verificationRepository.createStrict({
       entityId,
-      status: { name: Status.PENDING } as StatusEntity,
+      status: pendingStatus,
       channel,
       intent,
       verificationData: hashedVerificationCode,
-      expiresAt: new Date(
-        Date.now() + this.DEFAULT_VERIFICATION_EXPIRATION_TIME,
-      ),
+      expiresAt: dayjs()
+        .add(this.DEFAULT_VERIFICATION_EXPIRATION_TIME, 'seconds')
+        .toDate(),
     });
 
     switch (channel) {
@@ -98,11 +115,25 @@ export class VerificationService {
 
     if (compareVerifcationData) {
       await this.verificationRepository.delete(verification.id);
+      await this.processPostVerififcationTasks(intent, entityId);
       return this.responseService.sendSuccess(
         SuccessMessage.SUCCESSFUL_VERIFICATION,
       );
     } else
       return this.responseService.sendError(ErrorMessage.INVALID_VERIFICATION);
+  }
+
+  async processPostVerififcationTasks(
+    intent: VerificationIntent,
+    entityId: string,
+  ) {
+    switch (intent) {
+      case VerificationIntent.EMAIL_ADDRESS:
+        await this.userService.verifyEmail({ email: entityId });
+        break;
+      default:
+        break;
+    }
   }
 
   async sendEmail(
@@ -111,7 +142,7 @@ export class VerificationService {
     verificationData: string,
     firstName = '',
   ) {
-    let templateKey;
+    let templateKey: EmailTemplate;
     switch (intent) {
       case VerificationIntent.PASSWORD_UPDATE:
         templateKey = EmailTemplate.PASSWORD_RESET;

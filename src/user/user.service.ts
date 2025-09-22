@@ -67,4 +67,11 @@ export class UserService {
     if (!data) return null;
     return JSON.parse(await this.cacheService.get(userId));
   }
+
+  async verifyEmail(data: { id?: UUID; email?: string }) {
+    const { email, id } = data;
+    await this.userRepository.update([{ email }, { id }], {
+      emailVerifiedAt: new Date(),
+    });
+  }
 }

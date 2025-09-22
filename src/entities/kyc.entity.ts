@@ -14,6 +14,7 @@ import { uuidv7 } from 'uuidv7';
 import { UUID } from 'crypto';
 import { Address } from './address.entity';
 import { User } from './user.entity';
+import { IsNotEmpty } from 'class-validator';
 
 const VerificationStatus = [
   Status.PENDING,
@@ -40,6 +41,7 @@ export class Kyc extends BaseEntity {
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'user_id' })
   @Column({ name: 'user_id' })
+  @IsNotEmpty()
   user: User | UUID;
 
   @Column({
@@ -49,6 +51,13 @@ export class Kyc extends BaseEntity {
     default: Status.PENDING,
   })
   bvnVerificationStatus?: VerificationStatus;
+
+  @Column({
+    name: 'is_profile_complete',
+    type: 'varchar',
+    default: false,
+  })
+  isProfileComplete?: boolean;
 
   @Column({
     name: 'identity_document_number',

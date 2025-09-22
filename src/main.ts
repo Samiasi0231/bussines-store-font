@@ -1,5 +1,5 @@
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
-import { VersioningType, ValidationPipe, Logger } from '@nestjs/common';
+import { VersioningType, ValidationPipe } from '@nestjs/common';
 import { json, urlencoded } from 'express';
 import morgan from 'morgan-body';
 import { TrimPipe } from './@common/pipes/trim-pipe';
@@ -8,7 +8,6 @@ import helmet from 'helmet';
 import { ConfigService } from '@nestjs/config';
 import { APIVersion } from './@common/constants/api-version.constant';
 import { HttpInterceptor } from './@common/interceptors/http.interceptor';
-import { HttpExceptionFilter } from './@common/filter/http-exception.filter';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -18,7 +17,7 @@ async function bootstrap() {
   const config = app.get(ConfigService);
 
   const ENV = config.get<Environment>('ENV');
-  const logger = new Logger('App');
+  // const logger = new Logger('App');
 
   app.get(HttpAdapterHost);
   app.use(json({ limit: '50mb' }));
@@ -42,7 +41,6 @@ async function bootstrap() {
   });
 
   app.useGlobalInterceptors(new HttpInterceptor());
-  app.useGlobalFilters(new HttpExceptionFilter());
 
   app.useGlobalPipes(new TrimPipe());
   app.useGlobalPipes(
@@ -60,8 +58,9 @@ async function bootstrap() {
     prettify: false,
     filterParameters: LOG_FIELDS_TO_HIDE,
     stream: {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       write: (message: string) => {
-        logger.log(message);
+        // logger.log(message);
         return true;
       },
     },

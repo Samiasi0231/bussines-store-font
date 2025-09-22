@@ -38,7 +38,7 @@ export class ImageRecognitionService implements IImageRecognitionService {
         break;
       default:
         ///TODO: log error
-        throw new BadRequestException(ErrorMessage.AN_ERROR_OCCURED);
+        throw new BadRequestException(ErrorMessage.AN_ERROR_OCCURRED);
     }
 
     return provider;

@@ -11,6 +11,7 @@ import { BaseEntity } from './base.entity';
 import { UUID } from 'crypto';
 import { uuidv7 } from 'uuidv7';
 import { Status } from './status.entity';
+import { IsNotEmpty } from 'class-validator';
 
 type VerificationField = {
   expected: string;
@@ -53,8 +54,12 @@ export class IdentityVerification extends BaseEntity {
   @Column({ name: 'invalid_data', type: 'jsonb', nullable: true })
   invalidData?: IdentityVerificationResult;
 
-  @ManyToOne(() => Status, { eager: true })
+  @ManyToOne(() => Status, {
+    nullable: false,
+    eager: true,
+  })
   @JoinColumn({ name: 'status' })
+  @IsNotEmpty()
   status: Status;
 
   //TODO: add nullable field for approver

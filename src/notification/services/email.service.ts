@@ -69,7 +69,7 @@ export class EmailService {
 
     if (!template) {
       //TODO: log error
-      return this.responseService.sendError(ErrorMessage.AN_ERROR_OCCURED);
+      return this.responseService.sendError(ErrorMessage.AN_ERROR_OCCURRED);
     }
 
     const content = await this.getTemplateContent(
