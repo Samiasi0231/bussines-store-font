@@ -1,11 +1,11 @@
 export enum VerificationChannel {
-  EMAIL = 'EMAIL',
-  PHONE = 'PHONE',
+  EMAIL = 'email',
+  PHONE = 'phone',
 }
 
 export enum VerificationIntent {
-  PHONE_NUMBER = 'PHONE_NUMBER',
-  EMAIL_ADDRESS = 'EMAIL_ADDRESS',
-  PASSWORD_UPDATE = 'PASSWORD_UPDATE',
-  TRANSACTION_PIN = 'TRANSACTION_PIN',
+  PHONE_NUMBER = 'phone_number',
+  EMAIL_ADDRESS = 'email_address',
+  PASSWORD_UPDATE = 'password_update',
+  TRANSACTION_PIN = 'transaction_pin',
 }
