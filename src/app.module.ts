@@ -15,6 +15,7 @@ import { GlobalModule } from './@common/modules/global.module';
 import { VerificationModule } from './verification/verification.module';
 import { ImageRecognitionModule } from './image-recognition/image-recognition.module';
 import { SeederModule } from './seeder/seeder.module';
+import { TerminusModule } from '@nestjs/terminus';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { SeederModule } from './seeder/seeder.module';
     VerificationModule,
     ImageRecognitionModule,
     SeederModule,
+    TerminusModule,
   ],
   controllers: [AppController],
   providers: [
