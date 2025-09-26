@@ -23,7 +23,6 @@ import { UserSanitizer } from '../user/sanitizers/user.sanitizer';
 import { KycRepository } from '../repositories/kyc.repository';
 import { VerificationService } from '../verification/verification.service';
 import { VerificationIntent } from '../@common/constants/verification.constant';
-import { StatusRepository } from '../repositories/status.repository';
 
 @Injectable()
 export class AuthService {
@@ -36,7 +35,6 @@ export class AuthService {
     private readonly userSanitizer: UserSanitizer,
     private readonly kycRepository: KycRepository,
     private readonly verificationService: VerificationService,
-    private readonly statusRepository: StatusRepository,
   ) {}
 
   async register(payload: SignupDTO): Promise<any> {
@@ -63,22 +61,11 @@ export class AuthService {
 
     if (!verificationResponse.success) return verificationResponse;
 
-    const activeStatus = await this.statusRepository.findByName(Status.ACTIVE);
-
-    if (!activeStatus) {
-      //TODO: log error
-      return this.responseService.sendError(
-        ErrorMessage.AN_ERROR_OCCURRED,
-        null,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
     const userData = {
       ...payload,
       password,
       phoneVerifiedAt: new Date(),
-      status: activeStatus,
+      status: Status.ACTIVE,
     };
 
     const user = await this.userRepository.createStrict(userData);

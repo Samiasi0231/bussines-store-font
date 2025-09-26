@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   InitiateVerificationDTO,
   VerifyVerificationDTO,
@@ -20,7 +20,6 @@ import {
 } from '../@common/constants/verification.constant';
 import { EmailTemplate } from '../@common/constants/email.constant';
 import { EmailService } from '../notification/services/email.service';
-import { StatusRepository } from '../repositories/status.repository';
 import dayjs from 'dayjs';
 import { UserService } from '../user/user.service';
 
@@ -33,7 +32,6 @@ export class VerificationService {
     private readonly responseService: ResponseService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
-    private readonly statusRepository: StatusRepository,
     private readonly userService: UserService,
   ) {
     //TODO: move to system settings
@@ -51,22 +49,9 @@ export class VerificationService {
     const verificationCode = this.generateOTPCode();
     const hashedVerificationCode = await Util.hash(verificationCode);
 
-    const pendingStatus = await this.statusRepository.findByName(
-      Status.PENDING,
-    );
-
-    if (!pendingStatus) {
-      //TODO: log error
-      return this.responseService.sendError(
-        ErrorMessage.AN_ERROR_OCCURRED,
-        {},
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
     const verification = await this.verificationRepository.createStrict({
       entityId,
-      status: pendingStatus,
+      status: Status.PENDING,
       channel,
       intent,
       verificationData: hashedVerificationCode,
@@ -95,7 +80,7 @@ export class VerificationService {
     const { intent, entityId, verificationData } = data;
 
     const verification = await this.verificationRepository.findOne({
-      where: { entityId, intent, status: { name: Status.PENDING } },
+      where: { entityId, intent, status: Status.PENDING },
       order: { createdAt: 'DESC' },
     });
 

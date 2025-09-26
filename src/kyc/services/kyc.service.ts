@@ -29,7 +29,6 @@ import { User } from '../../entities/user.entity';
 import { ImageRecognitionService } from '../../image-recognition/services/image-recognition.service';
 import { KycRepository } from '../../repositories/kyc.repository';
 import { Tier } from '../../@common/constants/tier.constant';
-import { StatusRepository } from '../../repositories/status.repository';
 
 @Injectable()
 export class KycService {
@@ -46,7 +45,6 @@ export class KycService {
     private readonly identityVerificationRepository: IdentityVerificationRepository,
     private readonly imageRecognitionService: ImageRecognitionService,
     private readonly kycRepository: KycRepository,
-    private readonly statusRepository: StatusRepository,
   ) {
     this.logger = new Logger(KycService.name);
     //TODO: move to system settings
@@ -108,21 +106,10 @@ export class KycService {
       providerResponse: response.data?.providerResponse,
     };
 
-    const failedStatus = await this.statusRepository.findByName(Status.FAILED);
-
-    if (!failedStatus) {
-      //TODO: log error
-      return this.responseService.sendError(
-        ErrorMessage.AN_ERROR_OCCURRED,
-        null,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
     if (!response.success) {
       await this.identityVerificationRepository.createStrict({
         ...baseIdentityVerificationData,
-        status: failedStatus,
+        status: Status.FAILED,
       });
       return response;
     }
@@ -156,7 +143,7 @@ export class KycService {
     if (namesMismatch || dobMismatch) {
       await this.identityVerificationRepository.createStrict({
         ...baseIdentityVerificationData,
-        status: failedStatus,
+        status: Status.FAILED,
         invalidData: {
           ...(namesMismatch && {
             name: {
@@ -197,22 +184,9 @@ export class KycService {
         );
     }
 
-    const verifiedStatus = await this.statusRepository.findByName(
-      Status.VERIFIED,
-    );
-
-    if (!verifiedStatus) {
-      //TODO: log error
-      return this.responseService.sendError(
-        ErrorMessage.AN_ERROR_OCCURRED,
-        null,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
     await this.identityVerificationRepository.createStrict({
       ...baseIdentityVerificationData,
-      status: verifiedStatus,
+      status: Status.VERIFIED,
     });
 
     const providerImage = responseData.imageBase64;
@@ -333,43 +307,19 @@ export class KycService {
         ?.providerResponse as unknown as Record<string, unknown>,
     };
 
-    const failedStatus = await this.statusRepository.findByName(Status.FAILED);
-
-    if (!failedStatus) {
-      //TODO: log error
-      return this.responseService.sendError(
-        ErrorMessage.AN_ERROR_OCCURRED,
-        null,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
     if (!faceComparisonResponse.success) {
       await this.identityVerificationRepository.createStrict({
         ...baseIdentityVerificationData,
         invalidData: { face: { expected: sourceImage, provided: targetImage } },
-        status: failedStatus,
+        status: Status.FAILED,
       });
 
       return faceComparisonResponse;
     }
 
-    const verifiedStatus = await this.statusRepository.findByName(
-      Status.VERIFIED,
-    );
-
-    if (!verifiedStatus) {
-      //TODO: log error
-      return this.responseService.sendError(
-        ErrorMessage.AN_ERROR_OCCURRED,
-        null,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
     await this.identityVerificationRepository.createStrict({
       ...baseIdentityVerificationData,
-      status: verifiedStatus,
+      status: Status.VERIFIED,
     });
 
     return faceComparisonResponse;

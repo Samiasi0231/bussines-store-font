@@ -1,17 +1,9 @@
-import {
-  Entity,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  BeforeInsert,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
-import { Status } from './status.entity';
+import { Entity, Column, BeforeInsert, PrimaryGeneratedColumn } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Util } from '../@common/utilities/helpers.utility';
 import { UUID } from 'crypto';
 import { uuidv7 } from 'uuidv7';
-import { IsNotEmpty } from 'class-validator';
+import { Status } from '../@common/constants/status.constant';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -50,9 +42,7 @@ export class User extends BaseEntity {
   @Column({ name: 'date_of_birth', type: 'timestamptz', nullable: true })
   dateOfBirth?: Date;
 
-  @ManyToOne(() => Status, { nullable: false, eager: true })
-  @JoinColumn({ name: 'status' })
-  @IsNotEmpty()
+  @Column({ type: 'enum', enum: Status, default: Status.ACTIVE })
   status: Status;
 
   @Column({ select: false, type: 'varchar' })

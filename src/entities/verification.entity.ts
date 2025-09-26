@@ -1,19 +1,12 @@
 import { UUID } from 'crypto';
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  JoinColumn,
-  ManyToOne,
-} from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 import { uuidv7 } from 'uuidv7';
 import { BaseEntity } from './base.entity';
-import { Status } from './status.entity';
 import {
   VerificationChannel,
   VerificationIntent,
 } from '../@common/constants/verification.constant';
-import { IsNotEmpty } from 'class-validator';
+import { Status } from '../@common/constants/status.constant';
 
 @Entity('verifications')
 export class Verification extends BaseEntity {
@@ -40,8 +33,6 @@ export class Verification extends BaseEntity {
   @Column({ name: 'expires_at', type: 'timestamptz' })
   expiresAt: Date;
 
-  @ManyToOne(() => Status, { nullable: false, eager: true })
-  @JoinColumn({ name: 'status' })
-  @IsNotEmpty()
+  @Column({ type: 'enum', enum: Status, default: Status.ACTIVE })
   status: Status;
 }
