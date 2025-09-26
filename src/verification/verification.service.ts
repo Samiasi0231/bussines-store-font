@@ -147,7 +147,6 @@ export class VerificationService {
       case VerificationIntent.PASSWORD_UPDATE:
         templateKey = EmailTemplate.PASSWORD_RESET;
         break;
-
       default:
         templateKey = EmailTemplate.OTP;
         break;

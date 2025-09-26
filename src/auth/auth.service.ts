@@ -2,7 +2,6 @@ import { Injectable, HttpStatus } from '@nestjs/common';
 import { UserRepository } from '../repositories/user.repository';
 import { SignupDTO } from './dto/register.dto';
 import { LoginDTO } from './dto/login.dto';
-import { EmailService } from '../notification/services/email.service';
 import { UUID } from 'crypto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -31,7 +30,6 @@ export class AuthService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly tokenService: TokenService,
-    private readonly mailerService: EmailService,
     private readonly cacheService: CacheService,
     private readonly responseService: ResponseService,
     private readonly userService: UserService,
@@ -87,9 +85,13 @@ export class AuthService {
 
     await this.kycRepository.createStrict({ user: user.id });
 
-    return this.responseService.sendSuccess(SuccessMessage.USER_REGISTERED, {
-      id: user.id,
-    });
+    return this.responseService.sendSuccess(
+      SuccessMessage.USER_REGISTERED,
+      {
+        id: user.id,
+      },
+      HttpStatus.CREATED,
+    );
   }
 
   async login(loginDto: LoginDTO) {
@@ -111,19 +113,19 @@ export class AuthService {
     const { accessToken, hashedAccessToken } =
       await this.tokenService.generateJWTToken(userId);
 
-    const userData = {
-      accessToken,
-      user,
-    };
-
     await this.userService.cacheUserData({
       ...user,
       hashedAccessToken,
     } as CachedUserProfileData);
 
+    const data = {
+      accessToken,
+      id: user.id,
+    };
+
     return this.responseService.sendSuccess(
       SuccessMessage.USER_LOGGED_IN,
-      userData,
+      data,
     );
   }
 
@@ -162,10 +164,10 @@ export class AuthService {
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
-    const { otp, newPassword, email } = resetPasswordDto;
+    const { otp, newPassword, phone: phoneNumber } = resetPasswordDto;
 
     const user = await this.userRepository.findOne({
-      where: { email },
+      where: { phoneNumber },
       select: ['id'],
     });
 
@@ -176,7 +178,7 @@ export class AuthService {
     const verificationResponse =
       await this.verificationService.verifyVerification({
         intent: VerificationIntent.PASSWORD_UPDATE,
-        entityId: email,
+        entityId: phoneNumber,
         verificationData: otp,
       });
 

@@ -9,14 +9,19 @@ import {
   SuccessMessage,
   ErrorMessage,
 } from '../@common/constants/message.constant';
+import { EditUserProfileDTO, UpdateUserProfileDTO } from './dtos/user.dto';
+import { KycRepository } from '../repositories/kyc.repository';
+import { DbTransactionManager } from '../@common/database/database-transaction.manager';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
+    private readonly kycRepository: KycRepository,
     private readonly userSanitizer: UserSanitizer,
     private readonly cacheService: CacheService,
     private readonly responseService: ResponseService,
+    private readonly dbTransactionManager: DbTransactionManager,
   ) {}
 
   async getProfile(userId: UUID) {
@@ -45,7 +50,7 @@ export class UserService {
     );
   }
 
-  async cacheUserData(data: CachedUserProfileData) {
+  async cacheUserData(data: CachedUserProfileData, ttl = 3600) {
     const { containsCompleteData = false, hashedAccessToken } = data;
     const userId = data.id as string;
     const userData = this.userSanitizer.formatUserProfileData(data);
@@ -57,6 +62,7 @@ export class UserService {
         containsCompleteData,
         hashedAccessToken,
       }),
+      ttl,
     );
   }
 
@@ -73,5 +79,37 @@ export class UserService {
     await this.userRepository.update([{ email }, { id }], {
       emailVerifiedAt: new Date(),
     });
+  }
+
+  async updateProfile(
+    data: (EditUserProfileDTO | UpdateUserProfileDTO) & { userId: UUID },
+  ) {
+    const { userId, ...update } = data;
+
+    await this.dbTransactionManager.transaction(
+      async (manager: DbTransactionManager) => {
+        const entityManager = manager.entityManager;
+        const user = await this.userRepository
+          .withManager(entityManager)
+          .findbyIdAndUpdate(userId, update);
+
+        const isProfileComplete = !!(
+          user.firstName &&
+          user.lastName &&
+          user.dateOfBirth &&
+          user.phoneVerifiedAt
+        );
+
+        if (isProfileComplete)
+          await this.kycRepository
+            .withManager(entityManager)
+            .update({ user: userId }, { isProfileComplete });
+      },
+    );
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      { id: userId },
+    );
   }
 }

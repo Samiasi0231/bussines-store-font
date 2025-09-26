@@ -4,15 +4,10 @@ import { VerificationController } from './verification.controller';
 import { VerificationRepository } from '../repositories/verification.repository';
 import { Verification } from '../entities/verification.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { NotificationModule } from '../notification/notification.module';
 import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Verification]),
-    NotificationModule,
-    UserModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Verification]), UserModule],
   controllers: [VerificationController],
   providers: [VerificationService, VerificationRepository],
 })

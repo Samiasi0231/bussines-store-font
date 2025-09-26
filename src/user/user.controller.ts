@@ -1,16 +1,34 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Put, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserProfile } from './interfaces/user.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { User } from '../@common/decorators/user.decorator';
+import { EditUserProfileDTO, UpdateUserProfileDTO } from './dtos/user.dto';
+import { use } from 'passport';
 
 @Controller('users')
+@UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@User() user: UserProfile) {
-    return await this.userService.getProfile(user.id);
+    return this.userService.getProfile(user.id);
+  }
+
+  @Patch('profile/edit')
+  async editProfile(
+    @User() user: UserProfile,
+    @Body() body: EditUserProfileDTO,
+  ) {
+    return this.userService.updateProfile({ ...body, userId: user.id });
+  }
+
+  @Patch('profile')
+  async updateProfile(
+    @User() user: UserProfile,
+    @Body() body: UpdateUserProfileDTO,
+  ) {
+    return this.userService.updateProfile({ ...body, userId: user.id });
   }
 }

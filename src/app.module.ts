@@ -12,7 +12,6 @@ import { KycModule } from './kyc/kyc.module';
 import appConfig from './@common/config/app.config';
 import { GlobalModule } from './@common/modules/global.module';
 import { VerificationModule } from './verification/verification.module';
-import { ImageRecognitionModule } from './image-recognition/image-recognition.module';
 import { SeederModule } from './seeder/seeder.module';
 import { TerminusModule } from '@nestjs/terminus';
 import { AllExceptionsFilter } from './@common/filter/all-exceptions.filter';
@@ -54,7 +53,6 @@ import { AllExceptionsFilter } from './@common/filter/all-exceptions.filter';
     GlobalModule,
     KycModule,
     VerificationModule,
-    ImageRecognitionModule,
     SeederModule,
     TerminusModule,
   ],

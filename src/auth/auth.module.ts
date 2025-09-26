@@ -9,7 +9,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { User } from '../entities/user.entity';
 import { UserRepository } from '../repositories/user.repository';
-import { NotificationModule } from '../notification/notification.module';
 import { TokenService } from './token/token.service';
 import { UserSanitizer } from '../user/sanitizers/user.sanitizer';
 import { UserService } from '../user/user.service';
@@ -33,7 +32,6 @@ import { Verification } from '../entities/verification.entity';
       }),
     }),
     TypeOrmModule.forFeature([User, Kyc, Verification]),
-    NotificationModule,
   ],
   controllers: [AuthController],
   providers: [

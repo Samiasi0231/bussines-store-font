@@ -28,6 +28,7 @@ export const ErrorMessage = {
   INVALID_TEMPLATE: 'Invalid template',
   INVALID_VERIFICATION: 'Invalid verification code',
   EXPIRED_VERIFICATION: 'This verification code has expired',
+  DB_TRANSACTION_ALREADY_STARTED: 'Transaction already started',
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];

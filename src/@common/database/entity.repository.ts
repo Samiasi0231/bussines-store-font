@@ -1,10 +1,19 @@
 import { UUID } from 'crypto';
-import { DeepPartial, FindOptionsRelations, Repository } from 'typeorm';
+import {
+  DeepPartial,
+  EntityManager,
+  FindOptionsRelations,
+  Repository,
+} from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity.js';
 
 export class EntityRepository<T> extends Repository<T> {
   constructor(repo: Repository<T>) {
     super(repo.target, repo.manager, repo.queryRunner);
+  }
+
+  withManager(manager: EntityManager): EntityRepository<T> {
+    return new EntityRepository<T>(manager.getRepository<T>(this.target));
   }
 
   async createStrict(
