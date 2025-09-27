@@ -20,6 +20,7 @@ import {
 } from '../../@common/constants/message.constant';
 import { handleHttpError } from '../../@common/utilities/error-handling.utility';
 import { Gender } from '../../@common/constants/gender.constant';
+import { Util } from '../../@common/utilities/helpers.utility';
 
 @Injectable()
 export class DojahService implements IIdentityService {
@@ -32,7 +33,7 @@ export class DojahService implements IIdentityService {
     private response: ResponseService,
   ) {
     this.baseURL = this.configService.get('dojah.baseUrl');
-    this.headers = this.configService.get('dojah.authorization');
+    this.headers = this.configService.get('dojah.headers');
   }
 
   private getServiceUrl(type: IdentityVerificationType) {
@@ -43,33 +44,64 @@ export class DojahService implements IIdentityService {
     payload: VerifyBvnRequest,
   ): Promise<IResponse<VerifyBvnResponseData>> {
     const verificationType = IdentityVerificationType.BVN;
-    const { data: response } = await this.httpClient.axiosRef
-      .get<DojahBvnResponseData>(
-        `${this.baseURL}${this.getServiceUrl(verificationType)}${payload.bvn}`,
+
+    if (!Util.isProduction()) {
+      if (payload.bvn.includes('111')) {
+        return this.response.sendError(
+          ErrorMessage.IDENTITY_VERIFICATION(verificationType),
+        );
+      }
+    }
+
+    const VALID_TEST_BVN = '22222222222';
+
+    const bvn =
+      Util.isProduction() ||
+      (!Util.isProduction() && payload.bvn.includes('000'))
+        ? payload.bvn
+        : VALID_TEST_BVN;
+
+    const httpResponse = await this.httpClient.axiosRef
+      .get<IResponse<DojahBvnResponseData>>(
+        `${this.baseURL}${this.getServiceUrl(verificationType)}${bvn}`,
         {
           headers: this.headers,
         },
       )
-      .catch((error) => handleHttpError(error));
+      .catch((error) => {
+        const handledError = handleHttpError(error);
+        return {
+          ...handledError,
+          data: {
+            message: handledError.message,
+          } as any,
+        };
+      });
 
-    if (response.status !== 200) {
+    const response = httpResponse.data;
+
+    if (httpResponse.status === 404) {
+      return this.response.sendError(ErrorMessage.INVALID_BVN, {
+        providerResponse: response,
+      } as VerifyBvnResponseData);
+    }
+
+    if (httpResponse.status !== 200) {
       return this.response.sendError(
         ErrorMessage.IDENTITY_VERIFICATION(verificationType),
         { providerResponse: response } as VerifyBvnResponseData,
       );
     }
 
-    const responseData = response.data;
-
     const data = {
       bvn: payload.bvn,
-      firstName: responseData?.entity?.first_name,
-      lastName: responseData?.entity?.last_name,
-      middleName: responseData?.entity?.middle_name,
-      phoneNumber: responseData?.entity?.phone_number1,
-      dateOfBirth: responseData?.entity?.date_of_birth,
+      firstName: response?.entity?.first_name,
+      lastName: response?.entity?.last_name,
+      middleName: response?.entity?.middle_name,
+      phoneNumber: response?.entity?.phone_number1,
+      dateOfBirth: response?.entity?.date_of_birth,
       gender:
-        String(responseData?.entity?.gender).toLowerCase() === 'male'
+        String(response?.entity?.gender).toLowerCase() === 'male'
           ? Gender.MALE
           : Gender.FEMALE,
       providerResponse: response,
@@ -85,32 +117,68 @@ export class DojahService implements IIdentityService {
     payload: VerifyNINRequest,
   ): Promise<IResponse<VerifyNINResponseData>> {
     const verificationType = IdentityVerificationType.NIN;
-    const { data: response } = await this.httpClient.axiosRef
-      .get<DojahNinResponseData>(
-        `${this.baseURL}${this.getServiceUrl(verificationType)}${payload.nin}`,
+
+    if (!Util.isProduction()) {
+      if (payload.nin.includes('111')) {
+        return this.response.sendError(
+          ErrorMessage.IDENTITY_VERIFICATION(verificationType),
+        );
+      }
+    }
+
+    const VALID_TEST_NIN = '70123456789';
+
+    const nin =
+      Util.isProduction() ||
+      (!Util.isProduction() && payload.nin.includes('000'))
+        ? payload.nin
+        : VALID_TEST_NIN;
+
+    const httpResponse = await this.httpClient.axiosRef
+      .get<IResponse<DojahNinResponseData>>(
+        `${this.baseURL}${this.getServiceUrl(verificationType)}${nin}`,
         {
           headers: this.headers,
         },
       )
-      .catch((error) => handleHttpError(error));
+      .catch((error) => {
+        const handledError = handleHttpError(error);
+        return {
+          ...handledError,
+          data: {
+            message: handledError.message,
+          } as any,
+        };
+      });
 
-    if (response.status !== 200) {
+    const response = httpResponse.data;
+
+    if (httpResponse.status === 404) {
+      return this.response.sendError(
+        ErrorMessage.INVALID_NIN ||
+          ErrorMessage.IDENTITY_VERIFICATION(verificationType),
+        { providerResponse: response } as VerifyNINResponseData,
+      );
+    }
+
+    if (httpResponse.status !== 200) {
       return this.response.sendError(
         ErrorMessage.IDENTITY_VERIFICATION(verificationType),
       );
     }
 
-    const responseData = response.data;
-
     const data = {
-      nin: payload.nin,
-      firstName: responseData?.entity?.first_name,
-      lastName: responseData?.entity?.last_name,
-      middleName: responseData?.entity?.middle_name,
-      phoneNumber: responseData?.entity?.phone_number,
-      dateOfBirth: responseData?.entity?.date_of_birth,
+      nin:
+        !Util.isProduction() && payload.nin.includes('000')
+          ? payload.nin
+          : VALID_TEST_NIN,
+      firstName: response?.entity?.first_name,
+      lastName: response?.entity?.last_name,
+      middleName: response?.entity?.middle_name,
+      phoneNumber: response?.entity?.phone_number,
+      dateOfBirth: response?.entity?.date_of_birth,
       gender:
-        String(responseData?.entity?.gender).toLowerCase() === 'male'
+        String(response?.entity?.gender).toLowerCase() === 'male'
           ? Gender.MALE
           : Gender.FEMALE,
       providerResponse: response,

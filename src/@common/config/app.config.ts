@@ -15,7 +15,7 @@ export default () => ({
   dojah: {
     baseUrl: process.env.DOJAH_BASE_URL,
     headers: {
-      Authorization: `Bearer ${process.env.DOJAH_API_KEY}`,
+      Authorization: process.env.DOJAH_API_KEY,
       AppId: process.env.DOJAH_APP_ID,
     },
     urls: {

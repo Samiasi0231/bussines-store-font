@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { UserRepository } from '../repositories/user.repository';
 import { UserSanitizer } from './sanitizers/user.sanitizer';
 import { CacheService } from '../@common/cache/cache.service';
-import { CachedUserProfileData } from './interfaces/user.interface';
+import {
+  CachedUserProfileData,
+  UserDataForProfile,
+} from './interfaces/user.interface';
 import { ResponseService } from '../@common/response';
 import { UUID } from 'crypto';
 import {
@@ -12,6 +15,9 @@ import {
 import { EditUserProfileDTO, UpdateUserProfileDTO } from './dtos/user.dto';
 import { KycRepository } from '../repositories/kyc.repository';
 import { DbTransactionManager } from '../@common/database/database-transaction.manager';
+import { Kyc } from '../entities/kyc.entity';
+import { WalletService } from '../wallet/wallet.service';
+import { Tier } from '../@common/constants/tier.constant';
 
 @Injectable()
 export class UserService {
@@ -22,14 +28,17 @@ export class UserService {
     private readonly cacheService: CacheService,
     private readonly responseService: ResponseService,
     private readonly dbTransactionManager: DbTransactionManager,
+    private readonly walletService: WalletService,
   ) {}
 
   async getProfile(userId: UUID) {
     const cachedUser = await this.getCachedUserData(userId);
 
-    if (cachedUser && cachedUser.containsCompleteData) {
+    if (cachedUser) {
+      const data = this.userSanitizer.sanitizeCachedUserData(cachedUser);
       return this.responseService.sendSuccess(
         SuccessMessage.OPERATION_SUCCESSFUL,
+        data,
       );
     }
 
@@ -38,28 +47,34 @@ export class UserService {
     if (!user)
       return this.responseService.sendError(ErrorMessage.USER_NOT_FOUND);
 
-    await this.cacheUserData({
-      ...user,
-      containsCompleteData: true,
-      hashedAccessToken: cachedUser?.hashedAccessToken,
-    } as CachedUserProfileData);
+    const kyc = await this.kycRepository.findByUserId(user.id);
+
+    const data = this.userSanitizer.formatUserProfileData(
+      user as UserDataForProfile,
+      kyc,
+    );
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
-      user,
+      data,
     );
   }
 
-  async cacheUserData(data: CachedUserProfileData, ttl = 3600) {
-    const { containsCompleteData = false, hashedAccessToken } = data;
-    const userId = data.id as string;
-    const userData = this.userSanitizer.formatUserProfileData(data);
+  async cacheUserData(
+    userData: UserDataForProfile & {
+      hashedAccessToken: string;
+    },
+    kyc: Kyc,
+    ttl = 3600,
+  ) {
+    const { hashedAccessToken } = userData;
+    const userId = userData.id as string;
+    const data = this.userSanitizer.formatUserProfileData(userData, kyc);
 
     await this.cacheService.set(
       userId,
       JSON.stringify({
-        ...userData,
-        containsCompleteData,
+        ...data,
         hashedAccessToken,
       }),
       ttl,
@@ -86,26 +101,31 @@ export class UserService {
   ) {
     const { userId, ...update } = data;
 
-    await this.dbTransactionManager.transaction(
-      async (manager: DbTransactionManager) => {
-        const entityManager = manager.entityManager;
-        const user = await this.userRepository
+    await this.dbTransactionManager.transaction(async (manager) => {
+      const entityManager = manager.entityManager;
+      const user = await this.userRepository
+        .withManager(entityManager)
+        .findbyIdAndUpdate(userId, update);
+
+      const isProfileComplete = !!(
+        user.firstName &&
+        user.lastName &&
+        user.dateOfBirth &&
+        user.phoneVerifiedAt
+      );
+
+      if (isProfileComplete) {
+        await this.walletService.setWalletLimits({
+          userId,
+          entityManager,
+          tier: Tier.ONE,
+        });
+
+        await this.kycRepository
           .withManager(entityManager)
-          .findbyIdAndUpdate(userId, update);
-
-        const isProfileComplete = !!(
-          user.firstName &&
-          user.lastName &&
-          user.dateOfBirth &&
-          user.phoneVerifiedAt
-        );
-
-        if (isProfileComplete)
-          await this.kycRepository
-            .withManager(entityManager)
-            .update({ user: userId }, { isProfileComplete });
-      },
-    );
+          .update({ user: userId }, { isProfileComplete });
+      }
+    });
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,

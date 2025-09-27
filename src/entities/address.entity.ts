@@ -33,6 +33,14 @@ export class Address extends BaseEntity {
   street: string;
 
   @Column({
+    name: 'utility_bill',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
+  utilityBill: string;
+
+  @Column({
     name: 'building_number',
     type: 'varchar',
     length: 50,
@@ -46,13 +54,13 @@ export class Address extends BaseEntity {
   @JoinColumn({ name: 'user_id' })
   @Column({ name: 'user_id' })
   @IsNotEmpty()
-  user: User;
+  user: User | UUID;
 
   @Column({
     nullable: false,
     name: 'kyc_id',
   })
-  kycId: User;
+  kycId: UUID;
 
   @ManyToOne(() => Kyc, (kyc) => kyc, {
     nullable: false,
@@ -60,5 +68,5 @@ export class Address extends BaseEntity {
   })
   @IsNotEmpty()
   @JoinColumn({ name: 'kyc_id' })
-  kyc: Kyc;
+  kyc?: Kyc;
 }

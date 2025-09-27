@@ -1,17 +1,13 @@
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { forwardRef, Module } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
-import { User } from '../entities/user.entity';
-import { UserRepository } from '../repositories/user.repository';
 import { UserSanitizer } from './sanitizers/user.sanitizer';
-import { KycRepository } from '../repositories/kyc.repository';
-import { Kyc } from '../entities/kyc.entity';
+import { WalletModule } from '../wallet/wallet.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Kyc])],
+  imports: [forwardRef(() => WalletModule)],
   controllers: [UserController],
-  providers: [UserService, UserRepository, UserSanitizer, KycRepository],
-  exports: [UserService, UserRepository, UserSanitizer],
+  providers: [UserService, UserSanitizer],
+  exports: [UserService, UserSanitizer],
 })
 export class UserModule {}

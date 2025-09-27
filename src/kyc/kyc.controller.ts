@@ -9,6 +9,7 @@ import { User } from '../@common/decorators/user.decorator';
 import { UserProfile } from '../user/interfaces/user.interface';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { IResponse } from '../@common/response';
+import { AddressVerificationDTO } from './dtos/address.dto';
 
 @Controller('kyc')
 @UseGuards(JwtAuthGuard)
@@ -25,6 +26,17 @@ export class KycController {
     >
   > {
     return this.kycService.verifyIdentity({
+      ...body,
+      userId: user.id,
+    });
+  }
+
+  @Post('address')
+  async submitAddress(
+    @Body() body: AddressVerificationDTO,
+    @User() user: UserProfile,
+  ) {
+    return this.kycService.submitAddress({
       ...body,
       userId: user.id,
     });

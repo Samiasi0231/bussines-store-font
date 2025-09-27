@@ -1,18 +1,36 @@
 import { Injectable } from '@nestjs/common';
-import { UserProfile } from '../interfaces/user.interface';
+import {
+  CachedUserProfileData,
+  UserDataForProfile,
+  UserProfile,
+} from '../interfaces/user.interface';
+import { Kyc } from '../../entities/kyc.entity';
+import { Status } from '../../@common/constants/status.constant';
 
 @Injectable()
 export class UserSanitizer {
   constructor() {}
 
-  formatUserProfileData(data: UserProfile): UserProfile {
+  formatUserProfileData(userData: UserDataForProfile, kyc: Kyc): UserProfile {
     return {
-      firstName: data.firstName,
-      id: data.id,
-      lastName: data.lastName,
-      email: data.email,
-      phoneNumber: data.phoneNumber,
-      avatar: data.avatar,
+      firstName: userData.firstName,
+      id: userData.id,
+      lastName: userData.lastName,
+      email: userData.email,
+      phoneNumber: userData.phoneNumber,
+      avatar: userData.avatar,
+      tier: kyc.tier,
+      bvnVerified: kyc.bvnVerificationStatus === Status.VERIFIED,
+      nonBvnIdentityDocumentVerified:
+        kyc.identityVerificationStatus === Status.VERIFIED,
+      identityVerified: kyc.identityVerificationStatus === Status.VERIFIED,
+      isProfileComplete: kyc.isProfileComplete,
+      addressVerified: kyc.addressVerificationStatus === Status.VERIFIED,
     };
+  }
+
+  sanitizeCachedUserData(data: CachedUserProfileData): UserProfile {
+    delete data.hashedAccessToken;
+    return data;
   }
 }

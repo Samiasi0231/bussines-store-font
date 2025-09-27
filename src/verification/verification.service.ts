@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import {
   InitiateVerificationDTO,
   VerifyVerificationDTO,
@@ -32,6 +32,7 @@ export class VerificationService {
     private readonly responseService: ResponseService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
   ) {
     //TODO: move to system settings
@@ -81,7 +82,7 @@ export class VerificationService {
 
     const verification = await this.verificationRepository.findOne({
       where: { entityId, intent, status: Status.PENDING },
-      order: { createdAt: 'DESC' },
+      order: { createdAt: 'desc' },
     });
 
     if (!verification)

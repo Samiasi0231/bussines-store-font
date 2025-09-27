@@ -15,6 +15,7 @@ import { VerificationModule } from './verification/verification.module';
 import { SeederModule } from './seeder/seeder.module';
 import { TerminusModule } from '@nestjs/terminus';
 import { AllExceptionsFilter } from './@common/filter/all-exceptions.filter';
+import { WalletModule } from './wallet/wallet.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { AllExceptionsFilter } from './@common/filter/all-exceptions.filter';
     VerificationModule,
     SeederModule,
     TerminusModule,
+    WalletModule,
   ],
   controllers: [AppController],
   providers: [

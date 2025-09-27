@@ -15,14 +15,12 @@ import { Status } from '../@common/constants/status.constant';
 import { Util } from '../@common/utilities/helpers.utility';
 import { TokenService } from './token/token.service';
 import { UserService } from '../user/user.service';
-import {
-  CachedUserProfileData,
-  UserProfile,
-} from '../user/interfaces/user.interface';
-import { UserSanitizer } from '../user/sanitizers/user.sanitizer';
 import { KycRepository } from '../repositories/kyc.repository';
 import { VerificationService } from '../verification/verification.service';
 import { VerificationIntent } from '../@common/constants/verification.constant';
+import { DbTransactionManager } from '../@common/database/database-transaction.manager';
+import { User } from '../entities/user.entity';
+import { WalletRepository } from '../repositories/wallet.repository';
 
 @Injectable()
 export class AuthService {
@@ -32,9 +30,10 @@ export class AuthService {
     private readonly cacheService: CacheService,
     private readonly responseService: ResponseService,
     private readonly userService: UserService,
-    private readonly userSanitizer: UserSanitizer,
     private readonly kycRepository: KycRepository,
     private readonly verificationService: VerificationService,
+    private readonly dbTransactionManager: DbTransactionManager,
+    private readonly walletRepository: WalletRepository,
   ) {}
 
   async register(payload: SignupDTO): Promise<any> {
@@ -68,9 +67,24 @@ export class AuthService {
       status: Status.ACTIVE,
     };
 
-    const user = await this.userRepository.createStrict(userData);
+    const user = await this.dbTransactionManager.transaction<User>(
+      async (manager) => {
+        const entityManager = manager.entityManager;
+        const user = await this.userRepository
+          .withManager(entityManager)
+          .createStrict(userData);
 
-    await this.kycRepository.createStrict({ user: user.id });
+        await this.kycRepository
+          .withManager(entityManager)
+          .createStrict({ user: user.id });
+
+        await this.walletRepository
+          .withManager(entityManager)
+          .createStrict({ user: user.id });
+
+        return user;
+      },
+    );
 
     return this.responseService.sendSuccess(
       SuccessMessage.USER_REGISTERED,
@@ -95,15 +109,20 @@ export class AuthService {
       lastLoggedInAt: new Date(),
     });
 
+    const kyc = await this.kycRepository.findByUserId(user.id);
+
     const userId = user.id;
 
     const { accessToken, hashedAccessToken } =
       await this.tokenService.generateJWTToken(userId);
 
-    await this.userService.cacheUserData({
-      ...user,
-      hashedAccessToken,
-    } as CachedUserProfileData);
+    await this.userService.cacheUserData(
+      {
+        ...user,
+        hashedAccessToken,
+      } as any,
+      kyc,
+    );
 
     const data = {
       accessToken,
@@ -183,7 +202,7 @@ export class AuthService {
   async validateUser(
     identifier: string,
     password: string,
-  ): Promise<UserProfile | null> {
+  ): Promise<User | null> {
     const user = await this.userRepository.findOne({
       where: [{ email: identifier }, { phoneNumber: identifier }],
       select: [
@@ -195,8 +214,8 @@ export class AuthService {
         'otherName',
         'phoneNumber',
         'avatar',
+        'status',
       ],
-      relations: ['status'],
     });
 
     if (!user) return null;
@@ -204,7 +223,7 @@ export class AuthService {
     const passwordsMatch = await Util.verifyHash(user.password, password);
 
     if (user && passwordsMatch) {
-      return this.userSanitizer.formatUserProfileData(user as UserProfile);
+      return user;
     }
 
     return null;

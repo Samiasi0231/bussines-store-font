@@ -44,7 +44,7 @@ export class IdentityVerification extends BaseEntity {
   @Column({ name: 'verification_data', type: 'jsonb' })
   verificationData: Record<string, unknown>;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   provider?: string;
 
   @Column({ name: 'provider_response', type: 'jsonb', nullable: true })
@@ -53,8 +53,8 @@ export class IdentityVerification extends BaseEntity {
   @Column({ name: 'invalid_data', type: 'jsonb', nullable: true })
   invalidData?: IdentityVerificationResult;
 
-  @Column({ type: 'enum', enum: Status, default: Status.ACTIVE })
-  status: Status;
+  @Column({ type: 'enum', enum: Status, default: Status.PENDING })
+  status?: Status;
 
   //TODO: add nullable field for approver
 }

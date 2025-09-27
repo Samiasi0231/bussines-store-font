@@ -16,7 +16,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let exceptionResponse: IResponse<unknown>;
     const response = host.switchToHttp().getResponse<any>();
     const { status } = exception;
-    const message = exception?.message;
+    const error = exception?.message;
 
     Logger.error({
       name: exception?.name,
@@ -26,12 +26,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
     });
 
     if (exception instanceof HttpException) {
-      const error = Array.isArray(message) ? message.join(' and ') : message;
+      const res = exception.getResponse() as any;
+      const message =
+        typeof res === 'string'
+          ? res
+          : Array.isArray(res.message)
+            ? res.message
+            : [res.message];
       exceptionResponse = {
         status,
         success: false,
         error: error || ErrorMessage.AN_ERROR_OCCURRED,
-        message: error,
+        message,
       };
     } else {
       exceptionResponse = {

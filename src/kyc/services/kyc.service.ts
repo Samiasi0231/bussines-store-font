@@ -25,10 +25,13 @@ import { UUID } from 'crypto';
 import dayjs from 'dayjs';
 import { Status } from '../../@common/constants/status.constant';
 import { IdentityVerificationRepository } from '../../repositories/identity-verification.repository';
-import { User } from '../../entities/user.entity';
 import { ImageRecognitionService } from '../../image-recognition/services/image-recognition.service';
 import { KycRepository } from '../../repositories/kyc.repository';
 import { Tier } from '../../@common/constants/tier.constant';
+import { DbTransactionManager } from '../../@common/database/database-transaction.manager';
+import { WalletService } from '../../wallet/wallet.service';
+import { AddressVerificationDTO } from '../dtos/address.dto';
+import { AddressRepository } from '../../repositories/address.repository';
 
 @Injectable()
 export class KycService {
@@ -45,6 +48,9 @@ export class KycService {
     private readonly identityVerificationRepository: IdentityVerificationRepository,
     private readonly imageRecognitionService: ImageRecognitionService,
     private readonly kycRepository: KycRepository,
+    private readonly dbTransactionManager: DbTransactionManager,
+    private readonly walletService: WalletService,
+    private readonly addressRepository: AddressRepository,
   ) {
     this.logger = new Logger(KycService.name);
     //TODO: move to system settings
@@ -74,10 +80,15 @@ export class KycService {
     payload: VerifyIdentityDTO & { userId: UUID },
   ): Promise<
     IResponse<
-      Record<string, never> | VerifyBvnResponseData | VerifyNINResponseData
+      | Record<string, never>
+      | null
+      | VerifyBvnResponseData
+      | VerifyNINResponseData
     >
   > {
-    let response: IResponse<VerifyBvnResponseData | VerifyNINResponseData>;
+    let providerResponse: IResponse<
+      VerifyBvnResponseData | VerifyNINResponseData
+    >;
     const { type, userId, idNumber, image: userImage } = payload;
 
     const user = await this.userRepository.findById(userId);
@@ -89,12 +100,32 @@ export class KycService {
         HttpStatus.NOT_FOUND,
       );
 
+    const kyc = await this.kycRepository.findByUserId(userId);
+
+    if (
+      type === IdentityVerificationType.BVN &&
+      kyc.bvnVerificationStatus === Status.VERIFIED
+    )
+      return this.responseService.sendError(ErrorMessage.ALREADY_VERIFIED_BVN);
+
+    if (
+      type !== IdentityVerificationType.BVN &&
+      kyc.identityVerificationStatus === Status.VERIFIED
+    )
+      return this.responseService.sendError(
+        ErrorMessage.ALREADY_VERIFIED_IDENTITY,
+      );
+
     switch (type) {
       case IdentityVerificationType.BVN:
-        response = await this.identityProvider.verifyBVN({ bvn: idNumber });
+        providerResponse = await this.identityProvider.verifyBVN({
+          bvn: idNumber,
+        });
         break;
       case IdentityVerificationType.NIN:
-        response = await this.identityProvider.verifyNIN({ nin: idNumber });
+        providerResponse = await this.identityProvider.verifyNIN({
+          nin: idNumber,
+        });
         break;
     }
 
@@ -102,19 +133,19 @@ export class KycService {
       provider: this.identityProviderName,
       type,
       verificationData: { document_number: idNumber },
-      user: { id: userId } as User,
-      providerResponse: response.data?.providerResponse,
+      user: userId as UUID,
+      providerResponse: providerResponse.data?.providerResponse,
     };
 
-    if (!response.success) {
+    if (!providerResponse.success) {
       await this.identityVerificationRepository.createStrict({
         ...baseIdentityVerificationData,
         status: Status.FAILED,
       });
-      return response;
+      return this.responseService.sendError(providerResponse.message);
     }
 
-    const responseData = response.data;
+    const responseData = providerResponse.data;
 
     const userData = {
       firstName: user.firstName,
@@ -184,58 +215,121 @@ export class KycService {
         );
     }
 
-    await this.identityVerificationRepository.createStrict({
-      ...baseIdentityVerificationData,
-      status: Status.VERIFIED,
-    });
+    const response = await this.dbTransactionManager.transaction<
+      IResponse<null>
+    >(async (manager) => {
+      const entityManager = manager.entityManager;
 
-    const providerImage = responseData.imageBase64;
-    const faceComparisonResponse = await this.verifyFace(
-      userImage,
-      providerImage,
-      user,
-    );
-
-    if (!faceComparisonResponse.success)
-      return this.responseService.sendError(faceComparisonResponse.message);
-
-    let kyc = await this.kycRepository.findOne({
-      where: { user: userId },
-    });
-
-    if (!kyc) kyc = await this.kycRepository.createStrict({ user: userId });
-
-    const canUpgradeToTierOne =
-      kyc.isProfileComplete &&
-      [
-        kyc.bvnVerificationStatus,
-        kyc.faceVerificationStatus,
-        kyc.identityVerificationStatus,
-      ].every((status) => status === Status.VERIFIED);
-
-    let tier = kyc.tier;
-
-    if (canUpgradeToTierOne) tier = Tier.ONE;
-
-    if (type === IdentityVerificationType.BVN)
-      await this.kycRepository.findbyIdAndUpdate(kyc.id, {
-        bvn: idNumber,
-        bvnVerificationStatus: Status.VERIFIED,
-        faceVerificationStatus: Status.VERIFIED,
-        tier,
-      });
-    else
-      await this.kycRepository.findbyIdAndUpdate(kyc.id, {
-        identityDocumentNumber: idNumber,
-        identityVerificationStatus: Status.VERIFIED,
-        identityVerificationType: type,
-        faceVerificationStatus: Status.VERIFIED,
-        tier,
+      let kyc = await this.kycRepository.withManager(entityManager).findOne({
+        where: { user: userId },
+        lock: { mode: 'pessimistic_write' },
       });
 
-    return this.responseService.sendSuccess(
-      SuccessMessage.GENERIC_IDENTITY_VERIFICATION,
-    );
+      if (!kyc)
+        kyc = await this.kycRepository
+          .withManager(entityManager)
+          .createStrict({ user: userId });
+
+      await this.identityVerificationRepository
+        .withManager(entityManager)
+        .createStrict({
+          ...baseIdentityVerificationData,
+          status: Status.VERIFIED,
+        });
+
+      if (type !== IdentityVerificationType.BVN) {
+        const providerImage = responseData.imageBase64;
+        const faceComparisonResponse = await this.verifyFace(
+          userImage,
+          providerImage,
+          userId,
+        );
+
+        const baseFaceVerificationData = {
+          provider: faceComparisonResponse.data?.provider,
+          type: IdentityVerificationType.BIOMETRICS_FACE,
+          verificationData: { image: userImage },
+          user: userId as UUID,
+          invalidData: {
+            face: { expected: providerImage, provided: userImage },
+          },
+          providerResponse: faceComparisonResponse.data
+            ?.providerResponse as any,
+        };
+
+        if (!faceComparisonResponse.success) {
+          await this.identityVerificationRepository
+            .withManager(entityManager)
+            .createStrict({
+              ...baseFaceVerificationData,
+              status: Status.FAILED,
+            });
+          return this.responseService.sendError(faceComparisonResponse.message);
+        }
+
+        await this.identityVerificationRepository
+          .withManager(entityManager)
+          .createStrict({
+            ...baseFaceVerificationData,
+            status: Status.VERIFIED,
+          });
+
+        await this.kycRepository
+          .withManager(entityManager)
+          .findbyIdAndUpdate(kyc.id, {
+            faceVerificationStatus: Status.VERIFIED,
+          });
+      }
+
+      if (type === IdentityVerificationType.BVN)
+        await this.kycRepository
+          .withManager(entityManager)
+          .findbyIdAndUpdate(kyc.id, {
+            bvn: idNumber,
+            bvnVerificationStatus: Status.VERIFIED,
+          });
+      else
+        await this.kycRepository
+          .withManager(entityManager)
+          .findbyIdAndUpdate(kyc.id, {
+            identityDocumentNumber: idNumber,
+            identityVerificationStatus: Status.VERIFIED,
+            identityVerificationType: type,
+          });
+
+      const updatedKyc = await this.kycRepository
+        .withManager(entityManager)
+        .findById(kyc.id);
+
+      const canUpgradeToTierTwo =
+        updatedKyc.isProfileComplete &&
+        [
+          updatedKyc.bvnVerificationStatus,
+          updatedKyc.faceVerificationStatus,
+          updatedKyc.identityVerificationStatus,
+        ].every((status) => status === Status.VERIFIED);
+
+      if (canUpgradeToTierTwo) {
+        const tier = Tier.TWO;
+        await this.kycRepository
+          .withManager(entityManager)
+          .findbyIdAndUpdate(kyc.id, {
+            tier,
+          });
+
+        await this.walletService.setWalletLimits({
+          userId,
+          entityManager,
+          tier,
+        });
+      }
+
+      return this.responseService.sendSuccess(
+        SuccessMessage.GENERIC_IDENTITY_VERIFICATION,
+      );
+    });
+
+    return response;
   }
 
   validateIdentity(
@@ -255,7 +349,7 @@ export class KycService {
     namesStatus: Status;
     dateOfBirthStatus: Status;
   } {
-    if (!this.isProduction) {
+    if (!this.isProduction && userData.dateOfBirth !== '2000-01-01') {
       return {
         namesStatus: Status.VERIFIED,
         dateOfBirthStatus: Status.VERIFIED,
@@ -294,7 +388,11 @@ export class KycService {
     return response;
   }
 
-  async verifyFace(sourceImage: string, targetImage: string, user: User) {
+  async verifyFace(
+    sourceImage: string,
+    targetImage: string,
+    userId: UUID | string,
+  ) {
     const faceComparisonResponse =
       await this.imageRecognitionService.compareFaces(sourceImage, targetImage);
 
@@ -302,7 +400,7 @@ export class KycService {
       provider: this.identityProviderName,
       type: IdentityVerificationType.BIOMETRICS_FACE,
       verificationData: { image: sourceImage },
-      user: { id: user.id } as User,
+      user: userId as UUID,
       providerResponse: faceComparisonResponse.data
         ?.providerResponse as unknown as Record<string, unknown>,
     };
@@ -323,5 +421,52 @@ export class KycService {
     });
 
     return faceComparisonResponse;
+  }
+
+  async submitAddress(data: { userId: string } & AddressVerificationDTO) {
+    const {
+      state,
+      street,
+      lga,
+      country,
+      city,
+      buildingNumber,
+      utilityBill,
+      userId,
+    } = data;
+
+    await this.dbTransactionManager.transaction(async (manager) => {
+      const entityManager = manager.entityManager;
+      let kyc = await this.kycRepository
+        .withManager(entityManager)
+        .findByUserId(userId as UUID, { mode: 'pessimistic_write' });
+
+      if (!kyc)
+        kyc = await this.kycRepository.createStrict({ user: userId as UUID });
+
+      await this.addressRepository.withManager(entityManager).createStrict({
+        lga,
+        buildingNumber,
+        city,
+        state,
+        street,
+        country,
+        user: userId as UUID,
+        kycId: kyc.id,
+        utilityBill,
+      });
+
+      await this.identityVerificationRepository
+        .withManager(entityManager)
+        .createStrict({
+          type: IdentityVerificationType.ADDRESS,
+          verificationData: { utilityBill },
+          user: userId as UUID,
+        });
+    });
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+    );
   }
 }

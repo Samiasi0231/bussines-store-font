@@ -1,4 +1,4 @@
-import { IsBase64, IsIn, IsString } from 'class-validator';
+import { IsBase64, IsIn, IsString, ValidateIf } from 'class-validator';
 import { Gender } from '../../@common/constants/gender.constant';
 import { Transform } from 'class-transformer';
 
@@ -16,9 +16,14 @@ export class VerifyIdentityDTO {
   idNumber: string;
 
   @Transform(({ value }) => value?.toLowerCase())
-  @IsIn(Object.values(IdentityVerificationType))
+  @IsIn(
+    Object.values(IdentityVerificationType).filter(
+      (type) => type !== IdentityVerificationType.BIOMETRICS_FACE,
+    ),
+  )
   type: IdentityVerificationType;
 
+  @ValidateIf((object) => object.type !== IdentityVerificationType.BVN)
   @IsBase64()
   image: string;
 }
