@@ -10,8 +10,7 @@ import { IdentityVerificationType } from '../kyc/dtos/identity.dto';
 import { BaseEntity } from './base.entity';
 import { UUID } from 'crypto';
 import { uuidv7 } from 'uuidv7';
-import { Status } from './status.entity';
-import { IsNotEmpty } from 'class-validator';
+import { Status } from '../@common/constants/status.constant';
 
 type VerificationField = {
   expected: string;
@@ -45,7 +44,7 @@ export class IdentityVerification extends BaseEntity {
   @Column({ name: 'verification_data', type: 'jsonb' })
   verificationData: Record<string, unknown>;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   provider?: string;
 
   @Column({ name: 'provider_response', type: 'jsonb', nullable: true })
@@ -54,13 +53,8 @@ export class IdentityVerification extends BaseEntity {
   @Column({ name: 'invalid_data', type: 'jsonb', nullable: true })
   invalidData?: IdentityVerificationResult;
 
-  @ManyToOne(() => Status, {
-    nullable: false,
-    eager: true,
-  })
-  @JoinColumn({ name: 'status' })
-  @IsNotEmpty()
-  status: Status;
+  @Column({ type: 'enum', enum: Status, default: Status.PENDING })
+  status?: Status;
 
   //TODO: add nullable field for approver
 }

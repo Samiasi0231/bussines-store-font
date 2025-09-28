@@ -24,6 +24,8 @@ export class HttpInterceptor<T> implements NestInterceptor<T, Response<T>> {
           status,
           success = true,
           responseCode,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          error,
           ...rest
         } = responseData;
 

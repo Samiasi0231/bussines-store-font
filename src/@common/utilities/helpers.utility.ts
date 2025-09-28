@@ -21,4 +21,12 @@ export class Util {
   static async verifyHash(hash: string, value: string): Promise<boolean> {
     return argon2.verify(hash, value);
   }
+
+  static toKobo(amount: number): number {
+    return amount * 100;
+  }
+
+  static toNaira(amount: number): number {
+    return amount / 100;
+  }
 }

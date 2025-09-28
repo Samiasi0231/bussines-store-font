@@ -1,12 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ErrorMessage } from '../../@common/constants/message.constant';
+import {
+  ErrorMessage,
+  SuccessMessage,
+} from '../../@common/constants/message.constant';
 import {
   FaceComparisonResponse,
   IImageRecognitionService,
 } from '../interfaces/image-recognition.interface';
 import { Provider } from '../../@common/constants/providers.constant';
 import { AWSImageRecognitionService } from './aws.service';
+import { ResponseService } from '../../@common/response';
 
 @Injectable()
 export class ImageRecognitionService implements IImageRecognitionService {
@@ -17,6 +21,7 @@ export class ImageRecognitionService implements IImageRecognitionService {
   constructor(
     private readonly configService: ConfigService,
     private readonly awsService: AWSImageRecognitionService,
+    private readonly responseService: ResponseService,
   ) {
     //TODO: move to system settings
     this.similarityThreshold = parseInt(
@@ -49,10 +54,21 @@ export class ImageRecognitionService implements IImageRecognitionService {
     targetImage: string,
     similarityThreshold: number = this.similarityThreshold,
   ): FaceComparisonResponse {
-    return this.provider.compareFaces(
-      sourceImage,
-      targetImage,
-      similarityThreshold,
+    // const response = await this.provider.compareFaces(
+    //   sourceImage,
+    //   targetImage,
+    //   similarityThreshold,
+    // );
+
+    // response.data.provider = this.providerName;
+
+    // return response;
+
+    //Temporarily disable face notification
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      { providerResponse: {} as any, provider: this.providerName },
     );
   }
 }

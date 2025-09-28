@@ -11,4 +11,8 @@ export enum Status {
   CANCELLED = 'cancelled',
   APPROVED = 'approved',
   REJECTED = 'rejected',
+  BLOCKED = 'blocked',
+  RESTRICTED = 'restricted',
+  FROZEN = 'frozen',
+  ENABLED = 'enabled',
 }

@@ -21,13 +21,21 @@ export const ErrorMessage = {
     'Identity verification failed due to date of birth mismatch.',
   IDENTITY_VERIFICATION_NAMES_AND_DOB_MISMATCH:
     'Identity verification failed due to names and date of birth mismatch.',
-  ACCESS_DENIED: 'Access denied',
+  ACCESS_DENIED: 'Unauthorized',
   FACE_COMPARISON: 'An error occurred while comparing faces',
   MISMATCHED_FACES: 'Failed to verify face',
   SEND_EMAIL: 'Failed to send email',
   INVALID_TEMPLATE: 'Invalid template',
   INVALID_VERIFICATION: 'Invalid verification code',
   EXPIRED_VERIFICATION: 'This verification code has expired',
+  DB_TRANSACTION_ALREADY_STARTED: 'Transaction already started',
+  WALLET_NOT_FOUND: 'Wallet not found',
+  INVALID_BVN: 'Invalid BVN',
+  INVALID_NIN: 'Invalid NIN',
+  ALREADY_VERIFIED_BVN:
+    'A valid BVN has been verified and linked to this account.',
+  ALREADY_VERIFIED_IDENTITY: 'Identity verifcation already completed',
+  NOT_FOUND: (entity: string) => `${entity} not found`,
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];
@@ -47,6 +55,12 @@ export const SuccessMessage = {
   EMAIL_SENT: 'Email sent successfully',
   SUCCESSFUL_VERIFICATION: 'Verification successful',
   INITIATE_VERIFICATION: 'Verification initiated successfully',
+  RETRIEVE_WALLETS: 'Wallets retrieved successfully',
+  RETRIEVE_WALLET: 'Wallet retrieved successfully',
+  RETRIEVE_BENEFICIARIES: 'Beneficiaries retrieved successfully',
+  RETRIEVE_BENEFICIARY: 'Beneficiary retrieved successfully',
+  DELETE_BENEFICIARY: 'Beneficiary deleted successfully',
+  ADD_BENEFICIARY: 'Beneficiary added successfully',
 };
 
 export type SuccessMessage =

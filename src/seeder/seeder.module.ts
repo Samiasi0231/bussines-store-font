@@ -1,17 +1,14 @@
 import { Seeder } from './interfaces/seeder.interface';
-import { Status } from '../entities/status.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Module } from '@nestjs/common';
-import { StatusRepository } from '../repositories/status.repository';
-import { StatusSeeder } from './seeders/status.seeder';
 
-const databaseEntities = [Status];
+const DATABASE_ENTITIES = [];
 
-export const SEEDERS: (new (...args: any[]) => Seeder)[] = [StatusSeeder];
+export const SEEDERS: (new (...args: any[]) => Seeder)[] = [];
 
 @Module({
-  imports: [TypeOrmModule.forFeature(databaseEntities)],
-  providers: [...SEEDERS, StatusRepository],
+  imports: [TypeOrmModule.forFeature(DATABASE_ENTITIES)],
+  providers: [...SEEDERS],
   exports: [...SEEDERS],
 })
 export class SeederModule {}

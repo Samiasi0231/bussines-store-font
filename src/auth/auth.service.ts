@@ -2,7 +2,6 @@ import { Injectable, HttpStatus } from '@nestjs/common';
 import { UserRepository } from '../repositories/user.repository';
 import { SignupDTO } from './dto/register.dto';
 import { LoginDTO } from './dto/login.dto';
-import { EmailService } from '../notification/services/email.service';
 import { UUID } from 'crypto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -16,29 +15,25 @@ import { Status } from '../@common/constants/status.constant';
 import { Util } from '../@common/utilities/helpers.utility';
 import { TokenService } from './token/token.service';
 import { UserService } from '../user/user.service';
-import {
-  CachedUserProfileData,
-  UserProfile,
-} from '../user/interfaces/user.interface';
-import { UserSanitizer } from '../user/sanitizers/user.sanitizer';
 import { KycRepository } from '../repositories/kyc.repository';
 import { VerificationService } from '../verification/verification.service';
 import { VerificationIntent } from '../@common/constants/verification.constant';
-import { StatusRepository } from '../repositories/status.repository';
+import { DbTransactionManager } from '../@common/database/database-transaction.manager';
+import { User } from '../entities/user.entity';
+import { WalletRepository } from '../repositories/wallet.repository';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly tokenService: TokenService,
-    private readonly mailerService: EmailService,
     private readonly cacheService: CacheService,
     private readonly responseService: ResponseService,
     private readonly userService: UserService,
-    private readonly userSanitizer: UserSanitizer,
     private readonly kycRepository: KycRepository,
     private readonly verificationService: VerificationService,
-    private readonly statusRepository: StatusRepository,
+    private readonly dbTransactionManager: DbTransactionManager,
+    private readonly walletRepository: WalletRepository,
   ) {}
 
   async register(payload: SignupDTO): Promise<any> {
@@ -65,31 +60,39 @@ export class AuthService {
 
     if (!verificationResponse.success) return verificationResponse;
 
-    const activeStatus = await this.statusRepository.findByName(Status.ACTIVE);
-
-    if (!activeStatus) {
-      //TODO: log error
-      return this.responseService.sendError(
-        ErrorMessage.AN_ERROR_OCCURRED,
-        null,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
     const userData = {
       ...payload,
       password,
       phoneVerifiedAt: new Date(),
-      status: activeStatus,
+      status: Status.ACTIVE,
     };
 
-    const user = await this.userRepository.createStrict(userData);
+    const user = await this.dbTransactionManager.transaction<User>(
+      async (manager) => {
+        const entityManager = manager.entityManager;
+        const user = await this.userRepository
+          .withManager(entityManager)
+          .createStrict(userData);
 
-    await this.kycRepository.createStrict({ user: user.id });
+        await this.kycRepository
+          .withManager(entityManager)
+          .createStrict({ user: user.id });
 
-    return this.responseService.sendSuccess(SuccessMessage.USER_REGISTERED, {
-      id: user.id,
-    });
+        await this.walletRepository
+          .withManager(entityManager)
+          .createStrict({ user: user.id });
+
+        return user;
+      },
+    );
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.USER_REGISTERED,
+      {
+        id: user.id,
+      },
+      HttpStatus.CREATED,
+    );
   }
 
   async login(loginDto: LoginDTO) {
@@ -106,24 +109,29 @@ export class AuthService {
       lastLoggedInAt: new Date(),
     });
 
+    const kyc = await this.kycRepository.findByUserId(user.id);
+
     const userId = user.id;
 
     const { accessToken, hashedAccessToken } =
       await this.tokenService.generateJWTToken(userId);
 
-    const userData = {
-      accessToken,
-      user,
-    };
+    await this.userService.cacheUserData(
+      {
+        ...user,
+        hashedAccessToken,
+      } as any,
+      kyc,
+    );
 
-    await this.userService.cacheUserData({
-      ...user,
-      hashedAccessToken,
-    } as CachedUserProfileData);
+    const data = {
+      accessToken,
+      id: user.id,
+    };
 
     return this.responseService.sendSuccess(
       SuccessMessage.USER_LOGGED_IN,
-      userData,
+      data,
     );
   }
 
@@ -162,10 +170,10 @@ export class AuthService {
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
-    const { otp, newPassword, email } = resetPasswordDto;
+    const { otp, newPassword, phone: phoneNumber } = resetPasswordDto;
 
     const user = await this.userRepository.findOne({
-      where: { email },
+      where: { phoneNumber },
       select: ['id'],
     });
 
@@ -176,7 +184,7 @@ export class AuthService {
     const verificationResponse =
       await this.verificationService.verifyVerification({
         intent: VerificationIntent.PASSWORD_UPDATE,
-        entityId: email,
+        entityId: phoneNumber,
         verificationData: otp,
       });
 
@@ -194,7 +202,7 @@ export class AuthService {
   async validateUser(
     identifier: string,
     password: string,
-  ): Promise<UserProfile | null> {
+  ): Promise<User | null> {
     const user = await this.userRepository.findOne({
       where: [{ email: identifier }, { phoneNumber: identifier }],
       select: [
@@ -206,8 +214,8 @@ export class AuthService {
         'otherName',
         'phoneNumber',
         'avatar',
+        'status',
       ],
-      relations: ['status'],
     });
 
     if (!user) return null;
@@ -215,7 +223,7 @@ export class AuthService {
     const passwordsMatch = await Util.verifyHash(user.password, password);
 
     if (user && passwordsMatch) {
-      return this.userSanitizer.formatUserProfileData(user as UserProfile);
+      return user;
     }
 
     return null;

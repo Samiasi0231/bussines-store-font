@@ -91,6 +91,14 @@ export class Kyc extends BaseEntity {
   })
   identityVerificationType?: IdentityVerificationType;
 
+  @Column({
+    name: 'address_verification_status',
+    type: 'enum',
+    enum: VerificationStatus,
+    default: Status.PENDING,
+  })
+  addressVerificationStatus?: VerificationStatus;
+
   @OneToMany(() => Address, (address) => address.kyc, { cascade: true })
   addresses?: Address[];
 }
