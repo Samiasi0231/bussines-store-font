@@ -170,7 +170,7 @@ export class WalletService {
     const results = beneficiaries.map((beneficiary) =>
       this.walletSanitizer.formatBeneficiaryData(beneficiary),
     );
-
+ 
     return this.responseService.sendSuccess(
       SuccessMessage.RETRIEVE_BENEFICIARIES,
       {
