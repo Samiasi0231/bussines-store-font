@@ -132,8 +132,8 @@ export class VerificationService {
     entityId: string,
   ) {
     switch (intent) {
-      case VerificationIntent.EMAIL_ADDRESS:
-        await this.userService.verifyEmail({ email: entityId });
+      case VerificationIntent.PHONE_NUMBER:
+        await this.userService.verifyPhoneNumber({ phoneNumber: entityId });
         break;
       default:
         break;

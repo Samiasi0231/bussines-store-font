@@ -90,38 +90,25 @@ export class UserService {
     return JSON.parse(await this.cacheService.get(userId));
   }
 
-  async verifyEmail(data: { id?: UUID; email?: string }) {
-    const { email, id } = data;
-    await this.userRepository.update([{ email }, { id }], {
-      emailVerifiedAt: new Date(),
-    });
-  }
-
-  async updateProfile(
-    data: (EditUserProfileDTO | UpdateUserProfileDTO) & { userId: UUID },
-    isInitialProfileUpdate = false,
-  ) {
-    const { userId, ...update } = data;
+  async verifyPhoneNumber(data: { id?: UUID; phoneNumber?: string }) {
+    const { phoneNumber, id } = data;
 
     await this.dbTransactionManager.transaction(async (manager) => {
       const entityManager = manager.entityManager;
 
-      let user: User;
+      await this.userRepository.update([{ phoneNumber }, { id }], {
+        phoneVerifiedAt: new Date(),
+      });
 
-      if (isInitialProfileUpdate) {
-        user = await this.userRepository
-          .withManager(entityManager)
-          .findById(userId);
-
-        if (user.dateOfBirth || user.otherName || user.email)
-          return this.responseService.sendError(
-            ErrorMessage.PROFILE_SETUP_COMPLETED,
-          );
-      }
-
-      user = await this.userRepository
+      const user = await this.userRepository
         .withManager(entityManager)
-        .findbyIdAndUpdate(userId, update);
+        .findByPhoneNumber(phoneNumber, {
+          lock: { mode: 'pessimistic_write' },
+        });
+
+      if (!user) return;
+
+      const userId = user.id;
 
       const isProfileComplete = !!(
         user.firstName &&
@@ -142,6 +129,26 @@ export class UserService {
           .update({ user: userId }, { isProfileComplete });
       }
     });
+  }
+
+  async updateProfile(
+    data: (EditUserProfileDTO | UpdateUserProfileDTO) & { userId: UUID },
+    isInitialProfileUpdate = false,
+  ) {
+    const { userId, ...update } = data;
+
+    let user: User;
+
+    if (isInitialProfileUpdate) {
+      user = await this.userRepository.findById(userId);
+
+      if (user.dateOfBirth || user.otherName || user.phoneNumber)
+        return this.responseService.sendError(
+          ErrorMessage.PROFILE_SETUP_COMPLETED,
+        );
+    }
+
+    user = await this.userRepository.findbyIdAndUpdate(userId, update);
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,

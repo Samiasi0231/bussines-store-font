@@ -38,10 +38,10 @@ export class AuthService {
   ) {}
 
   async register(payload: SignupDTO): Promise<any> {
-    const { phoneNumber, password, otp } = payload;
+    const { email, password, otp } = payload;
 
     const existingUser = await this.userRepository.findOne({
-      where: { phoneNumber },
+      where: { email },
     });
 
     if (existingUser) {
@@ -54,8 +54,8 @@ export class AuthService {
 
     const verificationResponse =
       await this.verificationService.verifyVerification({
-        intent: VerificationIntent.PHONE_NUMBER,
-        entityId: phoneNumber,
+        intent: VerificationIntent.EMAIL_ADDRESS,
+        entityId: email,
         verificationData: otp,
       });
 
@@ -64,7 +64,7 @@ export class AuthService {
     const userData = {
       ...payload,
       password,
-      phoneVerifiedAt: new Date(),
+      emailVerifiedAt: new Date(),
       status: Status.ACTIVE,
     };
 
@@ -134,6 +134,11 @@ export class AuthService {
       SuccessMessage.USER_LOGGED_IN,
       data,
     );
+  }
+
+  async logout(userId: UUID) {
+    await this.cacheService.del(userId);
+    return this.responseService.sendSuccess(SuccessMessage.LOGOUT);
   }
 
   async changePassword(userId: UUID, changePasswordDto: ChangePasswordDto) {

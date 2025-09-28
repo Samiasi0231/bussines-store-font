@@ -44,4 +44,10 @@ export class AuthController {
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return await this.authService.resetPassword(resetPasswordDto);
   }
+
+  @UseGuards(LocalAuthGuard)
+  @Post('logout')
+  async logout(@User() user: UserProfile) {
+    return await this.authService.logout(user.id);
+  }
 }

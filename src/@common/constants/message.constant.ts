@@ -64,6 +64,7 @@ export const SuccessMessage = {
   RETRIEVE_BENEFICIARY: 'Beneficiary retrieved successfully',
   DELETE_BENEFICIARY: 'Beneficiary deleted successfully',
   ADD_BENEFICIARY: 'Beneficiary added successfully',
+  LOGOUT: 'You’ve logged out. See you again soon!',
 };
 
 export type SuccessMessage =

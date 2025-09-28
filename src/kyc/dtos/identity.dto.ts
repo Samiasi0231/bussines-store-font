@@ -23,7 +23,7 @@ export class VerifyIdentityDTO {
   )
   type: IdentityVerificationType;
 
-  @ValidateIf((object) => object.type !== IdentityVerificationType.BVN)
+  @ValidateIf((object) => object.type === IdentityVerificationType.BVN)
   @IsBase64()
   image: string;
 }
