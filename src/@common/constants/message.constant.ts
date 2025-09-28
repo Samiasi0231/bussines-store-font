@@ -35,6 +35,7 @@ export const ErrorMessage = {
   ALREADY_VERIFIED_BVN:
     'A valid BVN has been verified and linked to this account.',
   ALREADY_VERIFIED_IDENTITY: 'Identity verifcation already completed',
+  NOT_FOUND: (entity: string) => `${entity} not found`,
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];
@@ -56,6 +57,10 @@ export const SuccessMessage = {
   INITIATE_VERIFICATION: 'Verification initiated successfully',
   RETRIEVE_WALLETS: 'Wallets retrieved successfully',
   RETRIEVE_WALLET: 'Wallet retrieved successfully',
+  RETRIEVE_BENEFICIARIES: 'Beneficiaries retrieved successfully',
+  RETRIEVE_BENEFICIARY: 'Beneficiary retrieved successfully',
+  DELETE_BENEFICIARY: 'Beneficiary deleted successfully',
+  ADD_BENEFICIARY: 'Beneficiary added successfully',
 };
 
 export type SuccessMessage =

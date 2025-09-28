@@ -3,6 +3,7 @@ import { Wallet } from '../../entities/wallet.entity';
 import { WalletType } from '../../@common/constants/wallet.constant';
 import { Currency } from '../../@common/constants/currency.constant';
 import { Util } from '../../@common/utilities/helpers.utility';
+import { Beneficiary } from '../../entities/beneficiary.entity';
 
 export type WalletData = {
   id: string;
@@ -17,6 +18,12 @@ export type WalletData = {
   bankName: string;
   hasTransactionPin: boolean;
   //   businessId: string;
+};
+export type BeneficiaryData = {
+  bankName: string;
+  accountName: string;
+  bankCode: string;
+  accountNumber: string;
 };
 
 @Injectable()
@@ -37,6 +44,15 @@ export class WalletSanitizer {
       bankName: wallet.bankName,
       hasTransactionPin: !!wallet.transactionPin,
       //   businessId: wallet.businessId
+    };
+  }
+
+  formatBeneficiaryData(data: Beneficiary): BeneficiaryData {
+    return {
+      bankName: data.bankName,
+      bankCode: data.bankCode,
+      accountName: data.accountName,
+      accountNumber: data.accountNumber,
     };
   }
 }

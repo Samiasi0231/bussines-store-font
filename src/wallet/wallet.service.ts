@@ -16,9 +16,16 @@ import {
   TransactionLimits,
   WalletType,
 } from '../@common/constants/wallet.constant';
-import { WalletData, WalletSanitizer } from './sanitizers/wallet.sanitizer';
+import {
+  BeneficiaryData,
+  WalletData,
+  WalletSanitizer,
+} from './sanitizers/wallet.sanitizer';
 import { Paginated } from '../@common/types/pagination.type';
 import { Tier } from '../@common/constants/tier.constant';
+import { PaginationDTO } from '../@common/dtos/pagination.dto';
+import { BeneficiaryRepository } from '../repositories/beneficiary.repository';
+import { AddBeneficiaryDTO } from './dtos/beneficiary.dto';
 
 @Injectable()
 export class WalletService {
@@ -27,6 +34,7 @@ export class WalletService {
     private readonly walletSanitizer: WalletSanitizer,
     private readonly verificationService: VerificationService,
     private readonly responseService: ResponseService,
+    private readonly beneficiaryRepository: BeneficiaryRepository,
   ) {}
 
   async setTransactionPin(
@@ -134,6 +142,97 @@ export class WalletService {
       dailyTransactionLimit,
       singleTransactionLimit,
       maxBalanceLimit,
+    });
+  }
+
+  async getBeneficiaries(
+    data: {
+      walletId: UUID;
+    } & PaginationDTO,
+  ): Promise<IResponse<Paginated<BeneficiaryData>>> {
+    const { walletId, page, limit } = data;
+
+    const wallet = await this.walletRepository.findById(walletId);
+
+    if (!wallet)
+      return this.responseService.sendError(
+        ErrorMessage.WALLET_NOT_FOUND,
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+
+    const { results: beneficiaries, pagination } =
+      await this.beneficiaryRepository.paginate({
+        filter: { walletId },
+        pagination: { page, limit },
+      });
+
+    const results = beneficiaries.map((beneficiary) =>
+      this.walletSanitizer.formatBeneficiaryData(beneficiary),
+    );
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.RETRIEVE_BENEFICIARIES,
+      {
+        results,
+        pagination,
+      },
+    );
+  }
+
+  async getbeneficiary(
+    id: string,
+  ): Promise<IResponse<BeneficiaryData | Record<string, never>>> {
+    const beneficiary = await this.beneficiaryRepository.findById(id as UUID);
+
+    if (!beneficiary)
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Beneficiary'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+
+    const data = this.walletSanitizer.formatBeneficiaryData(beneficiary);
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.RETRIEVE_BENEFICIARY,
+      data,
+    );
+  }
+
+  async deletebeneficiary(id: string): Promise<IResponse<{ id: string }>> {
+    const beneficiary = await this.beneficiaryRepository.findById(id as UUID);
+
+    if (!beneficiary)
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Beneficiary'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+
+    await this.beneficiaryRepository.softDeleteById(id as UUID);
+
+    return this.responseService.sendSuccess(SuccessMessage.DELETE_BENEFICIARY, {
+      id,
+    });
+  }
+
+  async addbeneficiary(
+    data: { walletId: UUID } & AddBeneficiaryDTO,
+  ): Promise<IResponse<{ id: string }>> {
+    const wallet = await this.walletRepository.findById(data.walletId);
+
+    if (!wallet)
+      return this.responseService.sendError(
+        ErrorMessage.WALLET_NOT_FOUND,
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+
+    const beneficiary = await this.beneficiaryRepository.createStrict(data);
+
+    return this.responseService.sendSuccess(SuccessMessage.ADD_BENEFICIARY, {
+      id: beneficiary.id,
     });
   }
 }

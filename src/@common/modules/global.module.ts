@@ -17,6 +17,8 @@ import { Wallet } from '../../entities/wallet.entity';
 import { Verification } from '../../entities/verification.entity';
 import { IdentityVerification } from '../../entities/identity-verification.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { Beneficiary } from '../../entities/beneficiary.entity';
+import { BeneficiaryRepository } from '../../repositories/beneficiary.repository';
 
 const providers = [
   ResponseService,
@@ -26,6 +28,7 @@ const providers = [
   WalletRepository,
   KycRepository,
   VerificationRepository,
+  BeneficiaryRepository,
 ];
 
 const DATABASE_ENTITIES = [
@@ -35,6 +38,7 @@ const DATABASE_ENTITIES = [
   Wallet,
   Verification,
   IdentityVerification,
+  Beneficiary,
 ];
 
 @Global()
