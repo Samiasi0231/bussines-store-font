@@ -1,4 +1,10 @@
-import { Entity, Column, BeforeInsert, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  BeforeInsert,
+  PrimaryGeneratedColumn,
+  Index,
+} from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Util } from '../@common/utilities/helpers.utility';
 import { UUID } from 'crypto';
@@ -19,9 +25,11 @@ export class User extends BaseEntity {
   @Column({ name: 'last_name', type: 'varchar', length: 100, nullable: true })
   lastName?: string;
 
+  @Index()
   @Column({ type: 'varchar', length: 150, unique: true, nullable: true })
   email?: string;
 
+  @Index()
   @Column({
     name: 'phone_number',
     type: 'varchar',

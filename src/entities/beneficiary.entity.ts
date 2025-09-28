@@ -5,6 +5,7 @@ import {
   PrimaryGeneratedColumn,
   JoinColumn,
   ManyToOne,
+  Index,
 } from 'typeorm';
 import { uuidv7 } from 'uuidv7';
 import { Wallet } from './wallet.entity';
@@ -16,6 +17,7 @@ export class Beneficiary extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id?: string = uuidv7();
 
+  @Index()
   @ManyToOne(() => Wallet, { nullable: true })
   @JoinColumn({ name: 'wallet_id' })
   @IsNotEmpty()

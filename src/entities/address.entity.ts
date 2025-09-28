@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -47,6 +48,7 @@ export class Address extends BaseEntity {
   })
   buildingNumber: string;
 
+  @Index()
   @ManyToOne(() => User, (user) => user, {
     nullable: false,
     onDelete: 'CASCADE',
@@ -56,6 +58,7 @@ export class Address extends BaseEntity {
   @IsNotEmpty()
   user: User | UUID;
 
+  @Index()
   @Column({
     nullable: false,
     name: 'kyc_id',
