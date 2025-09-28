@@ -2,8 +2,9 @@ import { UUID } from 'crypto';
 import {
   DeepPartial,
   EntityManager,
+  FindManyOptions,
+  FindOneOptions,
   FindOptionsOrder,
-  FindOptionsRelations,
   FindOptionsWhere,
   Repository,
 } from 'typeorm';
@@ -38,10 +39,10 @@ export class EntityRepository<T> extends Repository<T> {
 
   async findById(
     id: UUID | number,
-    relations?: FindOptionsRelations<T>,
+    options?: Omit<FindOneOptions<T>, 'where'>,
   ): Promise<T | null> {
     if (!id) return null;
-    return this.findOne({ where: { id } as any, relations });
+    return this.findOne({ ...options, where: { id } as any });
   }
 
   async findbyIdAndUpdate(
@@ -68,13 +69,15 @@ export class EntityRepository<T> extends Repository<T> {
       page: number;
     };
     sort?: FindOptionsOrder<T>;
+    options?: Omit<FindManyOptions<T>, 'where' | 'order' | 'take' | 'skip'>;
   }): Promise<Paginated<T>> {
-    const { filter, pagination, sort } = payload;
+    const { filter, pagination, options, sort } = payload;
 
     const { limit, page } = pagination;
     const skip = (page - 1) * limit;
 
-    const [docs, total] = await this.findAndCount({
+    const [records, total] = await this.findAndCount({
+      ...options,
       where: filter,
       order: sort,
       take: limit,
@@ -87,7 +90,7 @@ export class EntityRepository<T> extends Repository<T> {
     const prevPage = currentPage - 1 > 0 ? currentPage - 1 : null;
 
     return {
-      results: docs,
+      results: records,
       pagination: {
         total,
         totalPages,

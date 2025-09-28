@@ -28,6 +28,6 @@ export class UserController {
     @User() user: UserProfile,
     @Body() body: UpdateUserProfileDTO,
   ) {
-    return this.userService.updateProfile({ ...body, userId: user.id });
+    return this.userService.updateProfile({ ...body, userId: user.id }, true);
   }
 }
