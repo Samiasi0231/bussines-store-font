@@ -19,8 +19,8 @@ export default () => ({
       AppId: process.env.DOJAH_APP_ID,
     },
     urls: {
-      nin: '/api/v1/kyc/nin?nin=',
-      bvn: '/api/v1/kyc/bvn/full?bvn=',
+      nin: '/v1/kyc/nin?nin=',
+      bvn: '/v1/kyc/bvn/full?bvn=',
     },
   },
   aws: {
