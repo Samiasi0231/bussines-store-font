@@ -55,7 +55,7 @@ export class User extends BaseEntity {
   @Column({ type: 'enum', enum: Status, default: Status.ACTIVE })
   status: Status;
 
-  @Column({ type: 'enum', enum: Gender })
+  @Column({ type: 'enum', enum: Gender, nullable: true })
   gender?: Gender;
 
   @Column({ select: false, type: 'varchar' })
