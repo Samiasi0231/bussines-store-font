@@ -436,6 +436,7 @@ export class KycService {
       buildingNumber,
       utilityBill,
       userId,
+      utilityBillType,
     } = data;
 
     await this.dbTransactionManager.transaction(async (manager) => {
@@ -457,6 +458,7 @@ export class KycService {
         user: userId as UUID,
         kycId: kyc.id,
         utilityBill,
+        utilityBillType,
       });
 
       await this.identityVerificationRepository

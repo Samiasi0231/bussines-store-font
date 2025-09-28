@@ -136,6 +136,11 @@ export class AuthService {
     );
   }
 
+  async logout(userId: UUID) {
+    await this.cacheService.del(userId);
+    return this.responseService.sendSuccess(SuccessMessage.LOGOUT);
+  }
+
   async changePassword(userId: UUID, changePasswordDto: ChangePasswordDto) {
     const { currentPassword, newPassword } = changePasswordDto;
 

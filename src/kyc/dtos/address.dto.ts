@@ -20,11 +20,14 @@ export class AddressVerificationDTO {
   @IsNotEmpty()
   street: string;
 
-  @IsString()
   @IsNotEmpty()
   buildingNumber: string;
 
   @IsUrl()
   @IsNotEmpty()
   utilityBill: string;
+
+  @IsString()
+  @IsNotEmpty()
+  utilityBillType: string;
 }

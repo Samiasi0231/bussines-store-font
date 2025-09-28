@@ -36,10 +36,17 @@ export class Address extends BaseEntity {
   @Column({
     name: 'utility_bill',
     type: 'varchar',
-    length: 200,
     nullable: true,
   })
   utilityBill: string;
+
+  @Column({
+    name: 'utility_bill_type',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  utilityBillType: string;
 
   @Column({
     name: 'building_number',
