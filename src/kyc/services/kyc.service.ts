@@ -32,6 +32,8 @@ import { DbTransactionManager } from '../../@common/database/database-transactio
 import { WalletService } from '../../wallet/wallet.service';
 import { AddressVerificationDTO } from '../dtos/address.dto';
 import { AddressRepository } from '../../repositories/address.repository';
+import { EmailService } from '../../notification/services/email.service';
+import { EmailTemplate } from '../../@common/constants/email.constant';
 
 @Injectable()
 export class KycService {
@@ -51,6 +53,7 @@ export class KycService {
     private readonly dbTransactionManager: DbTransactionManager,
     private readonly walletService: WalletService,
     private readonly addressRepository: AddressRepository,
+    private readonly emailService: EmailService,
   ) {
     this.logger = new Logger(KycService.name);
     //TODO: move to system settings
@@ -463,6 +466,17 @@ export class KycService {
           verificationData: { utilityBill },
           user: userId as UUID,
         });
+
+      manager.on('committed', () => {
+        const adminEmail = this.configService.get<string>('appEmail.address');
+
+        this.emailService.sendEmailWithTemplate({
+          templateKey:
+            EmailTemplate.ADMIN_NOTIFICATION_FOR_ADDRESS_VERIFICATION,
+          email: adminEmail,
+          context: { userId },
+        });
+      });
     });
 
     return this.responseService.sendSuccess(

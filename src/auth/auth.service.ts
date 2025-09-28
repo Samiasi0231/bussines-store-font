@@ -21,6 +21,7 @@ import { VerificationIntent } from '../@common/constants/verification.constant';
 import { DbTransactionManager } from '../@common/database/database-transaction.manager';
 import { User } from '../entities/user.entity';
 import { WalletRepository } from '../repositories/wallet.repository';
+import { HttpStatusCode } from 'axios';
 
 @Injectable()
 export class AuthService {
@@ -170,21 +171,25 @@ export class AuthService {
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
-    const { otp, newPassword, phone: phoneNumber } = resetPasswordDto;
+    const { otp, newPassword, identifier } = resetPasswordDto;
 
     const user = await this.userRepository.findOne({
-      where: { phoneNumber },
+      where: [{ phoneNumber: identifier }, { email: identifier }],
       select: ['id'],
     });
 
     if (!user) {
-      return this.responseService.sendError(ErrorMessage.USER_NOT_FOUND);
+      return this.responseService.sendError(
+        ErrorMessage.USER_NOT_FOUND,
+        null,
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     const verificationResponse =
       await this.verificationService.verifyVerification({
-        intent: VerificationIntent.PASSWORD_UPDATE,
-        entityId: phoneNumber,
+        intent: VerificationIntent.PASSWORD_RESET,
+        entityId: identifier,
         verificationData: otp,
       });
 
