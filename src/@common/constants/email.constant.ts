@@ -1,6 +1,7 @@
 export enum EmailTemplate {
   OTP = 'otp',
   PASSWORD_RESET = 'password-reset',
+  ADMIN_NOTIFICATION_FOR_ADDRESS_VERIFICATION = 'notify-admin-address-verification',
 }
 
 export enum EmailNotificationType {

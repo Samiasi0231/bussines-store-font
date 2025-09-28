@@ -1,5 +1,5 @@
 import { UUID } from 'crypto';
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
 import { uuidv7 } from 'uuidv7';
 import { BaseEntity } from './base.entity';
 import {
@@ -13,6 +13,7 @@ export class Verification extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id? = uuidv7() as UUID;
 
+  @Index()
   @Column({ name: 'entity_id', type: 'varchar', length: 50 })
   entityId: string;
 

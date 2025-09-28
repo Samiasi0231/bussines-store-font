@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Address Submission Notification</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f7f9fc;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 30px auto;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    h2 {
+      color: #2c3e50;
+      font-size: 20px;
+      margin-bottom: 15px;
+    }
+    p {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .highlight {
+      font-weight: bold;
+      color: #1a73e8;
+    }
+    .footer {
+      margin-top: 25px;
+      font-size: 11px;   /* smaller font */
+      color: #999;       /* lighter gray */
+      text-align: center;
+    }
+    .footer a {
+      color: #1a73e8;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>New Address Submission</h2>
+    <p>
+      User with ID <span class="highlight"><%= userId %></span> has just submitted their address information for verification.  
+    </p>
+    <p>
+      Please review it promptly to ensure timely processing.
+    </p>
+    <div class="footer">
+      <p>
+        Need help? Contact our support team at
+        <a href="mailto:support@bizvantage.com" class="support-link">
+          support@bizvantage.com
+        </a>
+      </p>
+      <p style="margin-top: 8px">©2025 Bizvantage. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>

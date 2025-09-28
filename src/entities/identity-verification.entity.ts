@@ -4,6 +4,7 @@ import {
   ManyToOne,
   JoinColumn,
   PrimaryGeneratedColumn,
+  Index,
 } from 'typeorm';
 import { User } from './user.entity';
 import { IdentityVerificationType } from '../kyc/dtos/identity.dto';
@@ -33,6 +34,7 @@ export class IdentityVerification extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id? = uuidv7() as UUID;
 
+  @Index()
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'user_id' })
   @Column({ name: 'user_id' })

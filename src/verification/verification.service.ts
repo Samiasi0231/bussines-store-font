@@ -22,6 +22,9 @@ import { EmailTemplate } from '../@common/constants/email.constant';
 import { EmailService } from '../notification/services/email.service';
 import dayjs from 'dayjs';
 import { UserService } from '../user/user.service';
+import { UserRepository } from '../repositories/user.repository';
+import { name } from 'ejs';
+import { UUID } from 'crypto';
 
 @Injectable()
 export class VerificationService {
@@ -34,6 +37,7 @@ export class VerificationService {
     private readonly emailService: EmailService,
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
+    private readonly userRepository: UserRepository,
   ) {
     //TODO: move to system settings
     this.DEFAULT_VERIFICATION_EXPIRATION_TIME = this.configService.get<number>(
@@ -50,20 +54,34 @@ export class VerificationService {
     const verificationCode = this.generateOTPCode();
     const hashedVerificationCode = await Util.hash(verificationCode);
 
+    const durationInSeconds = this.DEFAULT_VERIFICATION_EXPIRATION_TIME;
+    const durationInMinutes = durationInSeconds / 60;
+
     const verification = await this.verificationRepository.createStrict({
       entityId,
       status: Status.PENDING,
       channel,
       intent,
       verificationData: hashedVerificationCode,
-      expiresAt: dayjs()
-        .add(this.DEFAULT_VERIFICATION_EXPIRATION_TIME, 'seconds')
-        .toDate(),
+      expiresAt: dayjs().add(durationInSeconds, 'seconds').toDate(),
     });
 
     switch (channel) {
       case VerificationChannel.EMAIL:
-        this.sendEmail(intent, entityId, verificationCode);
+        let email: string;
+        let name = '';
+        if (
+          [
+            VerificationIntent.PASSWORD_RESET,
+            VerificationIntent.EMAIL_ADDRESS,
+          ].includes(intent)
+        )
+          email = entityId;
+
+        this.sendEmail(intent, entityId, verificationCode, {
+          duration: durationInMinutes,
+          name,
+        });
         break;
       default:
         break;
@@ -126,11 +144,11 @@ export class VerificationService {
     intent: VerificationIntent,
     email: string,
     verificationData: string,
-    firstName = '',
+    data: Record<string, unknown>,
   ) {
     let templateKey: EmailTemplate;
     switch (intent) {
-      case VerificationIntent.PASSWORD_UPDATE:
+      case VerificationIntent.PASSWORD_RESET:
         templateKey = EmailTemplate.PASSWORD_RESET;
         break;
       default:
@@ -141,7 +159,11 @@ export class VerificationService {
     this.emailService.sendEmailWithTemplate({
       templateKey,
       email,
-      context: { otp: verificationData, firstName },
+      context: {
+        otp: verificationData,
+        name: data.name,
+        duration: data.duration,
+      },
     });
   }
 

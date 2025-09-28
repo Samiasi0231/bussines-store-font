@@ -10,7 +10,15 @@
     "key": "password-reset",
     "email": {
       "subject": "Password Reset",
-      "path": "otp"
+      "path": "password-reset"
+    }
+  },
+
+  {
+    "key": "notify-admin-address-verification",
+    "email": {
+      "subject": "Pending Address Verification",
+      "path": "admin/address-submission"
     }
   }
 ]

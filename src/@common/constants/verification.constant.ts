@@ -6,6 +6,7 @@ export enum VerificationChannel {
 export enum VerificationIntent {
   PHONE_NUMBER = 'phone_number',
   EMAIL_ADDRESS = 'email_address',
-  PASSWORD_UPDATE = 'password_update',
+  PASSWORD_CHANGE = 'password_change',
+  PASSWORD_RESET = 'password_reset',
   TRANSACTION_PIN = 'transaction_pin',
 }

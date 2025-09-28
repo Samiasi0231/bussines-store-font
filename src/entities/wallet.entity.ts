@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
   JoinColumn,
   ManyToOne,
+  Index,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Currency } from '../@common/constants/currency.constant';
@@ -19,6 +20,7 @@ export class Wallet extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id? = uuidv7() as UUID;
 
+  @Index()
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'user_id' })
   @Column({ name: 'user_id' })

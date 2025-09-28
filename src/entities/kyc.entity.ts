@@ -5,6 +5,7 @@ import {
   OneToMany,
   JoinColumn,
   ManyToOne,
+  Index,
 } from 'typeorm';
 import { Tier } from '../@common/constants/tier.constant';
 import { Status } from '../@common/constants/status.constant';
@@ -38,6 +39,7 @@ export class Kyc extends BaseEntity {
   @Column({ type: 'varchar', length: 20, nullable: true })
   bvn?: string;
 
+  @Index()
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'user_id' })
   @Column({ name: 'user_id' })
