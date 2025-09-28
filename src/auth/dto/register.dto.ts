@@ -1,27 +1,8 @@
-import { IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
-import { IsE164PhoneNumber } from '../../@common/decorators/is-e164-phone-number.decorator';
-import { i18nValidationMessage } from 'nestjs-i18n';
+import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class SignupDTO {
-  @IsNotEmpty()
-  @IsString()
-  firstName: string;
-
-  @IsOptional()
-  @IsString()
-  otherName?: string;
-
-  @IsNotEmpty()
-  @IsString()
-  lastName: string;
-
-  @IsNotEmpty()
-  @IsE164PhoneNumber({
-    message: i18nValidationMessage(
-      'validation.INVALID_E164_PHONE_NUMBER_ERROR',
-    ),
-  })
-  phoneNumber: string;
+  @IsEmail()
+  email: string;
 
   @IsNotEmpty()
   @IsString()

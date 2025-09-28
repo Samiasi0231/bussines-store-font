@@ -240,7 +240,7 @@ export class KycService {
           status: Status.VERIFIED,
         });
 
-      if (type !== IdentityVerificationType.BVN) {
+      if (type === IdentityVerificationType.BVN) {
         const providerImage = responseData.imageBase64;
         const faceComparisonResponse = await this.verifyFace(
           userImage,
