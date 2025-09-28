@@ -18,6 +18,7 @@ import { DbTransactionManager } from '../@common/database/database-transaction.m
 import { Kyc } from '../entities/kyc.entity';
 import { WalletService } from '../wallet/wallet.service';
 import { Tier } from '../@common/constants/tier.constant';
+import { User } from '../entities/user.entity';
 
 @Injectable()
 export class UserService {
@@ -98,12 +99,27 @@ export class UserService {
 
   async updateProfile(
     data: (EditUserProfileDTO | UpdateUserProfileDTO) & { userId: UUID },
+    isInitialProfileUpdate = false,
   ) {
     const { userId, ...update } = data;
 
     await this.dbTransactionManager.transaction(async (manager) => {
       const entityManager = manager.entityManager;
-      const user = await this.userRepository
+
+      let user: User;
+
+      if (isInitialProfileUpdate) {
+        user = await this.userRepository
+          .withManager(entityManager)
+          .findById(userId);
+
+        if (user.dateOfBirth || user.otherName || user.email)
+          return this.responseService.sendError(
+            ErrorMessage.PROFILE_SETUP_COMPLETED,
+          );
+      }
+
+      user = await this.userRepository
         .withManager(entityManager)
         .findbyIdAndUpdate(userId, update);
 

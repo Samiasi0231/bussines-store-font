@@ -439,7 +439,7 @@ export class KycService {
       const entityManager = manager.entityManager;
       let kyc = await this.kycRepository
         .withManager(entityManager)
-        .findByUserId(userId as UUID, { mode: 'pessimistic_write' });
+        .findByUserId(userId as UUID, { lock: { mode: 'pessimistic_write' } });
 
       if (!kyc)
         kyc = await this.kycRepository.createStrict({ user: userId as UUID });

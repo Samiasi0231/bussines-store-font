@@ -36,6 +36,7 @@ export const ErrorMessage = {
     'A valid BVN has been verified and linked to this account.',
   ALREADY_VERIFIED_IDENTITY: 'Identity verifcation already completed',
   NOT_FOUND: (entity: string) => `${entity} not found`,
+  PROFILE_SETUP_COMPLETED: 'Profile setup has already been completed.',
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];
