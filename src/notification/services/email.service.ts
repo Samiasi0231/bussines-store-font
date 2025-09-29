@@ -19,12 +19,13 @@ import templates from '../../@common/templates/templates.json';
 import { ResponseService } from '../../@common/response';
 import { ErrorMessage } from '../../@common/constants/message.constant';
 import { ResendService } from './resend.service';
+import { join } from 'path';
 
 @Injectable()
 export class EmailService {
   private emailProvider: IEmailService;
   private emailProviderName: Provider;
-  private baseTemplatePath = 'src/@common/templates';
+  private baseTemplatePath = join(__dirname, '../..', '@common', 'templates');
 
   constructor(
     private configService: ConfigService,
