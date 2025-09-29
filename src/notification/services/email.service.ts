@@ -25,7 +25,12 @@ import { join } from 'path';
 export class EmailService {
   private emailProvider: IEmailService;
   private emailProviderName: Provider;
-  private baseTemplatePath = join(__dirname, '../..', '@common', 'templates');
+  private baseTemplatePath = join(
+    process.cwd(),
+    'dist',
+    '@common',
+    'templates',
+  );
 
   constructor(
     private configService: ConfigService,
