@@ -25,12 +25,8 @@ import { join } from 'path';
 export class EmailService {
   private emailProvider: IEmailService;
   private emailProviderName: Provider;
-  private baseTemplatePath = join(
-    process.cwd(),
-    'dist',
-    '@common',
-    'templates',
-  );
+  private baseTemplatePath = join(process.cwd(), 'dist', '@common', 'templates');
+
 
   constructor(
     private configService: ConfigService,
@@ -44,6 +40,10 @@ export class EmailService {
       Provider.RESEND,
     );
     this.emailProvider = this.getProvider();
+  }
+
+  async onModuleInit() {
+    console.debug({ baseTemplatePath: this.baseTemplatePath }, 'abba');
   }
 
   getProvider(): IEmailService {
