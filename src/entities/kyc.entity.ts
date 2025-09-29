@@ -55,13 +55,6 @@ export class Kyc extends BaseEntity {
   bvnVerificationStatus?: VerificationStatus;
 
   @Column({
-    name: 'is_profile_complete',
-    type: 'varchar',
-    default: false,
-  })
-  isProfileComplete?: boolean;
-
-  @Column({
     name: 'identity_document_number',
     type: 'varchar',
     length: 100,

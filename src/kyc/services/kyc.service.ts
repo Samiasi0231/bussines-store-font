@@ -305,7 +305,7 @@ export class KycService {
         .findById(kyc.id);
 
       const canUpgradeToTierTwo =
-        updatedKyc.isProfileComplete &&
+        user.isProfileComplete &&
         [
           updatedKyc.bvnVerificationStatus,
           updatedKyc.faceVerificationStatus,

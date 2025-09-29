@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { UserRepository } from '../repositories/user.repository';
 import { UserSanitizer } from './sanitizers/user.sanitizer';
 import { CacheService } from '../@common/cache/cache.service';
@@ -6,7 +6,7 @@ import {
   CachedUserProfileData,
   UserDataForProfile,
 } from './interfaces/user.interface';
-import { ResponseService } from '../@common/response';
+import { IResponse, ResponseService } from '../@common/response';
 import { UUID } from 'crypto';
 import {
   SuccessMessage,
@@ -93,41 +93,8 @@ export class UserService {
   async verifyPhoneNumber(data: { id?: UUID; phoneNumber?: string }) {
     const { phoneNumber, id } = data;
 
-    await this.dbTransactionManager.transaction(async (manager) => {
-      const entityManager = manager.entityManager;
-
-      await this.userRepository.update([{ phoneNumber }, { id }], {
-        phoneVerifiedAt: new Date(),
-      });
-
-      const user = await this.userRepository
-        .withManager(entityManager)
-        .findByPhoneNumber(phoneNumber, {
-          lock: { mode: 'pessimistic_write' },
-        });
-
-      if (!user) return;
-
-      const userId = user.id;
-
-      const isProfileComplete = !!(
-        user.firstName &&
-        user.lastName &&
-        user.dateOfBirth &&
-        user.phoneVerifiedAt
-      );
-
-      if (isProfileComplete) {
-        await this.walletService.setWalletLimits({
-          userId,
-          entityManager,
-          tier: Tier.ONE,
-        });
-
-        await this.kycRepository
-          .withManager(entityManager)
-          .update({ user: userId }, { isProfileComplete });
-      }
+    await this.userRepository.update([{ phoneNumber }, { id }], {
+      phoneVerifiedAt: new Date(),
     });
   }
 
@@ -139,20 +106,66 @@ export class UserService {
 
     let user: User;
 
-    if (isInitialProfileUpdate) {
-      user = await this.userRepository.findById(userId);
+    let response: IResponse<any>;
 
-      if (user.dateOfBirth || user.otherName || user.phoneNumber)
-        return this.responseService.sendError(
-          ErrorMessage.PROFILE_SETUP_COMPLETED,
+    if (isInitialProfileUpdate) {
+      response = await this.dbTransactionManager.transaction<
+        IResponse<null | {
+          id: string;
+        }>
+      >(async (manager) => {
+        const entityManager = manager.entityManager;
+
+        const user = await this.userRepository
+          .withManager(entityManager)
+          .findById(userId, {
+            lock: { mode: 'pessimistic_write' },
+          });
+
+        if (!user)
+          return this.responseService.sendError(
+            ErrorMessage.USER_NOT_FOUND,
+            null,
+            HttpStatus.NOT_FOUND,
+          );
+
+        if (user.isProfileComplete)
+          return this.responseService.sendError(
+            ErrorMessage.PROFILE_SETUP_COMPLETED,
+          );
+
+        const isProfileComplete = !!(
+          user.firstName &&
+          user.lastName &&
+          user.dateOfBirth &&
+          user.gender
         );
+
+        if (isProfileComplete) {
+          await this.walletService.setWalletLimits({
+            userId,
+            entityManager,
+            tier: Tier.ONE,
+          });
+
+          await this.userRepository
+            .withManager(entityManager)
+            .update(userId, { isProfileComplete });
+        }
+
+        return this.responseService.sendSuccess(
+          SuccessMessage.OPERATION_SUCCESSFUL,
+          { id: userId },
+        );
+      });
+    } else {
+      user = await this.userRepository.findbyIdAndUpdate(userId, update);
+      response = this.responseService.sendSuccess(
+        SuccessMessage.OPERATION_SUCCESSFUL,
+        { id: userId },
+      );
     }
 
-    user = await this.userRepository.findbyIdAndUpdate(userId, update);
-
-    return this.responseService.sendSuccess(
-      SuccessMessage.OPERATION_SUCCESSFUL,
-      { id: userId },
-    );
+    return response;
   }
 }
