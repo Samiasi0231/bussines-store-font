@@ -108,38 +108,56 @@ export class UserService {
 
     let response: IResponse<any>;
 
-    if (isInitialProfileUpdate) {
-      response = await this.dbTransactionManager.transaction<
-        IResponse<null | {
-          id: string;
-        }>
-      >(async (manager) => {
-        const entityManager = manager.entityManager;
+    let isProfileComplete: boolean;
 
-        const user = await this.userRepository
-          .withManager(entityManager)
-          .findById(userId, {
-            lock: { mode: 'pessimistic_write' },
-          });
+    response = await this.dbTransactionManager.transaction<
+      IResponse<null | {
+        id: string;
+      }>
+    >(async (manager) => {
+      const entityManager = manager.entityManager;
 
-        if (!user)
-          return this.responseService.sendError(
-            ErrorMessage.USER_NOT_FOUND,
-            null,
-            HttpStatus.NOT_FOUND,
-          );
+      const user = await this.userRepository
+        .withManager(entityManager)
+        .findById(userId, {
+          lock: { mode: 'pessimistic_write' },
+        });
 
+      if (!user)
+        return this.responseService.sendError(
+          ErrorMessage.USER_NOT_FOUND,
+          null,
+          HttpStatus.NOT_FOUND,
+        );
+
+      if (isInitialProfileUpdate) {
         if (user.isProfileComplete)
           return this.responseService.sendError(
             ErrorMessage.PROFILE_SETUP_COMPLETED,
           );
 
-        const isProfileComplete = !!(
-          user.firstName &&
-          user.lastName &&
-          user.dateOfBirth &&
-          user.gender
-        );
+        isProfileComplete =
+          'lastName' in update &&
+          !!(
+            update.firstName &&
+            update.lastName &&
+            update.dateOfBirth &&
+            update.gender &&
+            update.phoneNumber
+          );
+
+        const userWithPhoneNumber = await this.userRepository
+          .withManager(entityManager)
+          .find({
+            where: {
+              phoneNumber: (update as UpdateUserProfileDTO).phoneNumber,
+            },
+          });
+
+        if (userWithPhoneNumber)
+          return this.responseService.sendError(
+            ErrorMessage.PHONE_NUMBER_EXISTS,
+          );
 
         if (isProfileComplete) {
           await this.walletService.setWalletLimits({
@@ -147,24 +165,23 @@ export class UserService {
             entityManager,
             tier: Tier.ONE,
           });
-
-          await this.userRepository
-            .withManager(entityManager)
-            .update(userId, { isProfileComplete });
         }
+      }
 
-        return this.responseService.sendSuccess(
-          SuccessMessage.OPERATION_SUCCESSFUL,
-          { id: userId },
-        );
-      });
-    } else {
-      user = await this.userRepository.findbyIdAndUpdate(userId, update);
-      response = this.responseService.sendSuccess(
+      const updateQuery = {
+        ...update,
+        ...(isProfileComplete ? { isProfileComplete } : {}),
+      };
+
+      await this.userRepository
+        .withManager(entityManager)
+        .update(userId, updateQuery);
+
+      return this.responseService.sendSuccess(
         SuccessMessage.OPERATION_SUCCESSFUL,
         { id: userId },
       );
-    }
+    });
 
     return response;
   }
