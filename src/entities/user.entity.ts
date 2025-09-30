@@ -69,7 +69,7 @@ export class User extends BaseEntity {
 
   @Column({
     name: 'is_profile_complete',
-    type: 'varchar',
+    type: 'boolean',
     default: false,
   })
   isProfileComplete?: boolean;

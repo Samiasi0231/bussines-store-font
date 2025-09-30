@@ -148,7 +148,7 @@ export class UserService {
 
         const userWithPhoneNumber = await this.userRepository
           .withManager(entityManager)
-          .find({
+          .findOne({
             where: {
               phoneNumber: (update as UpdateUserProfileDTO).phoneNumber,
             },
