@@ -24,8 +24,11 @@ export class UserSanitizer {
       nonBvnIdentityDocumentVerified:
         kyc.identityVerificationStatus === Status.VERIFIED,
       identityVerified: kyc.identityVerificationStatus === Status.VERIFIED,
-      isProfileComplete: kyc.isProfileComplete,
+      isProfileComplete: userData.isProfileComplete,
       addressVerified: kyc.addressVerificationStatus === Status.VERIFIED,
+      gender: userData.gender,
+      phoneVerified: !!userData.phoneVerifiedAt,
+      emailVerified: !!userData.emailVerifiedAt,
     };
   }
 

@@ -1,5 +1,6 @@
 import { UUID } from 'crypto';
 import { Tier } from '../../@common/constants/tier.constant';
+import { Gender } from '../../@common/constants/gender.constant';
 
 export interface UserProfile {
   phoneNumber: string;
@@ -14,6 +15,9 @@ export interface UserProfile {
   identityVerified: boolean;
   tier: Tier;
   addressVerified: boolean;
+  gender: Gender;
+  phoneVerified: boolean;
+  emailVerified: boolean;
 }
 
 export interface CachedUserProfileData extends UserProfile {
@@ -22,9 +26,13 @@ export interface CachedUserProfileData extends UserProfile {
 
 export interface UserDataForProfile {
   phoneNumber: string;
-  email?: string;
+  email: string;
   firstName: string;
   lastName: string;
   avatar: string;
   id: UUID;
+  gender: Gender;
+  phoneVerifiedAt: Date;
+  emailVerifiedAt: Date;
+  isProfileComplete: boolean;
 }

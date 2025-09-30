@@ -7,7 +7,7 @@ export class ResetPasswordDto {
 
   @IsString()
   @IsNotEmpty()
-  phone: string;
+  identifier: string;
 
   @IsNotEmpty()
   @IsString()

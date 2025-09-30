@@ -10,6 +10,7 @@ import { Util } from '../@common/utilities/helpers.utility';
 import { UUID } from 'crypto';
 import { uuidv7 } from 'uuidv7';
 import { Status } from '../@common/constants/status.constant';
+import { Gender } from '../@common/constants/gender.constant';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -26,8 +27,8 @@ export class User extends BaseEntity {
   lastName?: string;
 
   @Index()
-  @Column({ type: 'varchar', length: 150, unique: true, nullable: true })
-  email?: string;
+  @Column({ type: 'varchar', length: 150, unique: true })
+  email: string;
 
   @Index()
   @Column({
@@ -35,8 +36,9 @@ export class User extends BaseEntity {
     type: 'varchar',
     length: 20,
     unique: true,
+    nullable: true,
   })
-  phoneNumber: string;
+  phoneNumber?: string;
 
   @Column({ name: 'email_verified_at', type: 'timestamptz', nullable: true })
   emailVerifiedAt?: Date;
@@ -53,6 +55,9 @@ export class User extends BaseEntity {
   @Column({ type: 'enum', enum: Status, default: Status.ACTIVE })
   status: Status;
 
+  @Column({ type: 'enum', enum: Gender, nullable: true })
+  gender?: Gender;
+
   @Column({ select: false, type: 'varchar' })
   password: string;
 
@@ -61,6 +66,13 @@ export class User extends BaseEntity {
 
   @Column({ type: 'varchar', default: 'NG', length: 2 })
   iso2?: string;
+
+  @Column({
+    name: 'is_profile_complete',
+    type: 'boolean',
+    default: false,
+  })
+  isProfileComplete?: boolean;
 
   @BeforeInsert()
   private async beforeInsert() {

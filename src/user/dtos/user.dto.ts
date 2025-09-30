@@ -1,20 +1,38 @@
 import {
   IsString,
   IsOptional,
-  IsEmail,
   IsDateString,
   IsBase64,
   IsNotEmpty,
+  IsIn,
 } from 'class-validator';
+import { Gender } from '../../@common/constants/gender.constant';
+import { IsE164PhoneNumber } from '../../@common/decorators/is-e164-phone-number.decorator';
+import { i18nValidationMessage } from 'nestjs-i18n';
 
 export class UpdateUserProfileDTO {
+  @IsString()
+  @IsNotEmpty()
+  firstName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  lastName: string;
+
   @IsString()
   @IsOptional()
   otherName: string;
 
-  @IsEmail()
-  @IsOptional()
-  email: string;
+  @IsNotEmpty()
+  @IsE164PhoneNumber({
+    message: i18nValidationMessage(
+      'validation.INVALID_E164_PHONE_NUMBER_ERROR',
+    ),
+  })
+  phoneNumber: string;
+
+  @IsIn(Object.values(Gender))
+  gender: Gender;
 
   @IsNotEmpty()
   @IsDateString({ strict: false })

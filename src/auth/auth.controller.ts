@@ -27,14 +27,12 @@ export class AuthController {
 
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDTO) {
     return await this.authService.login(loginDto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('password/change')
-  @HttpCode(HttpStatus.OK)
   async changePassword(
     @User() user: UserProfile,
     @Body() changePasswordDto: ChangePasswordDto,
@@ -43,8 +41,13 @@ export class AuthController {
   }
 
   @Post('password/reset')
-  @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return await this.authService.resetPassword(resetPasswordDto);
+  }
+
+  @UseGuards(LocalAuthGuard)
+  @Post('logout')
+  async logout(@User() user: UserProfile) {
+    return await this.authService.logout(user.id);
   }
 }

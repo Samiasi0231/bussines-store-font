@@ -18,35 +18,46 @@ import { resolve } from 'app-root-path';
 import templates from '../../@common/templates/templates.json';
 import { ResponseService } from '../../@common/response';
 import { ErrorMessage } from '../../@common/constants/message.constant';
+import { ResendService } from './resend.service';
+import { join } from 'path';
 
 @Injectable()
 export class EmailService {
   private emailProvider: IEmailService;
   private emailProviderName: Provider;
-  private baseTemplatePath = 'src/@common/templates';
+  private baseTemplatePath = join(
+    process.cwd(),
+    'dist',
+    '@common',
+    'templates',
+  );
 
   constructor(
     private configService: ConfigService,
     private readonly smtpService: SmtpService,
+    private readonly resendService: ResendService,
     private readonly responseService: ResponseService,
   ) {
     //TODO: move to system settings
     this.emailProviderName = this.configService.get<Provider>(
       'EMAIL_PROVIDER',
-      Provider.SMTP,
+      Provider.RESEND,
     );
     this.emailProvider = this.getProvider();
   }
 
   getProvider(): IEmailService {
-    let provider;
+    let provider: IEmailService;
 
     switch (this.emailProviderName) {
       case Provider.SMTP:
         provider = this.smtpService;
         break;
+      case Provider.RESEND:
+        provider = this.resendService;
+        break;
       default:
-        provider = this.smtpService;
+        provider = this.resendService;
         break;
     }
 
@@ -80,7 +91,7 @@ export class EmailService {
     const mailOptions: SendEmailDTO = {
       recipients: [email],
       message: {
-        subject: await this.bindVariables(template.email?.subject, context),
+        subject: template.email?.subject,
         html: content,
       },
     };
@@ -104,14 +115,10 @@ export class EmailService {
         break;
     }
 
-    return resolve(path);
+    return path;
   }
 
   private getTemplateByKey(key: string): Template {
     return templates.find((template) => template.key === key);
-  }
-
-  private bindVariables(content: string, variables: Record<string, unknown>) {
-    return renderFile(content, variables);
   }
 }

@@ -33,7 +33,6 @@ import { WalletModule } from './wallet/wallet.module';
         username: config.get<string>('db.username'),
         password: config.get<string>('db.password'),
         database: config.get<string>('db.name'),
-        synchronize: config.get<boolean>('db.synchronize', false),
         entities: [__dirname + '/entities/*.entity{.ts,.js}'],
         autoLoadEntities: true,
         retryAttempts: 3,

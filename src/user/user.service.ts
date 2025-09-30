@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { UserRepository } from '../repositories/user.repository';
 import { UserSanitizer } from './sanitizers/user.sanitizer';
 import { CacheService } from '../@common/cache/cache.service';
@@ -6,7 +6,7 @@ import {
   CachedUserProfileData,
   UserDataForProfile,
 } from './interfaces/user.interface';
-import { ResponseService } from '../@common/response';
+import { IResponse, ResponseService } from '../@common/response';
 import { UUID } from 'crypto';
 import {
   SuccessMessage,
@@ -90,10 +90,11 @@ export class UserService {
     return JSON.parse(await this.cacheService.get(userId));
   }
 
-  async verifyEmail(data: { id?: UUID; email?: string }) {
-    const { email, id } = data;
-    await this.userRepository.update([{ email }, { id }], {
-      emailVerifiedAt: new Date(),
+  async verifyPhoneNumber(data: { id?: UUID; phoneNumber?: string }) {
+    const { phoneNumber, id } = data;
+
+    await this.userRepository.update([{ phoneNumber }, { id }], {
+      phoneVerifiedAt: new Date(),
     });
   }
 
@@ -103,49 +104,85 @@ export class UserService {
   ) {
     const { userId, ...update } = data;
 
-    await this.dbTransactionManager.transaction(async (manager) => {
+    let user: User;
+
+    let response: IResponse<any>;
+
+    let isProfileComplete: boolean;
+
+    response = await this.dbTransactionManager.transaction<
+      IResponse<null | {
+        id: string;
+      }>
+    >(async (manager) => {
       const entityManager = manager.entityManager;
 
-      let user: User;
+      const user = await this.userRepository
+        .withManager(entityManager)
+        .findById(userId, {
+          lock: { mode: 'pessimistic_write' },
+        });
+
+      if (!user)
+        return this.responseService.sendError(
+          ErrorMessage.USER_NOT_FOUND,
+          null,
+          HttpStatus.NOT_FOUND,
+        );
 
       if (isInitialProfileUpdate) {
-        user = await this.userRepository
-          .withManager(entityManager)
-          .findById(userId);
-
-        if (user.dateOfBirth || user.otherName || user.email)
+        if (user.isProfileComplete)
           return this.responseService.sendError(
             ErrorMessage.PROFILE_SETUP_COMPLETED,
           );
-      }
 
-      user = await this.userRepository
-        .withManager(entityManager)
-        .findbyIdAndUpdate(userId, update);
+        isProfileComplete =
+          'lastName' in update &&
+          !!(
+            update.firstName &&
+            update.lastName &&
+            update.dateOfBirth &&
+            update.gender &&
+            update.phoneNumber
+          );
 
-      const isProfileComplete = !!(
-        user.firstName &&
-        user.lastName &&
-        user.dateOfBirth &&
-        user.phoneVerifiedAt
-      );
-
-      if (isProfileComplete) {
-        await this.walletService.setWalletLimits({
-          userId,
-          entityManager,
-          tier: Tier.ONE,
-        });
-
-        await this.kycRepository
+        const userWithPhoneNumber = await this.userRepository
           .withManager(entityManager)
-          .update({ user: userId }, { isProfileComplete });
+          .findOne({
+            where: {
+              phoneNumber: (update as UpdateUserProfileDTO).phoneNumber,
+            },
+          });
+
+        if (userWithPhoneNumber)
+          return this.responseService.sendError(
+            ErrorMessage.PHONE_NUMBER_EXISTS,
+          );
+
+        if (isProfileComplete) {
+          await this.walletService.setWalletLimits({
+            userId,
+            entityManager,
+            tier: Tier.ONE,
+          });
+        }
       }
+
+      const updateQuery = {
+        ...update,
+        ...(isProfileComplete ? { isProfileComplete } : {}),
+      };
+
+      await this.userRepository
+        .withManager(entityManager)
+        .update(userId, updateQuery);
+
+      return this.responseService.sendSuccess(
+        SuccessMessage.OPERATION_SUCCESSFUL,
+        { id: userId },
+      );
     });
 
-    return this.responseService.sendSuccess(
-      SuccessMessage.OPERATION_SUCCESSFUL,
-      { id: userId },
-    );
+    return response;
   }
 }

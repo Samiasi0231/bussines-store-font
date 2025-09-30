@@ -39,4 +39,7 @@ export default () => ({
     name: process.env.SENDER_EMAIL_NAME,
     address: process.env.SENDER_EMAIL_ADDRESS,
   },
+  resend: {
+    apiKey: process.env.RESEND_API_KEY,
+  },
 });

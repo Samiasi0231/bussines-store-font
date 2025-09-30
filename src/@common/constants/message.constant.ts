@@ -37,6 +37,9 @@ export const ErrorMessage = {
   ALREADY_VERIFIED_IDENTITY: 'Identity verifcation already completed',
   NOT_FOUND: (entity: string) => `${entity} not found`,
   PROFILE_SETUP_COMPLETED: 'Profile setup has already been completed.',
+  CANNOT_USE_EMAIL_VERIFICATION_CHANNEL:
+    'You are yet to add an email to your account. Please do so or select an alternative verification channel',
+  PHONE_NUMBER_EXISTS: 'Phone number exists already',
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];
@@ -62,6 +65,7 @@ export const SuccessMessage = {
   RETRIEVE_BENEFICIARY: 'Beneficiary retrieved successfully',
   DELETE_BENEFICIARY: 'Beneficiary deleted successfully',
   ADD_BENEFICIARY: 'Beneficiary added successfully',
+  LOGOUT: 'You’ve logged out. See you again soon!',
 };
 
 export type SuccessMessage =

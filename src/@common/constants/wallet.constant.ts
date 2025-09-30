@@ -7,7 +7,7 @@ export enum WalletType {
 
 const INFINITE_LIMIT_VALUE = -100;
 
-export const TransactionLimits: Record<
+export const TRANSACTION_LIMITS: Record<
   Tier,
   {
     singleTransactionLimit: number;

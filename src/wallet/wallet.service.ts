@@ -13,7 +13,7 @@ import { Util } from '../@common/utilities/helpers.utility';
 import { EntityManager, FindOptionsWhere } from 'typeorm';
 import { Wallet } from '../entities/wallet.entity';
 import {
-  TransactionLimits,
+  TRANSACTION_LIMITS,
   WalletType,
 } from '../@common/constants/wallet.constant';
 import {
@@ -122,7 +122,7 @@ export class WalletService {
   }) {
     const { tier, id, entityManager, userId } = data;
 
-    const limits = TransactionLimits[tier];
+    const limits = TRANSACTION_LIMITS[tier];
 
     const { dailyTransactionLimit, singleTransactionLimit, maxBalanceLimit } =
       limits;
@@ -170,7 +170,7 @@ export class WalletService {
     const results = beneficiaries.map((beneficiary) =>
       this.walletSanitizer.formatBeneficiaryData(beneficiary),
     );
-
+ 
     return this.responseService.sendSuccess(
       SuccessMessage.RETRIEVE_BENEFICIARIES,
       {
