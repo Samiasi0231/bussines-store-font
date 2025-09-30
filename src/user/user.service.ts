@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { UserRepository } from '../repositories/user.repository';
 import { UserSanitizer } from './sanitizers/user.sanitizer';
 import { CacheService } from '../@common/cache/cache.service';
@@ -6,7 +6,7 @@ import {
   CachedUserProfileData,
   UserDataForProfile,
 } from './interfaces/user.interface';
-import { ResponseService } from '../@common/response';
+import { IResponse, ResponseService } from '../@common/response';
 import { UUID } from 'crypto';
 import {
   SuccessMessage,
@@ -93,41 +93,8 @@ export class UserService {
   async verifyPhoneNumber(data: { id?: UUID; phoneNumber?: string }) {
     const { phoneNumber, id } = data;
 
-    await this.dbTransactionManager.transaction(async (manager) => {
-      const entityManager = manager.entityManager;
-
-      await this.userRepository.update([{ phoneNumber }, { id }], {
-        phoneVerifiedAt: new Date(),
-      });
-
-      const user = await this.userRepository
-        .withManager(entityManager)
-        .findByPhoneNumber(phoneNumber, {
-          lock: { mode: 'pessimistic_write' },
-        });
-
-      if (!user) return;
-
-      const userId = user.id;
-
-      const isProfileComplete = !!(
-        user.firstName &&
-        user.lastName &&
-        user.dateOfBirth &&
-        user.phoneVerifiedAt
-      );
-
-      if (isProfileComplete) {
-        await this.walletService.setWalletLimits({
-          userId,
-          entityManager,
-          tier: Tier.ONE,
-        });
-
-        await this.kycRepository
-          .withManager(entityManager)
-          .update({ user: userId }, { isProfileComplete });
-      }
+    await this.userRepository.update([{ phoneNumber }, { id }], {
+      phoneVerifiedAt: new Date(),
     });
   }
 
@@ -139,20 +106,83 @@ export class UserService {
 
     let user: User;
 
-    if (isInitialProfileUpdate) {
-      user = await this.userRepository.findById(userId);
+    let response: IResponse<any>;
 
-      if (user.dateOfBirth || user.otherName || user.phoneNumber)
+    let isProfileComplete: boolean;
+
+    response = await this.dbTransactionManager.transaction<
+      IResponse<null | {
+        id: string;
+      }>
+    >(async (manager) => {
+      const entityManager = manager.entityManager;
+
+      const user = await this.userRepository
+        .withManager(entityManager)
+        .findById(userId, {
+          lock: { mode: 'pessimistic_write' },
+        });
+
+      if (!user)
         return this.responseService.sendError(
-          ErrorMessage.PROFILE_SETUP_COMPLETED,
+          ErrorMessage.USER_NOT_FOUND,
+          null,
+          HttpStatus.NOT_FOUND,
         );
-    }
 
-    user = await this.userRepository.findbyIdAndUpdate(userId, update);
+      if (isInitialProfileUpdate) {
+        if (user.isProfileComplete)
+          return this.responseService.sendError(
+            ErrorMessage.PROFILE_SETUP_COMPLETED,
+          );
 
-    return this.responseService.sendSuccess(
-      SuccessMessage.OPERATION_SUCCESSFUL,
-      { id: userId },
-    );
+        isProfileComplete =
+          'lastName' in update &&
+          !!(
+            update.firstName &&
+            update.lastName &&
+            update.dateOfBirth &&
+            update.gender &&
+            update.phoneNumber
+          );
+
+        const userWithPhoneNumber = await this.userRepository
+          .withManager(entityManager)
+          .find({
+            where: {
+              phoneNumber: (update as UpdateUserProfileDTO).phoneNumber,
+            },
+          });
+
+        if (userWithPhoneNumber)
+          return this.responseService.sendError(
+            ErrorMessage.PHONE_NUMBER_EXISTS,
+          );
+
+        if (isProfileComplete) {
+          await this.walletService.setWalletLimits({
+            userId,
+            entityManager,
+            tier: Tier.ONE,
+          });
+        }
+      }
+
+      const updateQuery = {
+        ...update,
+        ...(isProfileComplete ? { isProfileComplete } : {}),
+      };
+
+      await this.userRepository
+        .withManager(entityManager)
+        .update(userId, updateQuery);
+
+      return this.responseService.sendSuccess(
+        SuccessMessage.OPERATION_SUCCESSFUL,
+        { id: userId },
+      );
+    });
+
+    return response;
   }
 }

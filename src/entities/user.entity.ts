@@ -67,6 +67,13 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', default: 'NG', length: 2 })
   iso2?: string;
 
+  @Column({
+    name: 'is_profile_complete',
+    type: 'varchar',
+    default: false,
+  })
+  isProfileComplete?: boolean;
+
   @BeforeInsert()
   private async beforeInsert() {
     this.password = await Util.hash(this.password);

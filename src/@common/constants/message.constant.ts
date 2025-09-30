@@ -39,6 +39,7 @@ export const ErrorMessage = {
   PROFILE_SETUP_COMPLETED: 'Profile setup has already been completed.',
   CANNOT_USE_EMAIL_VERIFICATION_CHANNEL:
     'You are yet to add an email to your account. Please do so or select an alternative verification channel',
+  PHONE_NUMBER_EXISTS: 'User with phone number exists',
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];
