@@ -21,6 +21,7 @@ export default () => ({
     urls: {
       nin: '/v1/kyc/nin?nin=',
       bvn: '/v1/kyc/bvn/full?bvn=',
+      cac: '/v1/kyc/cac/basic?rc_number=',
     },
   },
   aws: {

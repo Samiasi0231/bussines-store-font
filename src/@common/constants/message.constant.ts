@@ -31,6 +31,7 @@ export const ErrorMessage = {
   DB_TRANSACTION_ALREADY_STARTED: 'Transaction already started',
   WALLET_NOT_FOUND: 'Wallet not found',
   INVALID_BVN: 'Invalid BVN',
+  INVALID_RC_NUMBER: 'Invalid RC Number',
   INVALID_NIN: 'Invalid NIN',
   ALREADY_VERIFIED_BVN:
     'A valid BVN has been verified and linked to this account.',
@@ -40,6 +41,7 @@ export const ErrorMessage = {
   CANNOT_USE_EMAIL_VERIFICATION_CHANNEL:
     'You are yet to add an email to your account. Please do so or select an alternative verification channel',
   PHONE_NUMBER_EXISTS: 'Phone number exists already',
+  CAC_LOOKUP: 'Failed to retrieve CAC details',
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];
@@ -66,6 +68,7 @@ export const SuccessMessage = {
   DELETE_BENEFICIARY: 'Beneficiary deleted successfully',
   ADD_BENEFICIARY: 'Beneficiary added successfully',
   LOGOUT: 'You’ve logged out. See you again soon!',
+  CAC_LOOKUP: 'CAC information retrieved successfully',
 };
 
 export type SuccessMessage =
