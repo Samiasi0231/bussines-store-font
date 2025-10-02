@@ -72,9 +72,12 @@ export class WalletService {
   }
 
   async getWallet(
-    id: string,
+    id: UUID,
+    userId: UUID,
   ): Promise<IResponse<WalletData | Record<string, never>>> {
-    const wallet = await this.walletRepository.findById(id as UUID);
+    const wallet = await this.walletRepository.findOne({
+      where: { id, user: userId },
+    });
 
     if (!wallet)
       return this.responseService.sendError(
@@ -170,7 +173,7 @@ export class WalletService {
     const results = beneficiaries.map((beneficiary) =>
       this.walletSanitizer.formatBeneficiaryData(beneficiary),
     );
- 
+
     return this.responseService.sendSuccess(
       SuccessMessage.RETRIEVE_BENEFICIARIES,
       {

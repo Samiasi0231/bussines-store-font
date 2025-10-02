@@ -42,6 +42,8 @@ export const ErrorMessage = {
     'You are yet to add an email to your account. Please do so or select an alternative verification channel',
   PHONE_NUMBER_EXISTS: 'Phone number exists already',
   CAC_LOOKUP: 'Failed to retrieve CAC details',
+  MAX_BUSINESS_LIMIT:
+    'You’ve reached the maximum number of businesses allowed on your account.',
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];
@@ -64,9 +66,12 @@ export const SuccessMessage = {
   RETRIEVE_WALLETS: 'Wallets retrieved successfully',
   RETRIEVE_WALLET: 'Wallet retrieved successfully',
   RETRIEVE_BENEFICIARIES: 'Beneficiaries retrieved successfully',
+  RETRIEVE_BUSINESSES: 'Businesses retrieved successfully',
+  RETRIEVE_BUSINESS: 'Business retrieved successfully',
   RETRIEVE_BENEFICIARY: 'Beneficiary retrieved successfully',
   DELETE_BENEFICIARY: 'Beneficiary deleted successfully',
   ADD_BENEFICIARY: 'Beneficiary added successfully',
+  ADD_BUSINESS: 'Your business has been added successfully.',
   LOGOUT: 'You’ve logged out. See you again soon!',
   CAC_LOOKUP: 'CAC information retrieved successfully',
 };

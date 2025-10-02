@@ -1,6 +1,6 @@
-import { IsNotEmpty, IsString, IsUrl } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
 
-export class AddressVerificationDTO {
+export class AddressDTO {
   @IsString()
   @IsNotEmpty()
   state: string;
@@ -10,6 +10,7 @@ export class AddressVerificationDTO {
   country: string;
 
   @IsString()
+  @IsOptional()
   city: string;
 
   @IsString()
@@ -22,7 +23,8 @@ export class AddressVerificationDTO {
 
   @IsNotEmpty()
   buildingNumber: string;
-
+}
+export class AddressVerificationDTO extends AddressDTO {
   @IsUrl()
   @IsNotEmpty()
   utilityBill: string;
