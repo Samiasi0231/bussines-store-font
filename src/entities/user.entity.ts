@@ -58,7 +58,7 @@ export class User extends BaseEntity {
   @Column({ type: 'enum', enum: Gender, nullable: true })
   gender?: Gender;
 
-  @Column({ select: false, type: 'varchar' })
+  @Column({ type: 'varchar' })
   password: string;
 
   @Column({ type: 'varchar', nullable: true })
