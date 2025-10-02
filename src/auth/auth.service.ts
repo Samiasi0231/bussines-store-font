@@ -21,7 +21,6 @@ import { VerificationIntent } from '../@common/constants/verification.constant';
 import { DbTransactionManager } from '../@common/database/database-transaction.manager';
 import { User } from '../entities/user.entity';
 import { WalletRepository } from '../repositories/wallet.repository';
-import { HttpStatusCode } from 'axios';
 
 @Injectable()
 export class AuthService {
@@ -215,17 +214,6 @@ export class AuthService {
   ): Promise<User | null> {
     const user = await this.userRepository.findOne({
       where: [{ email: identifier }, { phoneNumber: identifier }],
-      select: [
-        'id',
-        'email',
-        'password',
-        'firstName',
-        'lastName',
-        'otherName',
-        'phoneNumber',
-        'avatar',
-        'status',
-      ],
     });
 
     if (!user) return null;
