@@ -66,19 +66,19 @@ export class UserService {
     },
     kyc: Kyc,
     ttl = 3600,
+    isUpdate = false,
   ) {
     const { hashedAccessToken } = userData;
     const userId = userData.id as string;
     const data = this.userSanitizer.formatUserProfileData(userData, kyc);
 
-    await this.cacheService.set(
-      userId,
-      JSON.stringify({
-        ...data,
-        hashedAccessToken,
-      }),
-      ttl,
-    );
+    const cacheData = JSON.stringify({
+      ...data,
+      hashedAccessToken,
+    });
+
+    if (isUpdate) await this.cacheService.setAndKeepTTL(userId, cacheData);
+    else await this.cacheService.set(userId, cacheData, ttl);
   }
 
   async getCachedUserData(
@@ -185,9 +185,22 @@ export class UserService {
         ...(isProfileComplete ? { isProfileComplete } : {}),
       };
 
-      await this.userRepository
+      const userData = (await this.userRepository
         .withManager(entityManager)
-        .update(userId, updateQuery);
+        .findbyIdAndUpdate(userId, updateQuery)) as UserDataForProfile;
+
+      const kyc = await this.kycRepository
+        .withManager(entityManager)
+        .findByUserId(userId);
+
+      const cachedUser = await this.getCachedUserData(userId);
+
+      await this.cacheUserData(
+        { ...userData, hashedAccessToken: cachedUser.hashedAccessToken },
+        kyc,
+        null,
+        true,
+      );
 
       return this.responseService.sendSuccess(
         SuccessMessage.OPERATION_SUCCESSFUL,

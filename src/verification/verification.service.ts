@@ -23,7 +23,8 @@ import { EmailService } from '../notification/services/email.service';
 import dayjs from 'dayjs';
 import { UserService } from '../user/user.service';
 import { UserRepository } from '../repositories/user.repository';
-import { name } from 'ejs';
+import { WalletRepository } from '../repositories/wallet.repository';
+import { User } from '../entities/user.entity';
 import { UUID } from 'crypto';
 
 @Injectable()
@@ -38,6 +39,7 @@ export class VerificationService {
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
     private readonly userRepository: UserRepository,
+    private readonly walletRepository: WalletRepository,
   ) {
     //TODO: move to system settings
     this.DEFAULT_VERIFICATION_EXPIRATION_TIME = this.configService.get<number>(
@@ -78,7 +80,19 @@ export class VerificationService {
         )
           email = entityId;
 
-        this.sendEmail(intent, entityId, verificationCode, {
+        if (intent === VerificationIntent.TRANSACTION_PIN) {
+          const wallet = await this.walletRepository.findById(
+            entityId as UUID,
+            {
+              relations: ['user'],
+            },
+          );
+
+          email = (wallet.user as User)?.email;
+          name = (wallet.user as User)?.firstName;
+        }
+
+        this.sendEmail(intent, email, verificationCode, {
           duration: durationInMinutes,
           name,
         });
