@@ -160,6 +160,13 @@ export class UserService {
             entityManager,
             tier: Tier.ONE,
           });
+
+          await this.kycRepository.withManager(entityManager).update(
+            { user: userId },
+            {
+              tier: Tier.ONE,
+            },
+          );
         }
       }
 
