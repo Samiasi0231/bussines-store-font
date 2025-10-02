@@ -38,8 +38,8 @@ import { EmailTemplate } from '../../@common/constants/email.constant';
 @Injectable()
 export class KycService {
   private readonly logger: Logger;
-  private identityProvider: IIdentityService;
-  private identityProviderName: Provider;
+  public identityProvider: IIdentityService;
+  public identityProviderName: Provider;
   private isProduction: boolean;
 
   constructor(
@@ -145,7 +145,11 @@ export class KycService {
         ...baseIdentityVerificationData,
         status: Status.FAILED,
       });
-      return this.responseService.sendError(providerResponse.message);
+      return this.responseService.sendError(
+        providerResponse.message,
+        null,
+        providerResponse.status,
+      );
     }
 
     const responseData = providerResponse.data;

@@ -14,6 +14,7 @@ import { BaseEntity } from './base.entity';
 import { uuidv7 } from 'uuidv7';
 import { Status } from '../@common/constants/status.constant';
 import { WalletType } from '../@common/constants/wallet.constant';
+import { Business } from './business.entity';
 
 @Entity({ name: 'wallets' })
 export class Wallet extends BaseEntity {
@@ -21,11 +22,20 @@ export class Wallet extends BaseEntity {
   id? = uuidv7() as UUID;
 
   @Index()
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, { nullable: false })
   @JoinColumn({ name: 'user_id' })
   @Column({ name: 'user_id' })
   @IsNotEmpty()
   user: User | UUID;
+
+  @Index()
+  @ManyToOne(() => Business, (business) => business, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'business_id' })
+  @Column({ name: 'business_id', nullable: true })
+  business?: Business | UUID;
 
   @Column({
     name: 'account_name',

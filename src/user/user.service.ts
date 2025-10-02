@@ -18,7 +18,6 @@ import { DbTransactionManager } from '../@common/database/database-transaction.m
 import { Kyc } from '../entities/kyc.entity';
 import { WalletService } from '../wallet/wallet.service';
 import { Tier } from '../@common/constants/tier.constant';
-import { User } from '../entities/user.entity';
 
 @Injectable()
 export class UserService {
@@ -104,13 +103,9 @@ export class UserService {
   ) {
     const { userId, ...update } = data;
 
-    let user: User;
-
-    let response: IResponse<any>;
-
     let isProfileComplete: boolean;
 
-    response = await this.dbTransactionManager.transaction<
+    const response = await this.dbTransactionManager.transaction<
       IResponse<null | {
         id: string;
       }>

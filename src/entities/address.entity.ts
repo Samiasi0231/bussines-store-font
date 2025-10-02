@@ -12,6 +12,7 @@ import { Kyc } from './kyc.entity';
 import { uuidv7 } from 'uuidv7';
 import { UUID } from 'crypto';
 import { IsNotEmpty } from 'class-validator';
+import { Business } from './business.entity';
 
 @Entity('addresses')
 export class Address extends BaseEntity {
@@ -38,7 +39,7 @@ export class Address extends BaseEntity {
     type: 'varchar',
     nullable: true,
   })
-  utilityBill: string;
+  utilityBill?: string;
 
   @Column({
     name: 'utility_bill_type',
@@ -46,7 +47,7 @@ export class Address extends BaseEntity {
     length: 100,
     nullable: true,
   })
-  utilityBillType: string;
+  utilityBillType?: string;
 
   @Column({
     name: 'building_number',
@@ -54,6 +55,15 @@ export class Address extends BaseEntity {
     length: 50,
   })
   buildingNumber: string;
+
+  @Index()
+  @ManyToOne(() => Business, (business) => business, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'business_id' })
+  @Column({ name: 'business_id', nullable: true })
+  business?: Business | UUID;
 
   @Index()
   @ManyToOne(() => User, (user) => user, {
@@ -67,13 +77,13 @@ export class Address extends BaseEntity {
 
   @Index()
   @Column({
-    nullable: false,
+    nullable: true,
     name: 'kyc_id',
   })
-  kycId: UUID;
+  kycId?: UUID;
 
   @ManyToOne(() => Kyc, (kyc) => kyc, {
-    nullable: false,
+    nullable: true,
     onDelete: 'CASCADE',
   })
   @IsNotEmpty()

@@ -67,7 +67,10 @@ export class WalletController {
   }
 
   @Get('/:id')
-  async getWallet(@Param() params: GetByIdParamsDTO) {
-    return this.walletService.getWallet(params.id);
+  async getWallet(
+    @User() user: UserProfile,
+    @Param() params: GetByIdParamsDTO,
+  ) {
+    return this.walletService.getWallet(params.id as UUID, user.id);
   }
 }

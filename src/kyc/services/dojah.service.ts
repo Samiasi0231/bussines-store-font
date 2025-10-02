@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IIdentityService } from '../interfaces/IIdentity.service';
 import {
@@ -21,6 +21,7 @@ import {
 import { handleHttpError } from '../../@common/utilities/error-handling.utility';
 import { Gender } from '../../@common/constants/gender.constant';
 import { Util } from '../../@common/utilities/helpers.utility';
+import { CACLookupData } from '../dtos/cac.dto';
 
 @Injectable()
 export class DojahService implements IIdentityService {
@@ -36,7 +37,7 @@ export class DojahService implements IIdentityService {
     this.headers = this.configService.get('dojah.headers');
   }
 
-  private getServiceUrl(type: IdentityVerificationType) {
+  private getServiceUrl(type: string) {
     return this.configService.get(`dojah.urls.${type}`);
   }
 
@@ -81,9 +82,13 @@ export class DojahService implements IIdentityService {
     const response = httpResponse.data;
 
     if (httpResponse.status === 404) {
-      return this.response.sendError(ErrorMessage.INVALID_BVN, {
-        providerResponse: response,
-      } as VerifyBvnResponseData);
+      return this.response.sendError(
+        ErrorMessage.INVALID_BVN,
+        {
+          providerResponse: response,
+        } as VerifyBvnResponseData,
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     if (httpResponse.status !== 200) {
@@ -158,6 +163,7 @@ export class DojahService implements IIdentityService {
         ErrorMessage.INVALID_NIN ||
           ErrorMessage.IDENTITY_VERIFICATION(verificationType),
         { providerResponse: response } as VerifyNINResponseData,
+        HttpStatus.NOT_FOUND,
       );
     }
 
@@ -188,5 +194,67 @@ export class DojahService implements IIdentityService {
       SuccessMessage.IDENTITY_VERIFICATION(verificationType.toUpperCase()),
       data,
     );
+  }
+
+  async lookupCAC(regNumber: string): Promise<IResponse<CACLookupData>> {
+    if (!Util.isProduction()) {
+      if (regNumber.includes('111')) {
+        return this.response.sendError(ErrorMessage.CAC_LOOKUP);
+      }
+    }
+
+    const VALID_TEST_REG_NUMBER = '14320749';
+
+    const rcNumber =
+      Util.isProduction() || (!Util.isProduction() && regNumber.includes('000'))
+        ? regNumber
+        : VALID_TEST_REG_NUMBER;
+
+    const httpResponse = await this.httpClient.axiosRef
+      .get<IResponse<CACLookupData>>(
+        `${this.baseURL}${this.getServiceUrl('cac')}${rcNumber}`,
+        {
+          headers: this.headers,
+        },
+      )
+      .catch((error) => {
+        const handledError = handleHttpError(error);
+        return {
+          ...handledError,
+          data: {
+            message: handledError.message,
+          } as any,
+        };
+      });
+
+    const response = httpResponse.data;
+
+    if (httpResponse.status === 404) {
+      return this.response.sendError(
+        ErrorMessage.INVALID_RC_NUMBER,
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    if (httpResponse.status !== 200) {
+      return this.response.sendError(ErrorMessage.CAC_LOOKUP);
+    }
+
+    const data: CACLookupData = {
+      companyName: response?.entity?.company_name,
+      companyType: response?.entity?.type_of_company,
+      address: response?.entity?.address,
+      status: response?.entity?.status,
+      registrationDate: response?.entity?.date_of_registration,
+      rcNumber: response?.entity?.rc_number,
+      email: response?.entity?.email,
+      state: response?.entity?.state,
+      city: response?.entity?.city,
+      lga: response?.entity?.lga,
+      business: response?.entity?.business,
+    };
+
+    return this.response.sendSuccess(SuccessMessage.CAC_LOOKUP, data);
   }
 }

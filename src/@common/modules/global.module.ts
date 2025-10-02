@@ -19,6 +19,8 @@ import { IdentityVerification } from '../../entities/identity-verification.entit
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Beneficiary } from '../../entities/beneficiary.entity';
 import { BeneficiaryRepository } from '../../repositories/beneficiary.repository';
+import { Business } from '../../entities/business.entity';
+import { BusinessRepository } from '../../repositories/business.repository';
 
 const providers = [
   ResponseService,
@@ -29,6 +31,7 @@ const providers = [
   KycRepository,
   VerificationRepository,
   BeneficiaryRepository,
+  BusinessRepository,
 ];
 
 const DATABASE_ENTITIES = [
@@ -39,6 +42,7 @@ const DATABASE_ENTITIES = [
   Verification,
   IdentityVerification,
   Beneficiary,
+  Business,
 ];
 
 @Global()
