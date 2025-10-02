@@ -220,9 +220,7 @@ export class AuthService {
 
     const passwordsMatch = await Util.verifyHash(user.password, password);
 
-    if (user && passwordsMatch) {
-      return user;
-    }
+    if (user && passwordsMatch) return user;
 
     return null;
   }
