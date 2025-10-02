@@ -92,8 +92,25 @@ export class UserService {
   async verifyPhoneNumber(data: { id?: UUID; phoneNumber?: string }) {
     const { phoneNumber, id } = data;
 
-    await this.userRepository.update([{ phoneNumber }, { id }], {
-      phoneVerifiedAt: new Date(),
+    await this.dbTransactionManager.transaction(async (manager) => {
+      const entityManager = manager.entityManager;
+      const userUpdateQueryResult = await this.userRepository
+        .withManager(entityManager)
+        .createQueryBuilder()
+        .update({ phoneVerifiedAt: new Date() })
+        .where('id = :id', { id })
+        .orWhere('phoneNumber = :phoneNumber', { phoneNumber })
+        .returning('*')
+        .execute();
+
+      const user = userUpdateQueryResult?.raw?.[0];
+
+      await this.kycRepository.withManager(entityManager).update(
+        { user: user?.id },
+        {
+          tier: Tier.ONE,
+        },
+      );
     });
   }
 
@@ -160,13 +177,6 @@ export class UserService {
             entityManager,
             tier: Tier.ONE,
           });
-
-          await this.kycRepository.withManager(entityManager).update(
-            { user: userId },
-            {
-              tier: Tier.ONE,
-            },
-          );
         }
       }
 
