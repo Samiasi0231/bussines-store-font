@@ -28,6 +28,10 @@ export class CacheService {
     await this.cache.del(key);
   }
 
+  async setAndKeepTTL(key: string, value: any) {
+    await this.cache.set(key, value, 'KEEPTTL');
+  }
+
   async exists(key: string): Promise<boolean> {
     const numberOfMatches = await this.cache.exists(key);
     return numberOfMatches > 0;
