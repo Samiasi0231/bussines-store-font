@@ -57,20 +57,17 @@ export class WalletController {
   }
 
   @Get('beneficiaries/:id')
-  async getBeneficiary(@Param() params: GetByIdParamsDTO) {
-    return this.walletService.getbeneficiary(params.id);
+  async getBeneficiary(@Param() param: GetByIdParamsDTO) {
+    return this.walletService.getbeneficiary(param.id);
   }
 
   @Delete('beneficiaries/:id')
-  async deleteBeneficiary(@Param() params: GetByIdParamsDTO) {
-    return this.walletService.deletebeneficiary(params.id);
+  async deleteBeneficiary(@Param() param: GetByIdParamsDTO) {
+    return this.walletService.deletebeneficiary(param.id);
   }
 
   @Get('/:id')
-  async getWallet(
-    @User() user: UserProfile,
-    @Param() params: GetByIdParamsDTO,
-  ) {
-    return this.walletService.getWallet(params.id as UUID, user.id);
+  async getWallet(@User() user: UserProfile, @Param() param: GetByIdParamsDTO) {
+    return this.walletService.getWallet(param.id as UUID, user.id);
   }
 }

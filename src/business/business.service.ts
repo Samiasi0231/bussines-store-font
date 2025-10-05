@@ -20,6 +20,7 @@ import { MAX_NUM_BUSINESSES_PER_USER } from '../@common/constants/business.const
 import { AddressRepository } from '../repositories/address.repository';
 import { WalletRepository } from '../repositories/wallet.repository';
 import { WalletType } from '../@common/constants/wallet.constant';
+import { Status } from '../@common/constants/status.constant';
 
 @Injectable()
 export class BusinessService {
@@ -151,5 +152,33 @@ export class BusinessService {
     );
 
     return response;
+  }
+
+  async activateBusiness(
+    id: UUID,
+    userId: UUID,
+  ): Promise<IResponse<BusinessData | null>> {
+    await this.businessRepository.update(
+      { id, user: userId },
+      { status: Status.ACTIVE },
+    );
+
+    const business = await this.businessRepository.findOne({
+      where: { id, user: userId },
+    });
+
+    if (!business)
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Business'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+
+    const data = this.businessSanitizer.formatBusinessData(business);
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.ACTIVATE_BUSINESS,
+      data,
+    );
   }
 }

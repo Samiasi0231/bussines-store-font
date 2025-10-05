@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Business } from '../../entities/business.entity';
 import { Address } from '../../entities/address.entity';
 import { KycSanitizer } from '../../kyc/sanitizers/kyc.sanitizer';
+import { Status } from '../../@common/constants/status.constant';
 
 export type BusinessData = {
   id: string;
@@ -11,6 +12,7 @@ export type BusinessData = {
   description: string;
   name: string;
   addresses: Partial<Address>[];
+  status: Status;
 };
 
 @Injectable()
@@ -25,6 +27,7 @@ export class BusinessSanitizer {
       logo: business.logo,
       description: business.description,
       name: business.name,
+      status: business.status,
       addresses: business.addresses?.map((address) =>
         this.kycSanitizer.formatAddress(address),
       ),

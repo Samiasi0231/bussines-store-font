@@ -68,6 +68,7 @@ export const SuccessMessage = {
   RETRIEVE_BENEFICIARIES: 'Beneficiaries retrieved successfully',
   RETRIEVE_BUSINESSES: 'Businesses retrieved successfully',
   RETRIEVE_BUSINESS: 'Business retrieved successfully',
+  ACTIVATE_BUSINESS: 'Business activated successfully',
   RETRIEVE_BENEFICIARY: 'Beneficiary retrieved successfully',
   DELETE_BENEFICIARY: 'Beneficiary deleted successfully',
   ADD_BENEFICIARY: 'Beneficiary added successfully',
