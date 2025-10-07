@@ -19,19 +19,12 @@ export class EntityRepository<T> extends Repository<T> {
 
   withManager(manager: EntityManager): this {
     const repo = manager.getRepository<T>(this.target);
+    // Preserve the actual class of `this` (derived repository)
+    const derivedRepo = Object.create(this.constructor.prototype) as this;
+    // Copy the repository state from the manager's repository
+    Object.assign(derivedRepo, repo);
 
-    // Create a proxy that delegates calls to the manager repository
-    return new Proxy(this, {
-      get: (target, prop) => {
-        // If the property exists on the derived repo, use it
-        if (prop in target) {
-          return (target as any)[prop];
-        }
-        // Otherwise, delegate to manager-bound repository
-        const value = (repo as any)[prop];
-        return typeof value === 'function' ? value.bind(repo) : value;
-      },
-    });
+    return derivedRepo;
   }
 
   async createStrict(
