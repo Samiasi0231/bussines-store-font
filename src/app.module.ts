@@ -17,6 +17,7 @@ import { TerminusModule } from '@nestjs/terminus';
 import { AllExceptionsFilter } from './@common/filter/all-exceptions.filter';
 import { WalletModule } from './wallet/wallet.module';
 import { BusinessModule } from './business/business.module';
+import { ProductModule } from './product/product.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { BusinessModule } from './business/business.module';
     TerminusModule,
     WalletModule,
     BusinessModule,
+    ProductModule,
   ],
   controllers: [AppController],
   providers: [

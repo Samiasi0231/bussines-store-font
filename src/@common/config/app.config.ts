@@ -6,7 +6,6 @@ export default () => ({
     host: process.env.DB_HOST,
     port: parseInt(process.env.DB_PORT, 10),
     connectionLimit: process.env.DB_CONNECTION_LIMIT,
-    synchronize: process.env.DB_SYNCHRONIZATION === 'true',
   },
   jwt: {
     secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key',

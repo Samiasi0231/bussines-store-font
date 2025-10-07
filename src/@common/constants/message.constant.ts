@@ -44,6 +44,11 @@ export const ErrorMessage = {
   CAC_LOOKUP: 'Failed to retrieve CAC details',
   MAX_BUSINESS_LIMIT:
     'You’ve reached the maximum number of businesses allowed on your account.',
+  PRODUCT_CATEGORY_EXISTS: 'Product category exists',
+  PRODUCT_CATEGORY_NOT_FOUND: 'Product category does not exist',
+  PRODUCT_SUB_CATEGORY_EXISTS: 'Product sub-category exists',
+  PRODUCT_NAME_EXISTS_FOR_STORE:
+    'A product with this name already exists for this store',
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];

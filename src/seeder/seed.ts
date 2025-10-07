@@ -23,12 +23,13 @@ const Seeder = {
   },
 };
 
-Seeder.run()
-  .then(() => {
-    Logger.log('Seeder ran successfully');
-    process.exit(0);
-  })
-  .catch((error) => {
-    Logger.error('Seeder failed to run', error);
-    process.exit(1);
-  });
+if (require.main === module)
+  Seeder.run()
+    .then(() => {
+      Logger.log('Seeder ran successfully');
+      process.exit(0);
+    })
+    .catch((error) => {
+      Logger.error('Seeder failed to run', error);
+      process.exit(1);
+    });

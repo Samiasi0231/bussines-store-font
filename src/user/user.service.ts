@@ -98,8 +98,8 @@ export class UserService {
         .withManager(entityManager)
         .createQueryBuilder()
         .update({ phoneVerifiedAt: new Date() })
-        .where('id = :id', { id })
-        .orWhere('phoneNumber = :phoneNumber', { phoneNumber })
+        .where('(id = :id OR phone_number = :phoneNumber)', { id, phoneNumber })
+        .andWhere('deleted_at IS NULL')
         .returning('*')
         .execute();
 

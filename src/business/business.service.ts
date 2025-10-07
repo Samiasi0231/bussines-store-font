@@ -21,6 +21,7 @@ import { AddressRepository } from '../repositories/address.repository';
 import { WalletRepository } from '../repositories/wallet.repository';
 import { WalletType } from '../@common/constants/wallet.constant';
 import { Status } from '../@common/constants/status.constant';
+import { StoreRepository } from '../repositories/store.repository';
 
 @Injectable()
 export class BusinessService {
@@ -32,6 +33,7 @@ export class BusinessService {
     private readonly dbTransactionManager: DbTransactionManager,
     private readonly addressRepository: AddressRepository,
     private readonly walletRepository: WalletRepository,
+    private readonly storeRepository: StoreRepository,
   ) {}
 
   async lookupCACDetails(regNumber: string) {
@@ -59,14 +61,15 @@ export class BusinessService {
     if (forCurrUser) filter.user = userId;
     if (cacNumber) filter.cacNumber = cacNumber;
 
-    const { results: beneficiaries, pagination } =
+    const { results: businesses, pagination } =
       await this.businessRepository.paginate({
         filter,
         pagination: { page, limit },
+        options: { relations: ['stores'] },
       });
 
-    const results = beneficiaries.map((beneficiary) =>
-      this.businessSanitizer.formatBusinessData(beneficiary),
+    const results = businesses.map((business) =>
+      this.businessSanitizer.formatBusinessData(business),
     );
 
     return this.responseService.sendSuccess(
@@ -84,6 +87,7 @@ export class BusinessService {
   ): Promise<IResponse<BusinessData | null>> {
     const business = await this.businessRepository.findOne({
       where: { id, user: userId },
+      relations: ['stores'],
     });
 
     if (!business)
@@ -137,6 +141,11 @@ export class BusinessService {
           type: WalletType.BUSINESS,
           user: userId,
           business: businessId,
+        });
+
+        await this.storeRepository.withManager(entityManager).createStrict({
+          business: businessId,
+          name,
         });
 
         const data = this.businessSanitizer.formatBusinessData({

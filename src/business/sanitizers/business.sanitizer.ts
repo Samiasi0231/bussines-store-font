@@ -3,6 +3,7 @@ import { Business } from '../../entities/business.entity';
 import { Address } from '../../entities/address.entity';
 import { KycSanitizer } from '../../kyc/sanitizers/kyc.sanitizer';
 import { Status } from '../../@common/constants/status.constant';
+import { Store } from '../../entities/store.entity';
 
 export type BusinessData = {
   id: string;
@@ -13,6 +14,7 @@ export type BusinessData = {
   name: string;
   addresses: Partial<Address>[];
   status: Status;
+  stores?: Partial<Store>[];
 };
 
 @Injectable()
@@ -31,6 +33,7 @@ export class BusinessSanitizer {
       addresses: business.addresses?.map((address) =>
         this.kycSanitizer.formatAddress(address),
       ),
+      stores: business.stores?.map((store) => ({ id: store.id })),
     };
   }
 }

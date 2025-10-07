@@ -1,13 +1,15 @@
 import { Seeder } from './interfaces/seeder.interface';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { Module } from '@nestjs/common';
+import { ProductCategorySeeder } from './seeders/product-category.seeder';
+import { ProductSubCategorySeeder } from './seeders/product-sub-category.seeder';
 
-const DATABASE_ENTITIES = [];
-
-export const SEEDERS: (new (...args: any[]) => Seeder)[] = [];
+export const SEEDERS: (new (...args: any[]) => Seeder)[] = [
+  ProductCategorySeeder,
+  ProductSubCategorySeeder,
+];
 
 @Module({
-  imports: [TypeOrmModule.forFeature(DATABASE_ENTITIES)],
+  imports: [],
   providers: [...SEEDERS],
   exports: [...SEEDERS],
 })
