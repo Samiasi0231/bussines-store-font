@@ -116,7 +116,7 @@ export class EntityRepository<T> extends Repository<T> {
     limit: number;
     total: number;
     records: T[];
-  }) {
+  }): Paginated<T> {
     const { page, limit, total, records } = data;
     const totalPages = Math.ceil(total / limit);
     const currentPage = page;

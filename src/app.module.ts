@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -18,6 +19,10 @@ import { AllExceptionsFilter } from './@common/filter/all-exceptions.filter';
 import { WalletModule } from './wallet/wallet.module';
 import { BusinessModule } from './business/business.module';
 import { ProductModule } from './product/product.module';
+import { SystemSettingsModule } from './system-settings/system-settings.module';
+import { PgPubSubModule } from '@cisstech/nestjs-pg-pubsub';
+
+const DB_CONNECTION_STRING = `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`;
 
 @Module({
   imports: [
@@ -43,6 +48,15 @@ import { ProductModule } from './product/product.module';
         },
       }),
     }),
+    PgPubSubModule.forRoot({
+      databaseUrl: DB_CONNECTION_STRING,
+      queue: {
+        maxRetries: 5,
+        messageTTL: 24 * 60 * 60 * 1000,
+        cleanupInterval: 60 * 60 * 1000,
+        table: 'pg_pubsub_queue',
+      },
+    }),
     ClsModule.forRoot({
       global: true,
       middleware: { mount: true },
@@ -60,6 +74,7 @@ import { ProductModule } from './product/product.module';
     WalletModule,
     BusinessModule,
     ProductModule,
+    SystemSettingsModule,
   ],
   controllers: [AppController],
   providers: [

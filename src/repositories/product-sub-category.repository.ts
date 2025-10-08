@@ -16,7 +16,7 @@ export class ProductSubCategoryRepository extends EntityRepository<ProductSubCat
       .where('LOWER(subCategory.name) = LOWER(:name)', {
         name: name.toLowerCase(),
       })
-      .andWhere('subCategory.product_category_id = :categoryId', { categoryId })
+      .andWhere('subCategory.category_id = :categoryId', { categoryId })
       .getExists();
   }
 }

@@ -30,6 +30,6 @@ if (require.main === module)
       process.exit(0);
     })
     .catch((error) => {
-      Logger.error('Seeder failed to run', error);
+      Logger.error('Seeder failed to run', error, error.stack);
       process.exit(1);
     });

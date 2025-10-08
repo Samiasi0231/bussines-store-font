@@ -35,6 +35,9 @@ import { ProductVariantRepository } from '../../repositories/product-variant.rep
 import { ProductAttributeRepository } from '../../repositories/product-attribute.repository';
 import { ProductRepository } from '../../repositories/product.repository';
 import { Product } from '../../entities/product.entity';
+import { SystemSettings } from '../../entities/system-setting.entity';
+import { SystemSettingsRepository } from '../../repositories/system-setting.repository';
+import { SystemSettingsModule } from '../../system-settings/system-settings.module';
 
 const providers = [
   ResponseService,
@@ -53,6 +56,7 @@ const providers = [
   ProductAttributeRepository,
   ProductVariantRepository,
   ProductRepository,
+  SystemSettingsRepository,
 ];
 
 const DATABASE_ENTITIES = [
@@ -71,6 +75,7 @@ const DATABASE_ENTITIES = [
   ProductVariant,
   ProductAttribute,
   Product,
+  SystemSettings,
 ];
 
 @Global()
@@ -80,6 +85,7 @@ const DATABASE_ENTITIES = [
     DatabaseModule,
     ImageRecognitionModule,
     NotificationModule,
+    SystemSettingsModule,
     TypeOrmModule.forFeature(DATABASE_ENTITIES),
   ],
   providers,
@@ -89,6 +95,7 @@ const DATABASE_ENTITIES = [
     DatabaseModule,
     ImageRecognitionModule,
     NotificationModule,
+    SystemSettingsModule,
   ],
 })
 export class GlobalModule {}
