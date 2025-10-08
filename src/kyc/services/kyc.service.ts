@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  HttpStatus,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { IIdentityService } from '../interfaces/IIdentity.service';
 import { ConfigService } from '@nestjs/config';
 import { Provider } from '../../@common/constants/providers.constant';
@@ -34,9 +29,13 @@ import { AddressVerificationDTO } from '../dtos/address.dto';
 import { AddressRepository } from '../../repositories/address.repository';
 import { EmailService } from '../../notification/services/email.service';
 import { EmailTemplate } from '../../@common/constants/email.constant';
+import {
+  DefaultProviderConfig,
+  SystemSettingsService,
+} from '../../system-settings/system-settings.service';
 
 @Injectable()
-export class KycService {
+export class KycService implements OnModuleInit {
   private readonly logger: Logger;
   public identityProvider: IIdentityService;
   public identityProviderName: Provider;
@@ -54,15 +53,17 @@ export class KycService {
     private readonly walletService: WalletService,
     private readonly addressRepository: AddressRepository,
     private readonly emailService: EmailService,
+    private readonly systemSettingsSevice: SystemSettingsService,
   ) {
     this.logger = new Logger(KycService.name);
-    //TODO: move to system settings
-    this.identityProviderName = this.configService.get<Provider>(
-      'IDENTITY_PROVIDER',
-      Provider.DOJAH,
+    this.isProduction = Util.isProduction();
+  }
+
+  async onModuleInit() {
+    this.identityProviderName = this.systemSettingsSevice.getDefaultProvider(
+      DefaultProviderConfig.IDENTITY,
     );
     this.identityProvider = this.getIdentityProvider();
-    this.isProduction = Util.isProduction();
   }
 
   private getIdentityProvider(): IIdentityService {
@@ -72,8 +73,8 @@ export class KycService {
         provider = this.dojahService;
         break;
       default:
-        ///TODO: log error
-        throw new BadRequestException(ErrorMessage.AN_ERROR_OCCURRED);
+        provider = this.dojahService;
+        break;
     }
 
     return provider;

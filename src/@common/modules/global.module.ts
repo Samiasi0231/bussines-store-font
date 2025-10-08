@@ -21,6 +21,23 @@ import { Beneficiary } from '../../entities/beneficiary.entity';
 import { BeneficiaryRepository } from '../../repositories/beneficiary.repository';
 import { Business } from '../../entities/business.entity';
 import { BusinessRepository } from '../../repositories/business.repository';
+import { ProductCategory } from '../../entities/product-category.entity';
+import { ProductSubCategory } from '../../entities/product-sub-category.entity';
+import { ProductSubCategoryRepository } from '../../repositories/product-sub-category.repository';
+import { ProductCategoryRepository } from '../../repositories/product-category.repository';
+import { StoreRepository } from '../../repositories/store.repository';
+import { Store } from '../../entities/store.entity';
+import { ProductImage } from '../../entities/product-image.entity';
+import { ProductImageRepository } from '../../repositories/product-image.repository';
+import { ProductVariant } from '../../entities/product-variant.entity';
+import { ProductAttribute } from '../../entities/product-attribute.entity';
+import { ProductVariantRepository } from '../../repositories/product-variant.repository';
+import { ProductAttributeRepository } from '../../repositories/product-attribute.repository';
+import { ProductRepository } from '../../repositories/product.repository';
+import { Product } from '../../entities/product.entity';
+import { SystemSettings } from '../../entities/system-setting.entity';
+import { SystemSettingsRepository } from '../../repositories/system-setting.repository';
+import { SystemSettingsModule } from '../../system-settings/system-settings.module';
 
 const providers = [
   ResponseService,
@@ -32,6 +49,14 @@ const providers = [
   VerificationRepository,
   BeneficiaryRepository,
   BusinessRepository,
+  ProductSubCategoryRepository,
+  ProductCategoryRepository,
+  StoreRepository,
+  ProductImageRepository,
+  ProductAttributeRepository,
+  ProductVariantRepository,
+  ProductRepository,
+  SystemSettingsRepository,
 ];
 
 const DATABASE_ENTITIES = [
@@ -43,6 +68,14 @@ const DATABASE_ENTITIES = [
   IdentityVerification,
   Beneficiary,
   Business,
+  ProductCategory,
+  ProductSubCategory,
+  Store,
+  ProductImage,
+  ProductVariant,
+  ProductAttribute,
+  Product,
+  SystemSettings,
 ];
 
 @Global()
@@ -52,6 +85,7 @@ const DATABASE_ENTITIES = [
     DatabaseModule,
     ImageRecognitionModule,
     NotificationModule,
+    SystemSettingsModule,
     TypeOrmModule.forFeature(DATABASE_ENTITIES),
   ],
   providers,
@@ -61,6 +95,7 @@ const DATABASE_ENTITIES = [
     DatabaseModule,
     ImageRecognitionModule,
     NotificationModule,
+    SystemSettingsModule,
   ],
 })
 export class GlobalModule {}

@@ -1,0 +1,46 @@
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { SystemSettingsRepository } from '../repositories/system-setting.repository';
+import { ConfigService } from '@nestjs/config';
+import { SystemSettingKey } from '../@common/constants/system-settings';
+
+export enum DefaultProviderConfig {
+  IDENTITY = 'identity',
+  EMAIL = 'email',
+  IMAGE_RECOGNITION = 'image_recognition',
+}
+
+@Injectable()
+export class SystemSettingsService implements OnModuleInit {
+  private logger: Logger;
+  private settings: any = {};
+  isInitialized = false;
+
+  constructor(
+    private readonly systemSettingRepository: SystemSettingsRepository,
+    private config: ConfigService,
+  ) {
+    this.logger = new Logger(SystemSettingsService.name);
+  }
+
+  async onModuleInit() {
+    if (this.isInitialized) return;
+    await this.load();
+    this.isInitialized = true;
+  }
+
+  async load() {
+    const savedSettigs = await this.systemSettingRepository.find({});
+
+    savedSettigs.forEach((setting) => {
+      this.settings[setting.key] = setting.value;
+    });
+  }
+
+  get(key: SystemSettingKey) {
+    return this.settings[key];
+  }
+
+  getDefaultProvider(key: DefaultProviderConfig) {
+    return this.settings[SystemSettingKey.PROVIDERS]?.[key];
+  }
+}

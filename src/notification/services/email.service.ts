@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   SendDirectEmailDTO,
@@ -14,15 +14,18 @@ import {
   EmailTemplate,
   Template,
 } from '../../@common/constants/email.constant';
-import { resolve } from 'app-root-path';
 import templates from '../../@common/templates/templates.json';
 import { ResponseService } from '../../@common/response';
 import { ErrorMessage } from '../../@common/constants/message.constant';
 import { ResendService } from './resend.service';
 import { join } from 'path';
+import {
+  DefaultProviderConfig,
+  SystemSettingsService,
+} from '../../system-settings/system-settings.service';
 
 @Injectable()
-export class EmailService {
+export class EmailService implements OnModuleInit {
   private emailProvider: IEmailService;
   private emailProviderName: Provider;
   private baseTemplatePath = join(
@@ -37,11 +40,12 @@ export class EmailService {
     private readonly smtpService: SmtpService,
     private readonly resendService: ResendService,
     private readonly responseService: ResponseService,
-  ) {
-    //TODO: move to system settings
-    this.emailProviderName = this.configService.get<Provider>(
-      'EMAIL_PROVIDER',
-      Provider.RESEND,
+    private readonly systemSettingsSevice: SystemSettingsService,
+  ) {}
+
+  async onModuleInit() {
+    this.emailProviderName = this.systemSettingsSevice.getDefaultProvider(
+      DefaultProviderConfig.EMAIL,
     );
     this.emailProvider = this.getProvider();
   }

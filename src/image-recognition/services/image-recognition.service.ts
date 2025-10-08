@@ -1,9 +1,6 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  ErrorMessage,
-  SuccessMessage,
-} from '../../@common/constants/message.constant';
+import { SuccessMessage } from '../../@common/constants/message.constant';
 import {
   FaceComparisonResponse,
   IImageRecognitionService,
@@ -11,9 +8,15 @@ import {
 import { Provider } from '../../@common/constants/providers.constant';
 import { AWSImageRecognitionService } from './aws.service';
 import { ResponseService } from '../../@common/response';
+import {
+  DefaultProviderConfig,
+  SystemSettingsService,
+} from '../../system-settings/system-settings.service';
 
 @Injectable()
-export class ImageRecognitionService implements IImageRecognitionService {
+export class ImageRecognitionService
+  implements IImageRecognitionService, OnModuleInit
+{
   private similarityThreshold: number;
   private providerName: Provider;
   private provider: IImageRecognitionService;
@@ -22,15 +25,17 @@ export class ImageRecognitionService implements IImageRecognitionService {
     private readonly configService: ConfigService,
     private readonly awsService: AWSImageRecognitionService,
     private readonly responseService: ResponseService,
+    private readonly systemSettingsSevice: SystemSettingsService,
   ) {
     //TODO: move to system settings
     this.similarityThreshold = parseInt(
       this.configService.get('SIMILARITY_THRESHOLD', '90'),
     );
+  }
 
-    this.providerName = this.configService.get<Provider>(
-      'IMAGE_RECOGNITION_PROVIDER',
-      Provider.AWS,
+  async onModuleInit() {
+    this.providerName = this.systemSettingsSevice.getDefaultProvider(
+      DefaultProviderConfig.IMAGE_RECOGNITION,
     );
     this.provider = this.getProvider();
   }
@@ -42,8 +47,8 @@ export class ImageRecognitionService implements IImageRecognitionService {
         provider = this.awsService;
         break;
       default:
-        ///TODO: log error
-        throw new BadRequestException(ErrorMessage.AN_ERROR_OCCURRED);
+        provider = this.awsService;
+        break;
     }
 
     return provider;

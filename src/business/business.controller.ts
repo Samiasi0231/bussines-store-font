@@ -39,11 +39,19 @@ export class BusinessController {
     return this.businessService.addBusiness(body, user.id);
   }
 
+  @Post(':id/activation')
+  async activateBusiness(
+    @User() user: UserProfile,
+    @Param() param: GetByIdParamsDTO,
+  ) {
+    return this.businessService.activateBusiness(param.id as UUID, user.id);
+  }
+
   @Get(':id')
   async getBusiness(
     @User() user: UserProfile,
-    @Param() params: GetByIdParamsDTO,
+    @Param() param: GetByIdParamsDTO,
   ) {
-    return this.businessService.getBusiness(params.id as UUID, user.id);
+    return this.businessService.getBusiness(param.id as UUID, user.id);
   }
 }

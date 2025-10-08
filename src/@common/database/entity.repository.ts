@@ -7,6 +7,7 @@ import {
   FindOptionsOrder,
   FindOptionsWhere,
   Repository,
+  SelectQueryBuilder,
 } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity.js';
 import { Paginated } from '../types/pagination.type';
@@ -48,6 +49,7 @@ export class EntityRepository<T> extends Repository<T> {
   async findbyIdAndUpdate(
     id: UUID | number,
     updateData: QueryDeepPartialEntity<T>,
+    options?: Omit<FindOneOptions<T>, 'where'>,
   ): Promise<T> {
     // const result = await this.createQueryBuilder()
     //   .update(updateData)
@@ -58,7 +60,7 @@ export class EntityRepository<T> extends Repository<T> {
     // return result?.raw?.[0];
     if (!id) return null;
     await this.update(id, updateData);
-    const updatedRecord = await this.findById(id);
+    const updatedRecord = await this.findById(id, options);
     return updatedRecord;
   }
 
@@ -84,6 +86,38 @@ export class EntityRepository<T> extends Repository<T> {
       skip,
     });
 
+    return this.getPaginatedResults({ page, limit, total, records });
+  }
+
+  async paginateWithQuery(payload: {
+    query?: SelectQueryBuilder<T>;
+    pagination: {
+      limit: number;
+      page: number;
+    };
+    sort?: FindOptionsOrder<T>;
+  }): Promise<Paginated<T>> {
+    const { query, pagination, sort } = payload;
+
+    const { limit, page } = pagination;
+    const skip = (page - 1) * limit;
+
+    const [records, total] = await query
+      .skip(skip)
+      .take(limit)
+      .setFindOptions({ order: sort })
+      .getManyAndCount();
+
+    return this.getPaginatedResults({ page, limit, total, records });
+  }
+
+  private getPaginatedResults(data: {
+    page: number;
+    limit: number;
+    total: number;
+    records: T[];
+  }): Paginated<T> {
+    const { page, limit, total, records } = data;
     const totalPages = Math.ceil(total / limit);
     const currentPage = page;
     const nextPage = currentPage + 1 <= totalPages ? currentPage + 1 : null;

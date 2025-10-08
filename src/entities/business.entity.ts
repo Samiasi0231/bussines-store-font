@@ -14,6 +14,7 @@ import { Address } from './address.entity';
 import { UUID } from 'crypto';
 import { IsNotEmpty } from 'class-validator';
 import { User } from './user.entity';
+import { Store } from './store.entity';
 
 @Entity('businesses')
 export class Business extends BaseEntity {
@@ -51,4 +52,7 @@ export class Business extends BaseEntity {
 
   @OneToMany(() => Address, (address) => address.kyc, { cascade: true })
   addresses?: Address[];
+
+  @OneToMany(() => Store, (store) => store.business, { cascade: true })
+  stores?: Store[];
 }
