@@ -27,6 +27,6 @@ export class Store extends BaseEntity {
   @ManyToOne(() => Business, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'business_id' })
   @IsNotEmpty()
-  // @Column({ name: 'business_id' })
+  @Column({ name: 'business_id' })
   business: Business | UUID;
 }

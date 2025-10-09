@@ -107,10 +107,10 @@ export class AddProductDTO {
   name: string;
 
   @IsUUID()
-  subCategory: UUID;
+  subCategoryId: UUID;
 
   @IsUUID()
-  store: UUID;
+  storeId: UUID;
 
   @Transform(({ value }) => {
     if (typeof value === 'string') {
@@ -161,6 +161,10 @@ export class GetProductsQueryDTO extends PaginationDTO {
   @IsOptional()
   @IsUUID()
   category: UUID;
+
+  @IsOptional()
+  @IsUUID()
+  collection: UUID;
 
   @IsOptional()
   @IsUUID()

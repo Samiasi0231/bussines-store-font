@@ -9,16 +9,26 @@ import {
 import { Gender } from '../../@common/constants/gender.constant';
 import { IsE164PhoneNumber } from '../../@common/decorators/is-e164-phone-number.decorator';
 import { i18nValidationMessage } from 'nestjs-i18n';
+import { Transform } from 'class-transformer';
 
 export class UpdateUserProfileDTO {
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toLowerCase() : value,
+  )
   @IsString()
   @IsNotEmpty()
   firstName: string;
 
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toLowerCase() : value,
+  )
   @IsString()
   @IsNotEmpty()
   lastName: string;
 
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toLowerCase() : value,
+  )
   @IsString()
   @IsOptional()
   otherName: string;

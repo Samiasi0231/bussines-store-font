@@ -4,9 +4,10 @@ import { ProductController } from './product.controller';
 import { ProductCategorySanitizer } from './sanitizers/category.sanitizer';
 import { ProductSanitizer } from './sanitizers/product.sanitizer';
 import { ProductSubCategorySanitizer } from './sanitizers/sub-category.sanitizer';
+import { ProductCollectionController } from './product-collection.controller';
 
 @Module({
-  controllers: [ProductController],
+  controllers: [ProductController, ProductCollectionController],
   providers: [
     ProductService,
     ProductCategorySanitizer,
