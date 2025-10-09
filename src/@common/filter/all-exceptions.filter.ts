@@ -27,12 +27,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       const res = exception.getResponse() as any;
-      const message =
-        typeof res === 'string'
-          ? res
-          : Array.isArray(res.message)
-            ? res.message
-            : [res.message];
+      const message = typeof res === 'string' ? res : res.message;
       exceptionResponse = {
         status,
         success: false,
