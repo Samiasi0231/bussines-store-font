@@ -13,6 +13,7 @@ pipelineTemplate(
     runMigrations: true,
     migrationCommand: "yarn seed",
     migrationBranches: "staging",
+    enableBranchStrategies: true,
     approvalRequiredBranches: 'main',
     autoDeployBranches: 'staging',
 )
