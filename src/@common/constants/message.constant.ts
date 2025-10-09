@@ -45,10 +45,15 @@ export const ErrorMessage = {
   MAX_BUSINESS_LIMIT:
     'You’ve reached the maximum number of businesses allowed on your account.',
   PRODUCT_CATEGORY_EXISTS: 'Product category exists',
+  PRODUCT_COLLECTION_EXISTS: 'Product collection exists',
   PRODUCT_CATEGORY_NOT_FOUND: 'Product category does not exist',
   PRODUCT_SUB_CATEGORY_EXISTS: 'Product sub-category exists',
   PRODUCT_NAME_EXISTS_FOR_STORE:
     'A product with this name already exists for this store',
+  PRODUCT_COLLECTION_NAME_LIMIT:
+    'Product collection name cannot exceed 255 characters',
+  PRODUCT_COLLECTION_DESCRIPTION_LIMIT:
+    'Product collection description cannot exceed 500 characters',
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];

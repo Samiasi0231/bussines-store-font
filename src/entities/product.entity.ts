@@ -14,6 +14,7 @@ import { IsNotEmpty } from 'class-validator';
 import { Store } from './store.entity';
 import { ProductVariant } from './product-variant.entity';
 import { BaseEntity } from './base.entity';
+import { ProductCollectionProduct } from './product-collection-product.entity';
 
 @Entity('products')
 export class Product extends BaseEntity {
@@ -59,4 +60,13 @@ export class Product extends BaseEntity {
     cascade: true,
   })
   variants?: ProductVariant[];
+
+  @OneToMany(
+    () => ProductCollectionProduct,
+    (collection) => collection.product,
+    {
+      cascade: true,
+    },
+  )
+  collectionProducts?: ProductCollectionProduct[];
 }

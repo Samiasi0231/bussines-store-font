@@ -38,6 +38,10 @@ import { Product } from '../../entities/product.entity';
 import { SystemSettings } from '../../entities/system-setting.entity';
 import { SystemSettingsRepository } from '../../repositories/system-setting.repository';
 import { SystemSettingsModule } from '../../system-settings/system-settings.module';
+import { ProductCollection } from '../../entities/product-collection.entity';
+import { ProductCollectionProduct } from '../../entities/product-collection-product.entity';
+import { ProductCollectionProductRepository } from '../../repositories/product-collection-product.repository';
+import { ProductCollectionRepository } from '../../repositories/product-collection.repository';
 
 const providers = [
   ResponseService,
@@ -57,6 +61,8 @@ const providers = [
   ProductVariantRepository,
   ProductRepository,
   SystemSettingsRepository,
+  ProductCollectionProductRepository,
+  ProductCollectionRepository,
 ];
 
 const DATABASE_ENTITIES = [
@@ -76,6 +82,8 @@ const DATABASE_ENTITIES = [
   ProductAttribute,
   Product,
   SystemSettings,
+  ProductCollection,
+  ProductCollectionProduct,
 ];
 
 @Global()

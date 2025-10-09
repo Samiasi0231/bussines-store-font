@@ -42,6 +42,7 @@ const DB_CONNECTION_STRING = `postgresql://${process.env.DB_USERNAME}:${process.
         database: config.get<string>('db.name'),
         entities: [__dirname + '/entities/*.entity{.ts,.js}'],
         autoLoadEntities: true,
+        synchronize: true,
         retryAttempts: 3,
         extra: {
           connectionLimit: config.get<number>('db.connectionLimit'),

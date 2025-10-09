@@ -16,6 +16,7 @@ import {
 } from './sanitizers/sub-category.sanitizer';
 import {
   FormattedProduct,
+  FormattedProductCollection,
   FormattedProductForList,
   ProductSanitizer,
 } from './sanitizers/product.sanitizer';
@@ -39,6 +40,19 @@ import { ProductAttributeRepository } from '../repositories/product-attribute.re
 import { Product } from '../entities/product.entity';
 import { Util } from '../@common/utilities/helpers.utility';
 import { QueryUtil } from '../@common/utilities/query.utility';
+import { ProductCollectionProductRepository } from '../repositories/product-collection-product.repository';
+import { ProductCollectionRepository } from '../repositories/product-collection.repository';
+import {
+  AddProductToCollectionDTO,
+  CreateProductCollectionDTO,
+  GetProductCollectionsQueryDTO,
+  UpdateCollectionVisibilityDTO,
+} from './dtos/product-collection.dto';
+import { BusinessRepository } from '../repositories/business.repository';
+import { EntityType } from '../@common/constants/entity.constant';
+import { ProductCollection } from '../entities/product-collection.entity';
+import { SystemSettingsService } from '../system-settings/system-settings.service';
+import { ProductCollectionProduct } from '../entities/product-collection-product.entity';
 
 @Injectable()
 export class ProductService {
@@ -54,7 +68,11 @@ export class ProductService {
     private readonly productImageRepository: ProductImageRepository,
     private readonly productVariantRepository: ProductVariantRepository,
     private readonly productAttributeRepository: ProductAttributeRepository,
+    private readonly productCollectionRepository: ProductCollectionRepository,
+    private readonly productCollectionProductRepository: ProductCollectionProductRepository,
+    private readonly businessRepository: BusinessRepository,
     private readonly dbTransactionManager: DbTransactionManager,
+    private readonly systemSettingsService: SystemSettingsService,
   ) {}
 
   async addCategory(
@@ -182,7 +200,7 @@ export class ProductService {
     userId: UUID,
   ): Promise<IResponse<FormattedProduct>> {
     const {
-      store: storeId,
+      storeId,
       variants,
       images,
       sellingPrice,
@@ -191,7 +209,7 @@ export class ProductService {
       trackInventory,
       orderLimit,
       description,
-      subCategory: subCategoryId,
+      subCategoryId,
       quantity,
     } = payload;
 
@@ -200,15 +218,15 @@ export class ProductService {
     >(async (manager) => {
       const entityManager = manager.entityManager;
 
-      const store: { id: UUID } = await this.storeRepository
+      const store: { id: UUID; business: UUID } = (await this.storeRepository
         .withManager(entityManager)
         .createQueryBuilder('store')
         .innerJoin('store.business', 'business')
         .innerJoin('business.user', 'user')
         .where('store.id = :storeId', { storeId })
         .andWhere('user.id = :userId', { userId })
-        .select(['store.id'])
-        .getOne();
+        .select(['store.id', 'store.business'])
+        .getOne()) as { id: UUID; business: UUID };
 
       if (!store)
         return this.responseService.sendError(
@@ -299,6 +317,27 @@ export class ProductService {
             { relations: ['variants', 'variants.attributes'] },
           );
 
+      const defaultProductCollections =
+        this.systemSettingsService.getDefaultProductCollections();
+
+      for (const defaultCollection of defaultProductCollections) {
+        const { name, description } = defaultCollection;
+        const collection = await this.productCollectionRepository
+          .withManager(entityManager)
+          .createStrict({
+            name,
+            description,
+            business: store.business,
+          });
+
+        await this.productCollectionProductRepository
+          .withManager(entityManager)
+          .createStrict({
+            collection: collection.id,
+            product: product.id,
+          });
+      }
+
       const productOptions = await this.productAttributeRepository
         .withManager(entityManager)
         .getProductOptions(product.id);
@@ -328,7 +367,6 @@ export class ProductService {
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
       data,
-      HttpStatus.CREATED,
     );
   }
 
@@ -346,6 +384,7 @@ export class ProductService {
       createdAt,
       business: businessId,
       quantity,
+      collection: collectionId,
     } = data;
 
     const filter: FindOptionsWhere<Product> = {};
@@ -382,6 +421,13 @@ export class ProductService {
         .andWhere('business.id = :businessId', {
           businessId,
         });
+    }
+
+    if (collectionId) {
+      query
+        .innerJoin('product.collectionProducts', 'pcp')
+        .innerJoin('pcp.collection', 'collection')
+        .where('collection.id = :collectionId', { collectionId });
     }
 
     if (createdAt) {
@@ -434,6 +480,147 @@ export class ProductService {
 
     const results = products.map((product) =>
       this.productSanitizer.formatProductForList(product),
+    );
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        results,
+        pagination,
+      },
+    );
+  }
+
+  async createProductCollection(
+    payload: CreateProductCollectionDTO,
+    userId: UUID,
+  ): Promise<IResponse<FormattedProductCollection>> {
+    const { name, description, businessId } = payload;
+
+    const business = await this.businessRepository.exists({
+      where: { id: businessId, user: userId },
+    });
+
+    if (!business)
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Business'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+
+    const collectionExists =
+      await this.productCollectionRepository.collectionExists(name, businessId);
+
+    if (collectionExists)
+      return this.responseService.sendError(
+        ErrorMessage.PRODUCT_COLLECTION_EXISTS,
+      );
+
+    const collection = await this.productCollectionRepository.createStrict({
+      name,
+      description,
+      business: businessId,
+      createdBy: EntityType.USER,
+    });
+
+    const data = this.productSanitizer.formatProductCollection(collection);
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      data,
+      HttpStatus.CREATED,
+    );
+  }
+
+  async addProductToCollection(
+    payload: AddProductToCollectionDTO & { collectionId: UUID },
+  ): Promise<IResponse<null>> {
+    const { productId, collectionId } = payload;
+
+    const collection = await this.productCollectionRepository.exists({
+      where: { id: collectionId },
+    });
+
+    if (!collection)
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Product Collection'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+
+    const product = await this.productRepository.exists({
+      where: { id: productId },
+    });
+
+    if (!product)
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Product'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+
+    await this.productCollectionProductRepository
+      .createQueryBuilder()
+      .insert()
+      .into(ProductCollectionProduct)
+      .values({
+        collection: collectionId,
+        product: productId,
+      })
+      .orIgnore()
+      .execute();
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      null,
+      HttpStatus.CREATED,
+    );
+  }
+
+  async updateCollectionVisibility(
+    payload: UpdateCollectionVisibilityDTO & { collectionId: UUID },
+  ): Promise<IResponse<null>> {
+    const { visible: visible, collectionId } = payload;
+
+    const collection = await this.productCollectionRepository.exists({
+      where: { id: collectionId },
+    });
+
+    if (!collection)
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Product Collection'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+
+    await this.productCollectionRepository.update(
+      { id: collectionId },
+      { visible },
+    );
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+    );
+  }
+
+  async getCollections(
+    payload: GetProductCollectionsQueryDTO,
+  ): Promise<IResponse<Paginated<FormattedProductCollection>>> {
+    const { page, limit, visible, business: businessId } = payload;
+    const filter: FindOptionsWhere<ProductCollection> = {
+      business: businessId,
+    };
+
+    if (visible !== undefined) filter.visible = visible;
+
+    const { results: collections, pagination } =
+      await this.productCollectionRepository.paginate({
+        filter,
+        pagination: { page, limit },
+      });
+
+    const results = collections.map((collection) =>
+      this.productSanitizer.formatProductCollection(collection),
     );
 
     return this.responseService.sendSuccess(

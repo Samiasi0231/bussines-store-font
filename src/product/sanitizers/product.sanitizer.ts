@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Product } from '../../entities/product.entity';
 import { ProductVariant } from '../../entities/product-variant.entity';
+import { ProductCollection } from '../../entities/product-collection.entity';
 
 type FormattedProductVariant = {
   id: string;
@@ -24,6 +25,12 @@ export type FormattedProductForList = {
   price: number;
   description: string;
   quantity: number;
+};
+
+export type FormattedProductCollection = {
+  id: string;
+  name: string;
+  description?: string;
 };
 @Injectable()
 export class ProductSanitizer {
@@ -61,6 +68,14 @@ export class ProductSanitizer {
       price: data.sellingPrice,
       description: data.description,
       quantity: data.quantity,
+    };
+  }
+
+  formatProductCollection(data: ProductCollection): FormattedProductCollection {
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
     };
   }
 }

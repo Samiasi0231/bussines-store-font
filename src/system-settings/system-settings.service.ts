@@ -38,4 +38,8 @@ export class SystemSettingsService implements OnModuleInit {
   getDefaultProvider(key: DefaultProviderConfig) {
     return this.settings[SystemSettingKey.PROVIDERS]?.[key];
   }
+
+  getDefaultProductCollections(): { name: string; description: string }[] {
+    return this.settings[SystemSettingKey.DEFAULT_PRODUCT_COLLECTIONS];
+  }
 }
