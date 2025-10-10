@@ -203,8 +203,6 @@ export class ProductService {
       storeId,
       variants,
       images,
-      sellingPrice,
-      costPrice,
       name,
       trackInventory,
       orderLimit,
@@ -212,6 +210,11 @@ export class ProductService {
       subCategoryId,
       quantity,
     } = payload;
+
+    let { sellingPrice, costPrice } = payload;
+    [sellingPrice, costPrice] = [sellingPrice, costPrice].map((price) =>
+      Util.toKobo(price),
+    );
 
     const response = await this.dbTransactionManager.transaction<
       IResponse<FormattedProduct>
@@ -291,8 +294,8 @@ export class ProductService {
           .createStrict({
             product: product.id,
             quantity,
-            sellingPrice,
-            costPrice,
+            sellingPrice: Util.toKobo(sellingPrice),
+            costPrice: Util.toKobo(costPrice),
           });
 
         for (const attribute of Object.keys(attributes)) {
@@ -442,7 +445,7 @@ export class ProductService {
     }
 
     if (price) {
-      const priceFilter = Util.parseNumericRangeFilter(price);
+      const priceFilter = Util.parseNumericRangeFilter(price, Util.toKobo);
 
       query = QueryUtil.applyNumericRangeFilter(
         query,

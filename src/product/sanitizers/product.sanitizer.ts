@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Product } from '../../entities/product.entity';
 import { ProductVariant } from '../../entities/product-variant.entity';
 import { ProductCollection } from '../../entities/product-collection.entity';
+import { Util } from '../../@common/utilities/helpers.utility';
 
 type FormattedProductVariant = {
   id: string;
@@ -43,7 +44,7 @@ export class ProductSanitizer {
       options[attr.name] = attr.value;
     });
 
-    return { id: data.id, price: data.sellingPrice, options };
+    return { id: data.id, price: Util.toNaira(data.sellingPrice), options };
   }
 
   formatProduct(
@@ -53,7 +54,7 @@ export class ProductSanitizer {
     return {
       id: data.id,
       name: data.name,
-      price: data.sellingPrice,
+      price: Util.toNaira(data.sellingPrice),
       description: data.description,
       quantity: data.quantity,
       variants: data.variants?.map((variant) => this.formatVariant(variant)),
@@ -65,7 +66,7 @@ export class ProductSanitizer {
     return {
       id: data.id,
       name: data.name,
-      price: data.sellingPrice,
+      price: Util.toNaira(data.sellingPrice),
       description: data.description,
       quantity: data.quantity,
     };
