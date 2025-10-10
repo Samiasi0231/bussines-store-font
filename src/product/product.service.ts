@@ -53,6 +53,7 @@ import { EntityType } from '../@common/constants/entity.constant';
 import { ProductCollection } from '../entities/product-collection.entity';
 import { SystemSettingsService } from '../system-settings/system-settings.service';
 import { ProductCollectionProduct } from '../entities/product-collection-product.entity';
+import { Status } from '../@common/constants/status.constant';
 
 @Injectable()
 export class ProductService {
@@ -221,21 +222,32 @@ export class ProductService {
     >(async (manager) => {
       const entityManager = manager.entityManager;
 
-      const store: { id: UUID; business: UUID } = (await this.storeRepository
+      const store: {
+        id: UUID;
+        business: { id: UUID; status: Status };
+      } = (await this.storeRepository
         .withManager(entityManager)
         .createQueryBuilder('store')
         .innerJoin('store.business', 'business')
         .innerJoin('business.user', 'user')
         .where('store.id = :storeId', { storeId })
         .andWhere('user.id = :userId', { userId })
-        .select(['store.id', 'store.business'])
-        .getOne()) as { id: UUID; business: UUID };
+        .select(['store.id', 'business.id', 'business.status'])
+        .getOne()) as {
+        id: UUID;
+        business: { id: UUID; status: Status };
+      };
 
       if (!store)
         return this.responseService.sendError(
           ErrorMessage.NOT_FOUND('Store'),
           null,
           HttpStatus.NOT_FOUND,
+        );
+
+      if (store.business.status !== Status.ACTIVE)
+        return this.responseService.sendError(
+          ErrorMessage.CANNOT_ADD_PROD_TO_INACTIVE_BUSINESS,
         );
 
       const subCategory = await this.productSubCategoryRepository
@@ -330,7 +342,7 @@ export class ProductService {
           .createStrict({
             name,
             description,
-            business: store.business,
+            business: store.business.id,
           });
 
         await this.productCollectionProductRepository

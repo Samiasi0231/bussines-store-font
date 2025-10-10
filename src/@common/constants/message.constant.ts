@@ -54,6 +54,8 @@ export const ErrorMessage = {
     'Product collection name cannot exceed 255 characters',
   PRODUCT_COLLECTION_DESCRIPTION_LIMIT:
     'Product collection description cannot exceed 500 characters',
+  CANNOT_ADD_PROD_TO_INACTIVE_BUSINESS:
+    'Please activate your business to add products',
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];
