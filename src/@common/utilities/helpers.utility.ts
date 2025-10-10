@@ -50,6 +50,28 @@ export class Util {
     return amount / 100;
   }
 
+  /**
+   * Parses and validates sort parameters for database queries.
+   *
+   * Converts an array of sort strings (e.g., `['-createdAt', 'name']`)
+   * into a key–direction mapping (e.g., `{ createdAt: -1, name: 1 }`),
+   * allowing only predefined and safe fields.
+   *
+   *
+   * @param {string[]} params - Array of sort parameters (prefix with '-' for descending).
+   * @param {Record<string, string>} allowedSortFields - Mapping of allowed sort keys to database columns.
+   *
+   * @returns {Record<string, 'ASC' | 'DESC'>} An object representing valid sort fields and directions.
+   *
+   * @example
+   * ```ts
+   * const sort = Utils.parseSortParam(['-createdAt', 'name'], {
+   *   createdAt: 'created_at',
+   *   name: 'full_name'
+   * });
+   * // Result: { created_at: 'DESC', full_name: 'ASC' }
+   * ```
+   */
   static parseSortParam = (
     params: string[],
     allowedSortFields: Record<string, string>,
@@ -72,6 +94,28 @@ export class Util {
     return sortFilter;
   };
 
+  /**
+   * Parses a numeric range expression into a structured range filter.
+   *
+   * Accepts a string value that can represent:
+   * - A single number (e.g., `"50"`) → equality filter `{ type: 'eq', min: 50, max: 50 }`
+   * - A range (`"10:100"`) → range filter `{ type: 'range', min: 10, max: 100 }`
+   * - A minimum only (`"10:"`) → greater-than-or-equal filter `{ type: 'gte', min: 10 }`
+   * - A maximum only (`":100"`) → less-than-or-equal filter `{ type: 'lte', max: 100 }`
+   *
+   *
+   * @param {string} value - The numeric filter string (e.g., `"10:20"`, `"5:"`, or `"100"`).
+   * @returns {NumericRange | null} A structured object describing the filter type and bounds,
+   * or `null` if the input is invalid or empty.
+   *
+   * @example
+   * ```ts
+   * Utils.parseNumericRangeFilter('5');     // { type: 'eq', min: 5, max: 5 }
+   * Utils.parseNumericRangeFilter('5:10');  // { type: 'range', min: 5, max: 10 }
+   * Utils.parseNumericRangeFilter('5:');    // { type: 'gte', min: 5 }
+   * Utils.parseNumericRangeFilter(':10');   // { type: 'lte', max: 10 }
+   * ```
+   */
   static parseNumericRangeFilter(value: string): NumericRange | null {
     if (!value) return null;
 

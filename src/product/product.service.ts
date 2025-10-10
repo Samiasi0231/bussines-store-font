@@ -580,7 +580,7 @@ export class ProductService {
   async updateCollectionVisibility(
     payload: UpdateCollectionVisibilityDTO & { collectionId: UUID },
   ): Promise<IResponse<null>> {
-    const { visible: visible, collectionId } = payload;
+    const { visible, collectionId } = payload;
 
     const collection = await this.productCollectionRepository.exists({
       where: { id: collectionId },
