@@ -295,7 +295,7 @@ export class ProductService {
       }
 
       let totalQuantity = 0;
-      const hasVariants = variants?.length > 0;
+      const hasVariants = variants && variants.length > 0;
 
       for (const variant of variants) {
         const { costPrice, sellingPrice, quantity, attributes } = variant;
