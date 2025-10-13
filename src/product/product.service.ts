@@ -53,6 +53,7 @@ import { EntityType } from '../@common/constants/entity.constant';
 import { ProductCollection } from '../entities/product-collection.entity';
 import { SystemSettingsService } from '../system-settings/system-settings.service';
 import { ProductCollectionProduct } from '../entities/product-collection-product.entity';
+import { Status } from '../@common/constants/status.constant';
 
 @Injectable()
 export class ProductService {
@@ -203,8 +204,6 @@ export class ProductService {
       storeId,
       variants,
       images,
-      sellingPrice,
-      costPrice,
       name,
       trackInventory,
       orderLimit,
@@ -213,26 +212,42 @@ export class ProductService {
       quantity,
     } = payload;
 
+    let { sellingPrice, costPrice } = payload;
+    [sellingPrice, costPrice] = [sellingPrice, costPrice].map((price) =>
+      Util.toKobo(price),
+    );
+
     const response = await this.dbTransactionManager.transaction<
       IResponse<FormattedProduct>
     >(async (manager) => {
       const entityManager = manager.entityManager;
 
-      const store: { id: UUID; business: UUID } = (await this.storeRepository
+      const store: {
+        id: UUID;
+        business: { id: UUID; status: Status };
+      } = (await this.storeRepository
         .withManager(entityManager)
         .createQueryBuilder('store')
         .innerJoin('store.business', 'business')
         .innerJoin('business.user', 'user')
         .where('store.id = :storeId', { storeId })
         .andWhere('user.id = :userId', { userId })
-        .select(['store.id', 'store.business'])
-        .getOne()) as { id: UUID; business: UUID };
+        .select(['store.id', 'business.id', 'business.status'])
+        .getOne()) as {
+        id: UUID;
+        business: { id: UUID; status: Status };
+      };
 
       if (!store)
         return this.responseService.sendError(
           ErrorMessage.NOT_FOUND('Store'),
           null,
           HttpStatus.NOT_FOUND,
+        );
+
+      if (store.business.status !== Status.ACTIVE)
+        return this.responseService.sendError(
+          ErrorMessage.CANNOT_ADD_PROD_TO_INACTIVE_BUSINESS,
         );
 
       const subCategory = await this.productSubCategoryRepository
@@ -280,7 +295,7 @@ export class ProductService {
       }
 
       let totalQuantity = 0;
-      const hasVariants = variants.length > 0;
+      const hasVariants = variants?.length > 0;
 
       for (const variant of variants) {
         const { costPrice, sellingPrice, quantity, attributes } = variant;
@@ -291,8 +306,8 @@ export class ProductService {
           .createStrict({
             product: product.id,
             quantity,
-            sellingPrice,
-            costPrice,
+            sellingPrice: Util.toKobo(sellingPrice),
+            costPrice: Util.toKobo(costPrice),
           });
 
         for (const attribute of Object.keys(attributes)) {
@@ -327,7 +342,7 @@ export class ProductService {
           .createStrict({
             name,
             description,
-            business: store.business,
+            business: store.business.id,
           });
 
         await this.productCollectionProductRepository
@@ -442,7 +457,7 @@ export class ProductService {
     }
 
     if (price) {
-      const priceFilter = Util.parseNumericRangeFilter(price);
+      const priceFilter = Util.parseNumericRangeFilter(price, Util.toKobo);
 
       query = QueryUtil.applyNumericRangeFilter(
         query,
@@ -580,7 +595,7 @@ export class ProductService {
   async updateCollectionVisibility(
     payload: UpdateCollectionVisibilityDTO & { collectionId: UUID },
   ): Promise<IResponse<null>> {
-    const { visible: visible, collectionId } = payload;
+    const { visible, collectionId } = payload;
 
     const collection = await this.productCollectionRepository.exists({
       where: { id: collectionId },

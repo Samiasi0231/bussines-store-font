@@ -50,6 +50,28 @@ export class Util {
     return amount / 100;
   }
 
+  /**
+   * Parses and validates sort parameters for database queries.
+   *
+   * Converts an array of sort strings (e.g., `['-createdAt', 'name']`)
+   * into a key–direction mapping (e.g., `{ createdAt: -1, name: 1 }`),
+   * allowing only predefined and safe fields.
+   *
+   *
+   * @param {string[]} params - Array of sort parameters (prefix with '-' for descending).
+   * @param {Record<string, string>} allowedSortFields - Mapping of allowed sort keys to database columns.
+   *
+   * @returns {Record<string, 'ASC' | 'DESC'>} An object representing valid sort fields and directions.
+   *
+   * @example
+   * ```ts
+   * const sort = Utils.parseSortParam(['-createdAt', 'name'], {
+   *   createdAt: 'created_at',
+   *   name: 'full_name'
+   * });
+   * // Result: { created_at: 'DESC', full_name: 'ASC' }
+   * ```
+   */
   static parseSortParam = (
     params: string[],
     allowedSortFields: Record<string, string>,
@@ -72,21 +94,55 @@ export class Util {
     return sortFilter;
   };
 
-  static parseNumericRangeFilter(value: string): NumericRange | null {
+  /**
+   * Parses a numeric range expression into a structured range filter.
+   *
+   * Accepts strings like:
+   * - `"50"` → equality filter `{ type: 'eq', min: 50, max: 50 }`
+   * - `"10:100"` → range filter `{ type: 'range', min: 10, max: 100 }`
+   * - `"10:"` → greater-than-or-equal filter `{ type: 'gte', min: 10 }`
+   * - `":100"` → less-than-or-equal filter `{ type: 'lte', max: 100 }`
+   *
+   * You can optionally pass a transform function that modifies numeric values
+   * (e.g. rounding, scaling, converting currencies, etc.).
+   *
+   * @param {string} value - The numeric filter string.
+   * @param {(val: number) => number} [transformFn] - Optional transform function applied to min/max values.
+   * @returns {NumericRange | null} The parsed and transformed numeric range, or null if invalid.
+   *
+   * @example
+   * ```ts
+   * Utils.parseNumericRangeFilter('10:20');               // { type: 'range', min: 10, max: 20 }
+   * Utils.parseNumericRangeFilter('10:20', Math.ceil);    // { type: 'range', min: 10, max: 20 } (rounded)
+   * Utils.parseNumericRangeFilter('5', v => v * 1000);    // { type: 'eq', min: 5000, max: 5000 }
+   * ```
+   */
+  static parseNumericRangeFilter(
+    value: string,
+    transformFn?: (val: number) => number,
+  ): NumericRange | null {
     if (!value) return null;
 
     const trimmed = value.trim();
 
+    // Single numeric value
     if (/^\d+(\.\d+)?$/.test(trimmed)) {
-      const num = Number(trimmed);
+      let num = Number(trimmed);
+      num = transformFn ? transformFn(num) : num;
       return { type: 'eq', min: num, max: num };
     }
 
+    // Range format: "min:max"
     const match = trimmed.match(/^(\d+(\.\d+)?)?\s*:\s*(\d+(\.\d+)?)?$/);
     if (!match) return null;
 
-    const min = match[1] ? Number(match[1]) : undefined;
-    const max = match[3] ? Number(match[3]) : undefined;
+    let min = match[1] ? Number(match[1]) : undefined;
+    let max = match[3] ? Number(match[3]) : undefined;
+
+    if (transformFn) {
+      if (min !== undefined) min = transformFn(min);
+      if (max !== undefined) max = transformFn(max);
+    }
 
     if (min !== undefined && max !== undefined)
       return { type: 'range', min, max };

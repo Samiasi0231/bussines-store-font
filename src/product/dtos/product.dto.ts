@@ -3,7 +3,6 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
-  IsNumber,
   IsArray,
   ValidateNested,
   ArrayMinSize,
@@ -14,6 +13,7 @@ import {
   IsUrl,
   IsObject,
   IsUUID,
+  IsInt,
 } from 'class-validator';
 import { UUID } from 'crypto';
 import { PaginationDTO } from '../../@common/dtos/pagination.dto';
@@ -81,15 +81,15 @@ const ATTRIBUTES = ['size', 'color'];
 
 class VariantDTO {
   @Type(() => Number)
-  @IsNumber()
+  @IsInt()
   costPrice: number;
 
   @Type(() => Number)
-  @IsNumber()
+  @IsInt()
   sellingPrice: number;
 
   @Type(() => Number)
-  @IsNumber()
+  @IsInt()
   quantity: number;
 
   @IsOptional()
@@ -126,20 +126,20 @@ export class AddProductDTO {
   description?: string;
 
   @Type(() => Number)
-  @IsNumber()
+  @IsInt()
   costPrice: number;
 
   @Type(() => Number)
-  @IsNumber()
+  @IsInt()
   sellingPrice: number;
 
   @Type(() => Number)
-  @IsNumber()
+  @IsInt()
   quantity: number;
 
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
+  @IsInt()
   orderLimit?: number;
 
   @IsArray()
