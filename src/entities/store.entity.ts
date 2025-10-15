@@ -24,7 +24,7 @@ export class Store extends BaseEntity {
   description?: string;
 
   @Index()
-  @ManyToOne(() => Business, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(() => Business, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'business_id' })
   @IsNotEmpty()
   @Column({ name: 'business_id' })

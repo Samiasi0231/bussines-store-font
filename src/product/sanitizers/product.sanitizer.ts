@@ -37,7 +37,7 @@ export type FormattedProductCollection = {
 export class ProductSanitizer {
   constructor() {}
 
-  formatVariant(data: ProductVariant): FormattedProductVariant {
+  private formatVariant(data: ProductVariant): FormattedProductVariant {
     const options: Record<string, string> = {};
 
     data.attributes?.forEach((attr) => {

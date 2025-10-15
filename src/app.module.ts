@@ -21,6 +21,7 @@ import { BusinessModule } from './business/business.module';
 import { ProductModule } from './product/product.module';
 import { SystemSettingsModule } from './system-settings/system-settings.module';
 import { PgPubSubModule } from '@cisstech/nestjs-pg-pubsub';
+import { CouponModule } from './coupon/coupon.module';
 
 const DB_CONNECTION_STRING = `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`;
 
@@ -42,8 +43,7 @@ const DB_CONNECTION_STRING = `postgresql://${process.env.DB_USERNAME}:${process.
         database: config.get<string>('db.name'),
         entities: [__dirname + '/entities/*.entity{.ts,.js}'],
         autoLoadEntities: true,
-        synchronize: true,
-        retryAttempts: 3,
+        retryAttempts: 5,
         extra: {
           connectionLimit: config.get<number>('db.connectionLimit'),
         },
@@ -76,6 +76,7 @@ const DB_CONNECTION_STRING = `postgresql://${process.env.DB_USERNAME}:${process.
     BusinessModule,
     ProductModule,
     SystemSettingsModule,
+    CouponModule,
   ],
   controllers: [AppController],
   providers: [

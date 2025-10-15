@@ -8,6 +8,7 @@ import {
   FindOptionsWhere,
   Repository,
   SelectQueryBuilder,
+  UpdateResult,
 } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity.js';
 import { Paginated } from '../types/pagination.type';
@@ -34,8 +35,8 @@ export class EntityRepository<T> extends Repository<T> {
     return this.save(entity);
   }
 
-  async softDeleteById(id: UUID | number): Promise<void> {
-    await this.softDelete(id);
+  async softDeleteById(id: UUID | number): Promise<UpdateResult> {
+    return this.softDelete(id);
   }
 
   async findById(

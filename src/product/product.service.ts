@@ -295,33 +295,33 @@ export class ProductService {
       }
 
       let totalQuantity = 0;
-      const hasVariants = variants && variants.length > 0;
+      const hasVariants = !!variants && variants.length > 0;
 
-      for (const variant of variants) {
-        const { costPrice, sellingPrice, quantity, attributes } = variant;
-        totalQuantity += quantity;
+      if (hasVariants) {
+        for (const variant of variants) {
+          const { costPrice, sellingPrice, quantity, attributes } = variant;
+          totalQuantity += quantity;
 
-        const productVariant = await this.productVariantRepository
-          .withManager(entityManager)
-          .createStrict({
-            product: product.id,
-            quantity,
-            sellingPrice: Util.toKobo(sellingPrice),
-            costPrice: Util.toKobo(costPrice),
-          });
-
-        for (const attribute of Object.keys(attributes)) {
-          await this.productAttributeRepository
+          const productVariant = await this.productVariantRepository
             .withManager(entityManager)
             .createStrict({
-              name: attribute,
-              productVariant: productVariant.id,
-              value: attributes[attribute],
+              product: product.id,
+              quantity,
+              sellingPrice: Util.toKobo(sellingPrice),
+              costPrice: Util.toKobo(costPrice),
             });
-        }
-      }
 
-      if (hasVariants)
+          for (const attribute of Object.keys(attributes)) {
+            await this.productAttributeRepository
+              .withManager(entityManager)
+              .createStrict({
+                name: attribute,
+                productVariant: productVariant.id,
+                value: attributes[attribute],
+              });
+          }
+        }
+
         product = await this.productRepository
           .withManager(entityManager)
           .findbyIdAndUpdate(
@@ -331,6 +331,7 @@ export class ProductService {
             },
             { relations: ['variants', 'variants.attributes'] },
           );
+      }
 
       const defaultProductCollections =
         this.systemSettingsService.getDefaultProductCollections();

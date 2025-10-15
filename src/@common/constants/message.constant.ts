@@ -56,6 +56,8 @@ export const ErrorMessage = {
     'Product collection description cannot exceed 500 characters',
   CANNOT_ADD_PROD_TO_INACTIVE_BUSINESS:
     'Please activate your business to add products',
+  COUPON_CODE_EXISTS: 'Coupon code exists',
+  CANNOT_DELETE_EXPIRED_COUPON: 'Cannot delete expired coupon',
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];

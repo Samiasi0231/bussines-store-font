@@ -1,23 +1,23 @@
-import { IsString, IsNotEmpty, IsIn } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum } from 'class-validator';
 import {
   VerificationChannel,
   VerificationIntent,
 } from '../../@common/constants/verification.constant';
 
 export class InitiateVerificationDTO {
-  @IsIn(Object.values(VerificationIntent))
+  @IsEnum(VerificationIntent)
   intent: VerificationIntent;
 
   @IsString()
   @IsNotEmpty()
   entityId: string;
 
-  @IsIn(Object.values(VerificationChannel))
+  @IsEnum(VerificationChannel)
   channel: VerificationChannel;
 }
 
 export class VerifyVerificationDTO {
-  @IsIn(Object.values(VerificationIntent))
+  @IsEnum(VerificationIntent)
   intent: VerificationIntent;
 
   @IsString()

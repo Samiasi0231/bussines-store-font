@@ -43,7 +43,7 @@ export class Product extends BaseEntity {
   trackInventory?: boolean;
 
   @Index()
-  @ManyToOne(() => Store, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(() => Store, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'store_id' })
   @IsNotEmpty()
   @Column({ name: 'store_id' })
@@ -52,7 +52,10 @@ export class Product extends BaseEntity {
   @Index()
   @IsNotEmpty()
   @Column({ name: 'sub_category_id' })
-  @ManyToOne(() => ProductSubCategory, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(() => ProductSubCategory, {
+    nullable: false,
+    onDelete: 'RESTRICT',
+  })
   @JoinColumn({ name: 'sub_category_id' })
   subCategory: ProductSubCategory | UUID;
 

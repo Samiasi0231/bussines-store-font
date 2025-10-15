@@ -24,7 +24,7 @@ export class Business extends BaseEntity {
   @Index()
   @ManyToOne(() => User, (user) => user, {
     nullable: false,
-    onDelete: 'CASCADE',
+    onDelete: 'RESTRICT',
   })
   @JoinColumn({ name: 'user_id' })
   @Column({ name: 'user_id' })

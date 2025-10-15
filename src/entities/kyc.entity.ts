@@ -40,7 +40,7 @@ export class Kyc extends BaseEntity {
   bvn?: string;
 
   @Index()
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, { nullable: false })
   @JoinColumn({ name: 'user_id' })
   @Column({ name: 'user_id' })
   @IsNotEmpty()

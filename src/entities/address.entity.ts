@@ -59,7 +59,7 @@ export class Address extends BaseEntity {
   @Index()
   @ManyToOne(() => Business, (business) => business, {
     nullable: true,
-    onDelete: 'CASCADE',
+    onDelete: 'RESTRICT',
   })
   @JoinColumn({ name: 'business_id' })
   @Column({ name: 'business_id', nullable: true })
@@ -68,7 +68,7 @@ export class Address extends BaseEntity {
   @Index()
   @ManyToOne(() => User, (user) => user, {
     nullable: false,
-    onDelete: 'CASCADE',
+    onDelete: 'RESTRICT',
   })
   @JoinColumn({ name: 'user_id' })
   @Column({ name: 'user_id' })
@@ -84,7 +84,7 @@ export class Address extends BaseEntity {
 
   @ManyToOne(() => Kyc, (kyc) => kyc, {
     nullable: true,
-    onDelete: 'CASCADE',
+    onDelete: 'RESTRICT',
   })
   @IsNotEmpty()
   @JoinColumn({ name: 'kyc_id' })
