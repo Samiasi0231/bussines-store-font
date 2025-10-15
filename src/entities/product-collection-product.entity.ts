@@ -21,13 +21,13 @@ export class ProductCollectionProduct extends BaseEntity {
   id?: UUID = uuidv7() as UUID;
 
   @Index()
-  @ManyToOne(() => ProductCollection, { onDelete: 'CASCADE', nullable: false })
+  @ManyToOne(() => ProductCollection, { onDelete: 'RESTRICT', nullable: false })
   @JoinColumn({ name: 'collection_id' })
   @IsNotEmpty()
   @Column({ name: 'collection_id' })
   collection: ProductCollection | UUID;
 
-  @ManyToOne(() => Product, { onDelete: 'CASCADE', nullable: false })
+  @ManyToOne(() => Product, { onDelete: 'RESTRICT', nullable: false })
   @JoinColumn({ name: 'product_id' })
   @IsNotEmpty()
   @Column({ name: 'product_id' })

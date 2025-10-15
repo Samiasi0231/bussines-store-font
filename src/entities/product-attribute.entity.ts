@@ -24,7 +24,7 @@ export class ProductAttribute extends BaseEntity {
   value: string;
 
   @Index()
-  @ManyToOne(() => ProductVariant, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(() => ProductVariant, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'product_variant_id' })
   @IsNotEmpty()
   @Column({ type: 'uuid', name: 'product_variant_id', nullable: false })

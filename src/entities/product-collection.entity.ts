@@ -26,14 +26,13 @@ export class ProductCollection extends BaseEntity {
   id?: UUID = uuidv7() as UUID;
 
   @Index()
-  @ManyToOne(() => Business, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(() => Business, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'business_id' })
   @IsNotEmpty()
   @Column({ name: 'business_id' })
   business: Business | UUID;
 
   @Column({ type: 'varchar', length: 255 })
-  @IsNotEmpty()
   name: string;
 
   @Column({ type: 'text', nullable: true })

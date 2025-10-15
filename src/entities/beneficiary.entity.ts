@@ -18,7 +18,7 @@ export class Beneficiary extends BaseEntity {
   id?: string = uuidv7();
 
   @Index()
-  @ManyToOne(() => Wallet, { nullable: true })
+  @ManyToOne(() => Wallet, { nullable: false })
   @JoinColumn({ name: 'wallet_id' })
   @IsNotEmpty()
   @Column({ type: 'uuid', name: 'wallet_id' })

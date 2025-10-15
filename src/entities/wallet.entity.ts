@@ -31,7 +31,7 @@ export class Wallet extends BaseEntity {
   @Index()
   @ManyToOne(() => Business, (business) => business, {
     nullable: true,
-    onDelete: 'CASCADE',
+    onDelete: 'RESTRICT',
   })
   @JoinColumn({ name: 'business_id' })
   @Column({ name: 'business_id', nullable: true })

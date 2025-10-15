@@ -24,7 +24,7 @@ export class ProductImage extends BaseEntity {
   isPrimary: boolean;
 
   @Index()
-  @ManyToOne(() => Product, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(() => Product, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'product_id' })
   @IsNotEmpty()
   @Column({ name: 'product_id' })

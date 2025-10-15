@@ -22,7 +22,7 @@ export class ProductVariant extends BaseEntity {
   @Index()
   @IsNotEmpty()
   @Column({ name: 'product_id' })
-  @ManyToOne(() => Product, { onDelete: 'CASCADE', nullable: false })
+  @ManyToOne(() => Product, { onDelete: 'RESTRICT', nullable: false })
   @JoinColumn({ name: 'product_id' })
   product: Product | UUID;
 

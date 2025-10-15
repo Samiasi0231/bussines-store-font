@@ -15,4 +15,12 @@ export enum Status {
   RESTRICTED = 'restricted',
   FROZEN = 'frozen',
   ENABLED = 'enabled',
+  SHIPPED = 'shipped',
+  DELIVERED = 'delivered',
+  REFUNDED = 'refunded',
+  REVERSED = 'reversed',
+  PAID = 'paid',
+  NOT_YET_VALID = 'not_yet_valid',
+  USAGE_LIMIT_REACHED = 'usage_limit_reached',
+  EXPIRED = 'expired',
 }

@@ -4,7 +4,7 @@ import {
   IsDateString,
   IsBase64,
   IsNotEmpty,
-  IsIn,
+  IsEnum,
 } from 'class-validator';
 import { Gender } from '../../@common/constants/gender.constant';
 import { IsE164PhoneNumber } from '../../@common/decorators/is-e164-phone-number.decorator';
@@ -41,7 +41,7 @@ export class UpdateUserProfileDTO {
   })
   phoneNumber: string;
 
-  @IsIn(Object.values(Gender))
+  @IsEnum(Gender)
   gender: Gender;
 
   @IsNotEmpty()

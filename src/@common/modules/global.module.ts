@@ -42,9 +42,18 @@ import { ProductCollection } from '../../entities/product-collection.entity';
 import { ProductCollectionProduct } from '../../entities/product-collection-product.entity';
 import { ProductCollectionProductRepository } from '../../repositories/product-collection-product.repository';
 import { ProductCollectionRepository } from '../../repositories/product-collection.repository';
+import { Coupon } from '../../entities/coupon.entity';
+import { CouponRepository } from '../../repositories/coupon.repository';
+import { OrderRepository } from '../../repositories/order.repository';
+import { OrderCouponRepository } from '../../repositories/order-coupon.repository';
+import { OrderItemRepository } from '../../repositories/order-item.repository';
+import { TransactionRepository } from '../../repositories/transaction.repository';
+import { Order } from '../../entities/order.entity';
+import { OrderItem } from '../../entities/order-item.entity';
+import { Transaction } from '../../entities/transaction.entity';
+import { OrderCoupon } from '../../entities/order-coupon.entity';
 
-const providers = [
-  ResponseService,
+const repositories = [
   IdentityVerificationRepository,
   AddressRepository,
   UserRepository,
@@ -63,7 +72,14 @@ const providers = [
   SystemSettingsRepository,
   ProductCollectionProductRepository,
   ProductCollectionRepository,
+  CouponRepository,
+  OrderRepository,
+  OrderCouponRepository,
+  OrderItemRepository,
+  TransactionRepository,
 ];
+
+const providers = [...repositories, ResponseService];
 
 const DATABASE_ENTITIES = [
   Kyc,
@@ -84,6 +100,11 @@ const DATABASE_ENTITIES = [
   SystemSettings,
   ProductCollection,
   ProductCollectionProduct,
+  Coupon,
+  Order,
+  OrderItem,
+  OrderCoupon,
+  Transaction,
 ];
 
 @Global()

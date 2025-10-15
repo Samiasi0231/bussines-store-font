@@ -24,7 +24,7 @@ export class ProductSubCategory extends BaseEntity {
   description?: string;
 
   @Index()
-  @ManyToOne(() => ProductCategory, { nullable: false, onDelete: 'CASCADE' })
+  @ManyToOne(() => ProductCategory, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'category_id' })
   @IsNotEmpty()
   @Column({ name: 'category_id' })
