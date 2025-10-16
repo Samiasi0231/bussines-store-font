@@ -18,6 +18,8 @@ import { DbTransactionManager } from '../@common/database/database-transaction.m
 import { Kyc } from '../entities/kyc.entity';
 import { WalletService } from '../wallet/wallet.service';
 import { Tier } from '../@common/constants/tier.constant';
+import { EntityManager } from 'typeorm';
+import { User } from '../entities/user.entity';
 
 @Injectable()
 export class UserService {
@@ -209,5 +211,31 @@ export class UserService {
     });
 
     return response;
+  }
+
+  async createGuestUser(
+    email: string,
+    manager: EntityManager,
+  ): Promise<IResponse<User>> {
+    const userExists = await this.userRepository.exists({
+      where: { email },
+    });
+
+    if (userExists)
+      return this.responseService.sendError(
+        ErrorMessage.USER_ALREADY_EXISTS,
+        null,
+      );
+
+    const userRepo = manager
+      ? this.userRepository.withManager(manager)
+      : this.userRepository;
+
+    const user = await userRepo.createStrict({ email, isGuest: true });
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      user,
+    );
   }
 }

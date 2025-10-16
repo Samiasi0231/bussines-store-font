@@ -18,16 +18,15 @@ import { PaymentMethod } from '../@common/constants/payment.constant';
 import { Address } from './address.entity';
 import { BaseEntity } from './base.entity';
 import { OrderCoupon } from './order-coupon.entity';
-import { Business } from './business.entity';
 
-const OrderStatus = [
+export const OrderStatus = [
   Status.SHIPPED,
   Status.PENDING,
   Status.PROCESSING,
   Status.CANCELLED,
   Status.COMPLETED,
 ] as const;
-type OrderStatus = (typeof OrderStatus)[number];
+export type OrderStatus = (typeof OrderStatus)[number];
 
 const PaymentStatus = [Status.PAID, Status.PENDING, Status.FAILED] as const;
 type PaymentStatus = (typeof PaymentStatus)[number];
@@ -42,14 +41,7 @@ export class Order extends BaseEntity {
   @ManyToOne(() => User, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'user_id' })
   @IsNotEmpty()
-  user: User;
-
-  @Index()
-  @Column({ type: 'uuid', name: 'business_id' })
-  @ManyToOne(() => Business, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'business_id' })
-  @IsNotEmpty()
-  business: User;
+  user: User | UUID;
 
   @Column({
     type: 'timestamptz',
@@ -95,10 +87,15 @@ export class Order extends BaseEntity {
 
   @Column({
     type: 'bigint',
-    default: 0,
     name: 'total_amount',
   })
   totalAmount: number;
+
+  @Column({
+    type: 'bigint',
+    name: 'payable_amount',
+  })
+  payableAmount: number;
 
   @OneToMany(() => OrderCoupon, (coupon) => coupon.order)
   coupons: OrderCoupon[];
@@ -108,7 +105,7 @@ export class Order extends BaseEntity {
   @ManyToOne(() => Address, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'shipping_address_id' })
   @IsNotEmpty()
-  shippingAddress: Address;
+  shippingAddress: Address | UUID;
 
   @Column({
     type: 'enum',

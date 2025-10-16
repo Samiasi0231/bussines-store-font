@@ -53,13 +53,19 @@ export class User extends BaseEntity {
   dateOfBirth?: Date;
 
   @Column({ type: 'enum', enum: Status, default: Status.ACTIVE })
-  status: Status;
+  status?: Status;
+
+  @Column({ name: 'is_guest', type: 'bool', default: false })
+  isGuest?: boolean;
+
+  @Column({ name: 'sign_up_date', type: 'timestamptz', nullable: true })
+  signUpDate?: Date;
 
   @Column({ type: 'enum', enum: Gender, nullable: true })
   gender?: Gender;
 
-  @Column({ type: 'varchar' })
-  password: string;
+  @Column({ type: 'varchar', nullable: true })
+  password?: string;
 
   @Column({ type: 'varchar', nullable: true })
   avatar?: string;
@@ -75,7 +81,7 @@ export class User extends BaseEntity {
   isProfileComplete?: boolean;
 
   @BeforeInsert()
-  private async beforeInsert() {
+  private async hashPassword() {
     this.password = await Util.hash(this.password);
   }
 }

@@ -17,7 +17,7 @@ import { UserProfile } from '../user/interfaces/user.interface';
 import { AddBeneficiaryDTO } from './dtos/beneficiary.dto';
 import { UUID } from 'crypto';
 import { PaginationDTO } from '../@common/dtos/pagination.dto';
-import { GetByIdParamsDTO } from '../@common/dtos/general.dto';
+import { GetByIdParamDTO } from '../@common/dtos/general.dto';
 
 @Controller('wallets')
 @UseGuards(JwtAuthGuard)
@@ -57,17 +57,17 @@ export class WalletController {
   }
 
   @Get('beneficiaries/:id')
-  async getBeneficiary(@Param() param: GetByIdParamsDTO) {
+  async getBeneficiary(@Param() param: GetByIdParamDTO) {
     return this.walletService.getbeneficiary(param.id);
   }
 
   @Delete('beneficiaries/:id')
-  async deleteBeneficiary(@Param() param: GetByIdParamsDTO) {
+  async deleteBeneficiary(@Param() param: GetByIdParamDTO) {
     return this.walletService.deletebeneficiary(param.id);
   }
 
   @Get('/:id')
-  async getWallet(@User() user: UserProfile, @Param() param: GetByIdParamsDTO) {
+  async getWallet(@User() user: UserProfile, @Param() param: GetByIdParamDTO) {
     return this.walletService.getWallet(param.id as UUID, user.id);
   }
 }

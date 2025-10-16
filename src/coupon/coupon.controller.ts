@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { CouponService } from './coupon.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { GetByIdParamsDTO } from '../@common/dtos/general.dto';
+import { GetByIdParamDTO } from '../@common/dtos/general.dto';
 import { UUID } from 'crypto';
 import { CreateCouponDTO, GetCouponsQueryDTO } from './dtos/coupon.dto';
 
@@ -31,7 +31,7 @@ export class CouponController {
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  async deleteCoupon(@Param() param: GetByIdParamsDTO) {
+  async deleteCoupon(@Param() param: GetByIdParamDTO) {
     return this.couponService.deleteCoupon(param.id as UUID);
   }
 }
