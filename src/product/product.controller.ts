@@ -17,7 +17,7 @@ import { AddProductDTO, GetProductsQueryDTO } from './dtos/product.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { User } from '../@common/decorators/user.decorator';
 import { UserProfile } from '../user/interfaces/user.interface';
-import { GetByIdParamsDTO } from '../@common/dtos/general.dto';
+import { GetByIdParamDTO } from '../@common/dtos/general.dto';
 import { UUID } from 'crypto';
 
 @Controller('products')
@@ -58,7 +58,7 @@ export class ProductController {
   }
 
   @Get(':id')
-  async getProduct(@Param() param: GetByIdParamsDTO) {
+  async getProduct(@Param() param: GetByIdParamDTO) {
     return this.productService.getProduct(param.id as UUID);
   }
 }

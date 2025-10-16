@@ -102,6 +102,7 @@ export class Coupon extends BaseEntity {
   })
   validTo?: Date;
 
+  @Check(`"usage_limit" IS NULL OR "usage_limit" > 0`)
   @Column({ type: 'integer', nullable: true, name: 'usage_limit' })
   usageLimit?: number;
 
@@ -120,7 +121,7 @@ export class Coupon extends BaseEntity {
 
   @BeforeInsert()
   @BeforeUpdate()
-  updateStatus?() {
+  private updateStatus?() {
     const now = new Date();
     if (this.validFrom && now < this.validFrom) {
       this.status = Status.NOT_YET_VALID;
@@ -132,7 +133,7 @@ export class Coupon extends BaseEntity {
   }
 
   @BeforeInsert()
-  generateCode?() {
+  private generateCode?() {
     if (!this.code) {
       this.code = randomstring.generate({
         length: 10,

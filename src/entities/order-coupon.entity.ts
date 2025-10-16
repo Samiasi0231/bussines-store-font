@@ -30,7 +30,7 @@ export class OrderCoupon extends BaseEntity {
   @ManyToOne(() => Coupon)
   @JoinColumn({ name: 'coupon_id' })
   @IsNotEmpty()
-  coupon: Coupon;
+  coupon: Coupon | UUID;
 
   @Column({ type: 'uuid', nullable: true, name: 'order_item_id' })
   @ManyToOne(() => OrderItem, { onDelete: 'RESTRICT', nullable: true })

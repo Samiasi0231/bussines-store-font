@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 
-export class GetByIdParamsDTO {
+export class GetByIdParamDTO {
   @IsString()
   @IsNotEmpty()
   id: string;

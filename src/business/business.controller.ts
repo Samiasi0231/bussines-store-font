@@ -10,7 +10,7 @@ import {
 import { BusinessService } from './business.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CACLookupQueryDTO } from './dtos/cac.dto';
-import { GetByIdParamsDTO } from '../@common/dtos/general.dto';
+import { GetByIdParamDTO } from '../@common/dtos/general.dto';
 import { User } from '../@common/decorators/user.decorator';
 import { UserProfile } from '../user/interfaces/user.interface';
 import { AddBusinessesDTO, GetBusinessesQueryDTO } from './dtos/business.dto';
@@ -42,7 +42,7 @@ export class BusinessController {
   @Post(':id/activation')
   async activateBusiness(
     @User() user: UserProfile,
-    @Param() param: GetByIdParamsDTO,
+    @Param() param: GetByIdParamDTO,
   ) {
     return this.businessService.activateBusiness(param.id as UUID, user.id);
   }
@@ -50,7 +50,7 @@ export class BusinessController {
   @Get(':id')
   async getBusiness(
     @User() user: UserProfile,
-    @Param() param: GetByIdParamsDTO,
+    @Param() param: GetByIdParamDTO,
   ) {
     return this.businessService.getBusiness(param.id as UUID, user.id);
   }

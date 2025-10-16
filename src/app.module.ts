@@ -21,6 +21,7 @@ import { BusinessModule } from './business/business.module';
 import { ProductModule } from './product/product.module';
 import { SystemSettingsModule } from './system-settings/system-settings.module';
 import { PgPubSubModule } from '@cisstech/nestjs-pg-pubsub';
+import { OrdersModule } from './orders/orders.module';
 import { CouponModule } from './coupon/coupon.module';
 
 const DB_CONNECTION_STRING = `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`;
@@ -76,6 +77,7 @@ const DB_CONNECTION_STRING = `postgresql://${process.env.DB_USERNAME}:${process.
     BusinessModule,
     ProductModule,
     SystemSettingsModule,
+    OrdersModule,
     CouponModule,
   ],
   controllers: [AppController],

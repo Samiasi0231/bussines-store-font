@@ -43,7 +43,7 @@ export class AuthService {
       where: { email },
     });
 
-    if (existingUser) {
+    if (existingUser && !existingUser.isGuest) {
       return this.responseService.sendError(
         ErrorMessage.USER_ALREADY_EXISTS,
         null,
@@ -61,16 +61,27 @@ export class AuthService {
     if (!verificationResponse.success) return verificationResponse;
 
     const userData = {
-      ...payload,
+      email,
       password,
       emailVerifiedAt: new Date(),
       status: Status.ACTIVE,
+      signUpDate: new Date(),
     };
 
     const user = await this.dbTransactionManager.transaction<User>(
       async (manager) => {
         const entityManager = manager.entityManager;
-        const user = await this.userRepository
+        let user: User;
+
+        if (existingUser && existingUser.isGuest)
+          user = await this.userRepository
+            .withManager(entityManager)
+            .findbyIdAndUpdate(existingUser.id, {
+              ...userData,
+              isGuest: false,
+            });
+
+        user = await this.userRepository
           .withManager(entityManager)
           .createStrict(userData);
 

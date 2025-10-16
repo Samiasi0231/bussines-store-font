@@ -58,6 +58,9 @@ export const ErrorMessage = {
     'Please activate your business to add products',
   COUPON_CODE_EXISTS: 'Coupon code exists',
   CANNOT_DELETE_EXPIRED_COUPON: 'Cannot delete expired coupon',
+  AT_LEAST_ONE_OUT_OF_STOCK:
+    'Oops! It looks like one or more items in your order are out of stock. Please update your cart to continue.',
+  INVALID_COUPON_CODE: (code: string) => `Coupon ${code} is invalid`,
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];
