@@ -1,4 +1,9 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateOrderDTO } from './dtos/order.dto';
 import { UserRepository } from '../repositories/user.repository';
 import { IResponse, ResponseService } from '../@common/response';
@@ -109,11 +114,7 @@ export class OrdersService {
           });
 
         if (!product)
-          return this.responseService.sendError(
-            ErrorMessage.NOT_FOUND('Product'),
-            null,
-            HttpStatus.NOT_FOUND,
-          );
+          throw new NotFoundException(ErrorMessage.NOT_FOUND('Product'));
 
         const {
           costPrice,
@@ -121,10 +122,12 @@ export class OrdersService {
           quantity: availableQuantity,
         } = product;
 
-        if (availableQuantity < quantity)
-          return this.responseService.sendError(
-            ErrorMessage.AT_LEAST_ONE_OUT_OF_STOCK,
-          );
+        if (availableQuantity < quantity && product.trackInventory)
+          throw new BadRequestException(ErrorMessage.AT_LEAST_ONE_OUT_OF_STOCK);
+
+        await this.productRepository
+          .withManager(entityManager)
+          .decreaseQuantity(productId, quantity);
 
         let discountAmount = 0;
         const totalItemPrice = quantity * price;
@@ -136,7 +139,7 @@ export class OrdersService {
             .findById(couponId, { lock: { mode: 'pessimistic_write' } });
 
           if (coupon.status !== Status.ACTIVE)
-            return this.responseService.sendError(
+            throw new BadRequestException(
               ErrorMessage.INVALID_COUPON_CODE(coupon.code || ''),
             );
 
@@ -181,7 +184,7 @@ export class OrdersService {
           .findById(couponId, { lock: { mode: 'pessimistic_write' } });
 
         if (coupon.status !== Status.ACTIVE)
-          return this.responseService.sendError(
+          throw new BadRequestException(
             ErrorMessage.INVALID_COUPON_CODE(coupon.code || ''),
           );
 
