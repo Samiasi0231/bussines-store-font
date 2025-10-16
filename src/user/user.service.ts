@@ -213,25 +213,27 @@ export class UserService {
     return response;
   }
 
-  async createGuestUser(
+  async createOrFetchGuestUser(
     email: string,
     manager: EntityManager,
   ): Promise<IResponse<User>> {
-    const userExists = await this.userRepository.exists({
+    let user = await this.userRepository.findOne({
       where: { email },
     });
 
-    if (userExists)
+    if (user && !user.isGuest)
       return this.responseService.sendError(
         ErrorMessage.USER_ALREADY_EXISTS,
         null,
       );
 
-    const userRepo = manager
-      ? this.userRepository.withManager(manager)
-      : this.userRepository;
+    if (!user) {
+      const userRepo = manager
+        ? this.userRepository.withManager(manager)
+        : this.userRepository;
 
-    const user = await userRepo.createStrict({ email, isGuest: true });
+      user = await userRepo.createStrict({ email, isGuest: true });
+    }
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,

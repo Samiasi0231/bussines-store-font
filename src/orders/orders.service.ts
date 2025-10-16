@@ -45,10 +45,8 @@ export class OrdersService {
     >(async (manager) => {
       const entityManager = manager.entityManager;
       if (email) {
-        const createGuestUserRes = await this.userService.createGuestUser(
-          email,
-          entityManager,
-        );
+        const createGuestUserRes =
+          await this.userService.createOrFetchGuestUser(email, entityManager);
 
         if (!createGuestUserRes.success) return createGuestUserRes;
 
