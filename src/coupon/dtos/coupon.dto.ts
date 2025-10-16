@@ -7,49 +7,17 @@ import {
   IsDateString,
   IsInt,
   Min,
-  registerDecorator,
-  ValidationArguments,
-  ValidationOptions,
-  ValidatorConstraint,
-  ValidatorConstraintInterface,
 } from 'class-validator';
 import { DiscountType } from '../../entities/coupon.entity';
 import { Type } from 'class-transformer';
 import { UUID } from 'crypto';
 import { PaginationDTO } from '../../@common/dtos/pagination.dto';
-
-@ValidatorConstraint({ async: false })
-export class ProductOrBusinessExclusiveConstraint
-  implements ValidatorConstraintInterface
-{
-  validate(_: any, args: ValidationArguments) {
-    const obj = args.object as any;
-    const hasProduct = !!obj.productId;
-    const hasBusiness = !!obj.businessId;
-
-    return hasProduct !== hasBusiness;
-  }
-
-  defaultMessage() {
-    return 'Exactly one of productId or businessId must be provided';
-  }
-}
-
-export function ProductOrBusinessExclusive(
-  validationOptions?: ValidationOptions,
-) {
-  return function (object: any, propertyName: string) {
-    registerDecorator({
-      target: object.constructor,
-      propertyName,
-      options: validationOptions,
-      constraints: [],
-      validator: ProductOrBusinessExclusiveConstraint,
-    });
-  };
-}
+import { MutuallyExclusive } from '../../@common/validators/mutually-exclusive.validator';
 
 export class CreateCouponDTO {
+  @MutuallyExclusive('productId', 'businessId')
+  _exclusiveCheck: any;
+
   @IsString()
   code: string;
 
@@ -57,7 +25,6 @@ export class CreateCouponDTO {
   @IsString()
   description?: string;
 
-  @ProductOrBusinessExclusive()
   @IsEnum(DiscountType)
   discountType: DiscountType;
 

@@ -73,16 +73,23 @@ export class OrdersService {
 
       let shippingAddressId: UUID;
 
-      if (shippingAddress) {
+      if (shippingAddress && shippingAddress.addressId) {
+        const address = await this.addressRepository
+          .withManager(entityManager)
+          .findById(shippingAddress.addressId);
+
+        shippingAddressId = address.id;
+      } else if (shippingAddress && shippingAddress.address) {
+        const addressData = shippingAddress.address;
         const address = await this.addressRepository
           .withManager(entityManager)
           .createStrict({
-            lga: shippingAddress.lga,
-            buildingNumber: shippingAddress.buildingNumber,
-            city: shippingAddress.city,
-            state: shippingAddress.state,
-            street: shippingAddress.street,
-            country: shippingAddress.country,
+            lga: addressData.lga,
+            buildingNumber: addressData.buildingNumber,
+            city: addressData.city,
+            state: addressData.state,
+            street: addressData.street,
+            country: addressData.country,
             user: userId,
           });
 

@@ -7,50 +7,17 @@ import {
   Min,
   IsEmail,
   IsString,
-  registerDecorator,
-  ValidationArguments,
-  ValidationOptions,
-  ValidatorConstraint,
-  ValidatorConstraintInterface,
   IsNotEmpty,
   IsEnum,
   IsIn,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AddressDTO } from '../../kyc/dtos/address.dto';
 import { UUID } from 'crypto';
 import { PaymentMethod } from '../../@common/constants/payment.constant';
 import { OrderStatus } from '../../entities/order.entity';
-
-//TODO: Turn to shared reusable function
-@ValidatorConstraint({ async: false })
-export class UserIdOrEmailExclusiveConstraint
-  implements ValidatorConstraintInterface
-{
-  validate(_: any, args: ValidationArguments) {
-    const obj = args.object as any;
-    const hasUserId = !!obj.userId;
-    const hasEmail = !!obj.email;
-
-    return hasUserId !== hasEmail;
-  }
-
-  defaultMessage() {
-    return 'Exactly one of userId or email must be provided';
-  }
-}
-
-export function UserIdOrEmailExclusive(validationOptions?: ValidationOptions) {
-  return function (object: any, propertyName: string) {
-    registerDecorator({
-      target: object.constructor,
-      propertyName,
-      options: validationOptions,
-      constraints: [],
-      validator: UserIdOrEmailExclusiveConstraint,
-    });
-  };
-}
+import { MutuallyExclusive } from '../../@common/validators/mutually-exclusive.validator';
 
 class OrderItemDTO {
   @IsUUID()
@@ -69,8 +36,22 @@ class OrderItemDTO {
   quantity: number;
 }
 
+export class ShippinAddressDTO {
+  @ValidateIf((req) => !req.addressId || (req.address && req.addressId))
+  @ValidateNested()
+  @Type(() => AddressDTO)
+  address: AddressDTO;
+
+  @IsOptional()
+  @ValidateIf((req) => !req.address || (req.address && req.addressId))
+  @IsUUID()
+  addressId: UUID;
+}
+
 export class CreateOrderDTO {
-  @UserIdOrEmailExclusive()
+  @MutuallyExclusive('userId', 'email')
+  _exclusiveCheck: any;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => OrderItemDTO)
@@ -94,10 +75,9 @@ export class CreateOrderDTO {
   @IsNotEmpty()
   note?: string;
 
-  //TODO: add support for selecting from existing shipping addresses
   @ValidateNested()
-  @Type(() => AddressDTO)
-  shippingAddress: AddressDTO;
+  @Type(() => ShippinAddressDTO)
+  shippingAddress: ShippinAddressDTO;
 
   @IsEnum(PaymentMethod)
   paymentMethod: PaymentMethod;

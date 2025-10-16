@@ -20,12 +20,17 @@ import { WalletService } from '../wallet/wallet.service';
 import { Tier } from '../@common/constants/tier.constant';
 import { EntityManager } from 'typeorm';
 import { User } from '../entities/user.entity';
+import { AddressRepository } from '../repositories/address.repository';
+import { KycSanitizer } from '../kyc/sanitizers/kyc.sanitizer';
+import { PaginationDTO } from '../@common/dtos/pagination.dto';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly kycRepository: KycRepository,
+    private readonly kycSanitizer: KycSanitizer,
+    private readonly addressRepository: AddressRepository,
     private readonly userSanitizer: UserSanitizer,
     private readonly cacheService: CacheService,
     private readonly responseService: ResponseService,
@@ -238,6 +243,24 @@ export class UserService {
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
       user,
+    );
+  }
+
+  async getAddresses(data: { userId: UUID } & PaginationDTO) {
+    const { userId, page, limit } = data;
+    const { results: addresses, pagination } =
+      await this.addressRepository.paginate({
+        filter: { user: userId },
+        pagination: { page, limit },
+      });
+
+    const results = addresses.map((address) =>
+      this.kycSanitizer.formatAddress(address),
+    );
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      { results, pagination },
     );
   }
 }
