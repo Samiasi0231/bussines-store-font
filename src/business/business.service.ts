@@ -122,9 +122,17 @@ export class BusinessService {
             ErrorMessage.MAX_BUSINESS_LIMIT,
           );
 
+        const activateBusiness = !!cacNumber;
         const business = await this.businessRepository
           .withManager(entityManager)
-          .createStrict({ user: userId, name, description, logo, cacNumber });
+          .createStrict({
+            user: userId,
+            name,
+            description,
+            logo,
+            cacNumber,
+            ...(activateBusiness ? { status: Status.ACTIVE } : {}),
+          });
 
         const businessId = business.id;
 
