@@ -294,37 +294,39 @@ export class OrdersService {
 
     const group = allowedGroupFields[groupBy] || allowedGroupFields.product;
 
-    const mainQuery = query
-      .innerJoin(group.join.relation, group.join.alias)
-      .select(`${group.id}`, group.keyLabel)
-      .addSelect(`${group.name}`, group.nameLabel)
-      .addSelect('SUM(orderItem.quantity)', 'totalQuantity')
-      .addSelect('SUM(orderItem.quantity * orderItem.unitPrice)', 'revenue')
-      .addSelect('SUM(orderItem.quantity * orderItem.unitCostPrice)', 'cost')
-      .addSelect(
-        'SUM((orderItem.unitPrice - orderItem.unitCostPrice) * orderItem.quantity)',
-        'profit',
-      )
-      .groupBy(group.id)
-      .addGroupBy(group.name);
+    if (group) {
+      query = query
+        .innerJoin(group.join.relation, group.join.alias)
+        .select(`${group.id}`, group.keyLabel)
+        .addSelect(`${group.name}`, group.nameLabel)
+        .addSelect('SUM(orderItem.quantity)', 'totalQuantity')
+        .addSelect('SUM(orderItem.quantity * orderItem.unitPrice)', 'revenue')
+        .addSelect('SUM(orderItem.quantity * orderItem.unitCostPrice)', 'cost')
+        .addSelect(
+          'SUM((orderItem.unitPrice - orderItem.unitCostPrice) * orderItem.quantity)',
+          'profit',
+        )
+        .groupBy(group.id)
+        .addGroupBy(group.name);
 
-    const sortFieldsMap = {
-      revenue: 'revenue',
-      profit: 'profit',
-      cost: 'cost',
-      quantity: 'totalQuantity',
-    };
+      const sortFieldsMap = {
+        revenue: 'revenue',
+        profit: 'profit',
+        cost: 'cost',
+        quantity: 'totalQuantity',
+      };
 
-    const sortFilter = Util.parseSortParam(sort, sortFieldsMap);
+      const sortFilter = Util.parseSortParam(sort, sortFieldsMap);
 
-    Object.entries(sortFilter).forEach(
-      ([field, direction]: [field: string, direction: number]) => {
-        mainQuery.addOrderBy(field, direction === 1 ? 'ASC' : 'DESC');
-      },
-    );
+      Object.entries(sortFilter).forEach(
+        ([field, direction]: [field: string, direction: number]) => {
+          query.addOrderBy(field, direction === 1 ? 'ASC' : 'DESC');
+        },
+      );
+    }
 
     const [result, totals] = await Promise.all([
-      mainQuery.getRawMany(),
+      query.getRawMany(),
       this.orderItemRepository
         .createQueryBuilder('orderItem')
         .select('SUM(orderItem.quantity)', 'totalQuantity')
@@ -366,6 +368,7 @@ export class OrdersService {
       },
     );
   }
+
   async getOrders(data: GetOrderDTO) {
     const { page, limit, userId } = data;
     const filter: FindOptionsWhere<Order> = {};

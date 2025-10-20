@@ -39,8 +39,8 @@ export class CouponService {
       discountValue,
       minOrderAmount,
       maxDiscountAmount,
-      products,
-      businesses,
+      products = [],
+      businesses = [],
       validFrom,
       validTo,
       usageLimit,
@@ -65,7 +65,7 @@ export class CouponService {
 
         for (const couponEntity of couponEntities) {
           if (couponEntityType === 'product') {
-            const product = await this.productRepository
+            product = await this.productRepository
               .withManager(entityManager)
               .findById(couponEntity);
 
@@ -78,7 +78,7 @@ export class CouponService {
           }
 
           if (couponEntityType === 'business') {
-            const business = await this.businessRepository
+            business = await this.businessRepository
               .withManager(entityManager)
               .findById(couponEntity);
 
@@ -110,8 +110,8 @@ export class CouponService {
             discountValue,
             minOrderAmount,
             maxDiscountAmount,
-            product,
-            business,
+            product: product?.id,
+            business: business?.id,
             validFrom: new Date(validFrom),
             validTo: new Date(validTo),
             usageLimit,
