@@ -13,6 +13,7 @@ import { Type } from 'class-transformer';
 import { UUID } from 'crypto';
 import { PaginationDTO } from '../../@common/dtos/pagination.dto';
 import { MutuallyExclusive } from '../../@common/validators/mutually-exclusive.validator';
+import { TransformToArray } from '../../@common/decorators/array-transformer.decorator';
 
 export class CreateCouponDTO {
   @MutuallyExclusive('productId', 'businessId')
@@ -46,12 +47,14 @@ export class CreateCouponDTO {
   maxDiscountAmount?: number;
 
   @IsOptional()
-  @IsUUID()
-  productId?: UUID;
+  @TransformToArray()
+  @IsUUID('7', { each: true })
+  products?: UUID[];
 
   @IsOptional()
-  @IsUUID()
-  businessId?: UUID;
+  @TransformToArray()
+  @IsUUID('7', { each: true })
+  businesses?: UUID[];
 
   @IsOptional()
   @IsDateString()

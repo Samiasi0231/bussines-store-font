@@ -10,7 +10,6 @@ import {
   IsNotEmpty,
   IsEnum,
   IsIn,
-  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AddressDTO } from '../../kyc/dtos/address.dto';
@@ -18,6 +17,7 @@ import { UUID } from 'crypto';
 import { PaymentMethod } from '../../@common/constants/payment.constant';
 import { OrderStatus } from '../../entities/order.entity';
 import { MutuallyExclusive } from '../../@common/validators/mutually-exclusive.validator';
+import { PaginationDTO } from '../../@common/dtos/pagination.dto';
 
 class OrderItemDTO {
   @IsUUID()
@@ -37,13 +37,15 @@ class OrderItemDTO {
 }
 
 export class ShippinAddressDTO {
-  @ValidateIf((req) => !req.addressId || (req.address && req.addressId))
+  @MutuallyExclusive('address', 'addressId')
+  _exclusiveCheck?: any;
+
+  @IsOptional()
   @ValidateNested()
   @Type(() => AddressDTO)
   address: AddressDTO;
 
   @IsOptional()
-  @ValidateIf((req) => !req.address || (req.address && req.addressId))
   @IsUUID()
   addressId: UUID;
 }
@@ -86,4 +88,11 @@ export class CreateOrderDTO {
 export class updateOrderStatusDTO {
   @IsIn(OrderStatus)
   status: OrderStatus;
+}
+
+export class GetOrderDTO extends PaginationDTO {
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  userId?: UUID;
 }

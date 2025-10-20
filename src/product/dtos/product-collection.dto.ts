@@ -10,6 +10,7 @@ import { Transform } from 'class-transformer';
 import { ErrorMessage } from '../../@common/constants/message.constant';
 import { UUID } from 'crypto';
 import { PaginationDTO } from '../../@common/dtos/pagination.dto';
+import { TransformToBoolean } from '../../@common/decorators/boolean-transformer.decorator';
 
 export class CreateProductCollectionDTO {
   @IsNotEmpty()
@@ -25,12 +26,7 @@ export class CreateProductCollectionDTO {
   })
   description?: string;
 
-  @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      return value.toLowerCase() === 'true';
-    }
-    return Boolean(value);
-  })
+  @TransformToBoolean()
   @IsOptional()
   @IsBoolean()
   visible?: boolean = true;
@@ -45,12 +41,7 @@ export class AddProductToCollectionDTO {
 }
 
 export class UpdateCollectionVisibilityDTO {
-  @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      return value.toLowerCase() === 'true';
-    }
-    return Boolean(value);
-  })
+  @TransformToBoolean()
   @IsBoolean()
   visible: boolean;
 }
@@ -60,12 +51,7 @@ export class GetProductCollectionsQueryDTO extends PaginationDTO {
   business: UUID;
 
   @IsOptional()
-  @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      return value.toLowerCase() === 'true';
-    }
-    return Boolean(value);
-  })
+  @TransformToBoolean()
   @IsBoolean()
   visible: boolean;
 }
