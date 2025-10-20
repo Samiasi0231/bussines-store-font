@@ -16,7 +16,7 @@ import { MutuallyExclusive } from '../../@common/validators/mutually-exclusive.v
 import { TransformToArray } from '../../@common/decorators/array-transformer.decorator';
 
 export class CreateCouponDTO {
-  @MutuallyExclusive('productId', 'businessId')
+  @MutuallyExclusive('businesses', 'products')
   _exclusiveCheck: any;
 
   @IsString()
