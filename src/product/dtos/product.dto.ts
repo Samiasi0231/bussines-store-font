@@ -1,4 +1,4 @@
-import { Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
   IsString,
   IsNotEmpty,
@@ -19,6 +19,8 @@ import { UUID } from 'crypto';
 import { PaginationDTO } from '../../@common/dtos/pagination.dto';
 import { IsDateFilterList } from '../../@common/validators/date.validator';
 import { IsNumericRange } from '../../@common/validators/numeric-filter.validator';
+import { TransformToArray } from '../../@common/decorators/array-transformer.decorator';
+import { TransformToBoolean } from '../../@common/decorators/boolean-transformer.decorator';
 
 function IsValidAttributesObject(keys: string[], validationOptions?: any) {
   return function (object: any, propertyName: string) {
@@ -66,14 +68,8 @@ class ImageDTO {
   @IsNotEmpty()
   url: string;
 
-  @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      return value.toLowerCase() === 'true';
-    }
-    return Boolean(value);
-  })
+  @TransformToBoolean()
   @IsOptional()
-  @IsBoolean()
   isPrimary = false;
 }
 
@@ -112,12 +108,7 @@ export class AddProductDTO {
   @IsUUID()
   storeId: UUID;
 
-  @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      return value.toLowerCase() === 'true';
-    }
-    return Boolean(value);
-  })
+  @TransformToBoolean()
   @IsBoolean()
   trackInventory: boolean;
 
@@ -191,22 +182,14 @@ export class GetProductsQueryDTO extends PaginationDTO {
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) => {
-    if (Array.isArray(value)) return value;
-    if (typeof value === 'string') return value.split(',');
-    return [];
-  })
+  @TransformToArray()
   @IsString({ each: true })
   sort: string[];
 
   @IsOptional()
   @IsDateFilterList()
   @IsArray()
-  @Transform(({ value }) => {
-    if (Array.isArray(value)) return value;
-    if (typeof value === 'string') return value.split(',');
-    return [];
-  })
+  @TransformToArray()
   @IsString({ each: true })
   createdAt: string[];
 }

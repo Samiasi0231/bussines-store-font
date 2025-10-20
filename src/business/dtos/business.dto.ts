@@ -8,7 +8,8 @@ import {
 } from 'class-validator';
 import { PaginationDTO } from '../../@common/dtos/pagination.dto';
 import { AddressDTO } from '../../kyc/dtos/address.dto';
-import { Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
+import { TransformToBoolean } from '../../@common/decorators/boolean-transformer.decorator';
 
 export class GetBusinessesQueryDTO extends PaginationDTO {
   @IsNotEmpty()
@@ -16,12 +17,7 @@ export class GetBusinessesQueryDTO extends PaginationDTO {
   @IsOptional()
   cacNumber?: string;
 
-  @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      return value.toLowerCase() === 'true';
-    }
-    return Boolean(value);
-  })
+  @TransformToBoolean()
   @IsBoolean()
   @IsOptional()
   forCurrUser = true;

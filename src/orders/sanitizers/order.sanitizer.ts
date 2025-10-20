@@ -8,6 +8,8 @@ export type FormattedOrder = {
   subtotal: number;
   totalAmount: number;
   discountAmount: number;
+  note: string;
+  date: Date;
 };
 
 @Injectable()
@@ -18,7 +20,9 @@ export class OrderSanitizer {
     return {
       status: data.status,
       id: data.id,
+      note: data.note,
       subtotal: data.subtotal,
+      date: data.date,
       totalAmount: data.totalAmount,
       discountAmount: data.discountAmount,
     };

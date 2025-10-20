@@ -56,7 +56,7 @@ export const ErrorMessage = {
     'Product collection description cannot exceed 500 characters',
   CANNOT_ADD_PROD_TO_INACTIVE_BUSINESS:
     'Please activate your business to add products',
-  COUPON_CODE_EXISTS: 'Coupon code exists',
+  COUPON_CODE_EXISTS: (code = '') => `Coupon code ${code} exists`,
   CANNOT_DELETE_EXPIRED_COUPON: 'Cannot delete expired coupon',
   AT_LEAST_ONE_OUT_OF_STOCK:
     'Oops! It looks like one or more items in your order are out of stock. Please update your cart to continue.',

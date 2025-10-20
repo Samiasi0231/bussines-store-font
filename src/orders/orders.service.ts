@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateOrderDTO } from './dtos/order.dto';
+import { CreateOrderDTO, GetOrderDTO } from './dtos/order.dto';
 import { UserRepository } from '../repositories/user.repository';
 import { IResponse, ResponseService } from '../@common/response';
 import {
@@ -23,6 +23,11 @@ import { OrderCouponRepository } from '../repositories/order-coupon.repository';
 import { FormattedOrder, OrderSanitizer } from './sanitizers/order.sanitizer';
 import { UserService } from '../user/user.service';
 import { OrderRepository } from '../repositories/order.repository';
+import { OrderAnalyticsDTO } from './dtos/analytics.dto';
+import { OrderItem } from '../entities/order-item.entity';
+import { Util } from '../@common/utilities/helpers.utility';
+import { QueryUtil } from '../@common/utilities/query.utility';
+import { FindOptionsWhere, In } from 'typeorm';
 
 @Injectable()
 export class OrdersService {
@@ -228,6 +233,157 @@ export class OrdersService {
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
+    );
+  }
+
+  async getOrderAnalytics(payload: OrderAnalyticsDTO) {
+    const {
+      businesses = [],
+      paymentCompleted,
+      products = [],
+      productVariants = [],
+      sort,
+      date,
+      stores = [],
+      groupBy,
+    } = payload;
+
+    const filter: FindOptionsWhere<OrderItem> = {};
+
+    let query = this.orderItemRepository
+      .createQueryBuilder('orderItem')
+      .where('orderItem.deletedAt IS NULL');
+
+    if (stores.length > 0) filter.store = In(stores);
+    if (products.length > 0) filter.product = In(products);
+    if (productVariants.length > 0) filter.productVariant = In(productVariants);
+
+    if (date) {
+      const dateFilter = Util.parseDateFilter(date);
+      query = QueryUtil.applyRangeFilter(
+        query,
+        'orderItem',
+        'date',
+        dateFilter,
+      );
+    }
+
+    const allowedGroupFields = {
+      product: {
+        join: { relation: 'orderItem.product', alias: 'product' },
+        id: 'product.id',
+        name: 'product.name',
+        keyLabel: 'productId',
+        nameLabel: 'productName',
+      },
+      business: {
+        join: { relation: 'orderItem.business', alias: 'business' },
+        id: 'business.id',
+        name: 'business.name',
+        keyLabel: 'businessId',
+        nameLabel: 'businessName',
+      },
+      store: {
+        join: { relation: 'orderItem.store', alias: 'store' },
+        id: 'store.id',
+        name: 'store.name',
+        keyLabel: 'storeId',
+        nameLabel: 'storeName',
+      },
+    };
+
+    const group = allowedGroupFields[groupBy] || allowedGroupFields.product;
+
+    const mainQuery = query
+      .innerJoin(group.join.relation, group.join.alias)
+      .select(`${group.id}`, group.keyLabel)
+      .addSelect(`${group.name}`, group.nameLabel)
+      .addSelect('SUM(orderItem.quantity)', 'totalQuantity')
+      .addSelect('SUM(orderItem.quantity * orderItem.unitPrice)', 'revenue')
+      .addSelect('SUM(orderItem.quantity * orderItem.unitCostPrice)', 'cost')
+      .addSelect(
+        'SUM((orderItem.unitPrice - orderItem.unitCostPrice) * orderItem.quantity)',
+        'profit',
+      )
+      .groupBy(group.id)
+      .addGroupBy(group.name);
+
+    const sortFieldsMap = {
+      revenue: 'revenue',
+      profit: 'profit',
+      cost: 'cost',
+      quantity: 'totalQuantity',
+    };
+
+    const sortFilter = Util.parseSortParam(sort, sortFieldsMap);
+
+    Object.entries(sortFilter).forEach(
+      ([field, direction]: [field: string, direction: number]) => {
+        mainQuery.addOrderBy(field, direction === 1 ? 'ASC' : 'DESC');
+      },
+    );
+
+    const [result, totals] = await Promise.all([
+      mainQuery.getRawMany(),
+      this.orderItemRepository
+        .createQueryBuilder('orderItem')
+        .select('SUM(orderItem.quantity)', 'totalQuantity')
+        .addSelect(
+          'SUM(orderItem.quantity * orderItem.unitPrice)',
+          'totalRevenue',
+        )
+        .addSelect(
+          'SUM(orderItem.quantity * orderItem.unitCostPrice)',
+          'totalCost',
+        )
+        .addSelect(
+          'SUM((orderItem.unitPrice - orderItem.unitCostPrice) * orderItem.quantity)',
+          'totalProfit',
+        )
+        .where('orderItem.deletedAt IS NULL')
+        .getRawOne(),
+    ]);
+
+    const keyName = `by${groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}`;
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        totals: {
+          totalRevenue: Util.toNaira(totals.totalRevenue),
+          totalCost: Util.toNaira(totals.totalCost),
+          totalProfit: Util.toNaira(totals.totalProfit),
+          totalQuantity: Number(totals.totalQuantity) || 0,
+        },
+        [keyName]: result.map((item) => ({
+          id: item[group.keyLabel],
+          name: item[group.nameLabel],
+          revenue: Util.toNaira(item.revenue),
+          cost: Util.toNaira(item.cost),
+          profit: Util.toNaira(item.profit),
+          quantity: Number(item.quantity) || 0,
+        })),
+      },
+    );
+  }
+  async getOrders(data: GetOrderDTO) {
+    const { page, limit, userId } = data;
+    const filter: FindOptionsWhere<Order> = {};
+
+    if (userId) filter.user = userId;
+
+    const { results: orders, pagination } = await this.orderRepository.paginate(
+      {
+        filter,
+        pagination: { page, limit },
+      },
+    );
+
+    const results = orders.map(this.orderSanitizer.formatOrder);
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      { results, pagination },
     );
   }
 }

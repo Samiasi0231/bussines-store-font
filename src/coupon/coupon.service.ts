@@ -16,6 +16,9 @@ import {
   CouponSanitizer,
   FormattedCoupon,
 } from './sanitizers/coupon.sanitizer';
+import { DbTransactionManager } from '../@common/database/database-transaction.manager';
+import { Product } from '../entities/product.entity';
+import { Business } from '../entities/business.entity';
 
 @Injectable()
 export class CouponService {
@@ -25,6 +28,7 @@ export class CouponService {
     private readonly couponRepository: CouponRepository,
     private readonly responseService: ResponseService,
     private readonly couponSanitizer: CouponSanitizer,
+    private readonly dbTransactionManager: DbTransactionManager,
   ) {}
 
   async createCoupon(payload: CreateCouponDTO) {
@@ -35,67 +39,95 @@ export class CouponService {
       discountValue,
       minOrderAmount,
       maxDiscountAmount,
-      productId,
-      businessId,
+      products,
+      businesses,
       validFrom,
       validTo,
       usageLimit,
       usageLimitPerUser,
     } = payload;
 
-    if (productId) {
-      const product = await this.productRepository.findById(productId);
+    let couponEntities: UUID[];
+    let couponEntityType: 'product' | 'business';
+    if (products.length > 0) {
+      couponEntities = products;
+      couponEntityType = 'product';
+    } else {
+      couponEntities = businesses;
+      couponEntityType = 'business';
+    }
 
-      if (!product)
-        return this.responseService.sendError(
-          ErrorMessage.NOT_FOUND('Product'),
+    const response = await this.dbTransactionManager.transaction(
+      async (manager) => {
+        const entityManager = manager.entityManager;
+        let product: Product;
+        let business: Business;
+
+        for (const couponEntity of couponEntities) {
+          if (couponEntityType === 'product') {
+            const product = await this.productRepository
+              .withManager(entityManager)
+              .findById(couponEntity);
+
+            if (!product)
+              return this.responseService.sendError(
+                ErrorMessage.NOT_FOUND('Product'),
+                null,
+                HttpStatus.NOT_FOUND,
+              );
+          }
+
+          if (couponEntityType === 'business') {
+            const business = await this.businessRepository
+              .withManager(entityManager)
+              .findById(couponEntity);
+
+            if (!business)
+              return this.responseService.sendError(
+                ErrorMessage.NOT_FOUND('Business'),
+                null,
+                HttpStatus.NOT_FOUND,
+              );
+          }
+
+          if (code) {
+            const couponCodeExists = await this.couponRepository
+              .withManager(entityManager)
+              .exists({
+                where: { code },
+              });
+
+            if (couponCodeExists)
+              return this.responseService.sendError(
+                ErrorMessage.COUPON_CODE_EXISTS(code),
+              );
+          }
+
+          await this.couponRepository.withManager(entityManager).createStrict({
+            code,
+            description,
+            discountType,
+            discountValue,
+            minOrderAmount,
+            maxDiscountAmount,
+            product,
+            business,
+            validFrom: new Date(validFrom),
+            validTo: new Date(validTo),
+            usageLimit,
+            usageLimitPerUser,
+          });
+        }
+
+        return this.responseService.sendSuccess(
+          SuccessMessage.OPERATION_SUCCESSFUL,
           null,
-          HttpStatus.NOT_FOUND,
+          HttpStatus.CREATED,
         );
-    }
-
-    if (businessId) {
-      const business = await this.businessRepository.findById(businessId);
-
-      if (!business)
-        return this.responseService.sendError(
-          ErrorMessage.NOT_FOUND('Business'),
-          null,
-          HttpStatus.NOT_FOUND,
-        );
-    }
-
-    if (code) {
-      const couponCodeExists = await this.couponRepository.exists({
-        where: { code },
-      });
-
-      if (couponCodeExists)
-        return this.responseService.sendError(ErrorMessage.COUPON_CODE_EXISTS);
-    }
-
-    const coupon = await this.couponRepository.createStrict({
-      code,
-      description,
-      discountType,
-      discountValue,
-      minOrderAmount,
-      maxDiscountAmount,
-      product: productId,
-      business: businessId,
-      validFrom: new Date(validFrom),
-      validTo: new Date(validTo),
-      usageLimit,
-      usageLimitPerUser,
-    });
-
-    const data = this.couponSanitizer.formatCoupon(coupon);
-
-    return this.responseService.sendSuccess(
-      SuccessMessage.OPERATION_SUCCESSFUL,
-      data,
-      HttpStatus.CREATED,
+      },
     );
+
+    return response;
   }
 
   async deleteCoupon(id: UUID) {
