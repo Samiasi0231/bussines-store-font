@@ -57,7 +57,7 @@ export class ProductSanitizer {
       price: Util.toNaira(data.sellingPrice),
       description: data.description,
       quantity: data.quantity,
-      variants: data.variants?.map((variant) => this.formatVariant(variant)),
+      variants: data.variants?.map(this.formatVariant),
       options,
     };
   }

@@ -254,9 +254,7 @@ export class UserService {
         pagination: { page, limit },
       });
 
-    const results = addresses.map((address) =>
-      this.kycSanitizer.formatAddress(address),
-    );
+    const results = addresses.map(this.kycSanitizer.formatAddress);
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,

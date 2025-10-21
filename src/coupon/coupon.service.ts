@@ -163,9 +163,7 @@ export class CouponService {
         pagination: { page, limit },
       });
 
-    const results = subCategories.map((coupon) =>
-      this.couponSanitizer.formatCoupon(coupon),
-    );
+    const results = subCategories.map(this.couponSanitizer.formatCoupon);
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,

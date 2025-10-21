@@ -30,9 +30,7 @@ export class BusinessSanitizer {
       description: business.description,
       name: business.name,
       status: business.status,
-      addresses: business.addresses?.map((address) =>
-        this.kycSanitizer.formatAddress(address),
-      ),
+      addresses: business.addresses?.map(this.kycSanitizer.formatAddress),
       stores: business.stores?.map((store) => ({ id: store.id })),
     };
   }

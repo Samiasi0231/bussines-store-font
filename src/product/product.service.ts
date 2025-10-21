@@ -156,8 +156,8 @@ export class ProductService {
         pagination: { page, limit },
       });
 
-    const results = categories.map((category) =>
-      this.productCategorySanitizer.formatCategory(category),
+    const results = categories.map(
+      this.productCategorySanitizer.formatCategory,
     );
 
     return this.responseService.sendSuccess(
@@ -183,8 +183,8 @@ export class ProductService {
         pagination: { page, limit },
       });
 
-    const results = subCategories.map((subCategory) =>
-      this.productSubCategorySanitizer.formatSubCategory(subCategory),
+    const results = subCategories.map(
+      this.productSubCategorySanitizer.formatSubCategory,
     );
 
     return this.responseService.sendSuccess(
@@ -494,9 +494,7 @@ export class ProductService {
         sort: sortFilter,
       });
 
-    const results = products.map((product) =>
-      this.productSanitizer.formatProductForList(product),
-    );
+    const results = products.map(this.productSanitizer.formatProductForList);
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
@@ -635,8 +633,8 @@ export class ProductService {
         pagination: { page, limit },
       });
 
-    const results = collections.map((collection) =>
-      this.productSanitizer.formatProductCollection(collection),
+    const results = collections.map(
+      this.productSanitizer.formatProductCollection,
     );
 
     return this.responseService.sendSuccess(

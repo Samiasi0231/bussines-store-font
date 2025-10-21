@@ -107,9 +107,7 @@ export class WalletService {
         pagination: { page, limit },
       });
 
-    const results = wallets.map((wallet) =>
-      this.walletSanitizer.formatWalletData(wallet),
-    );
+    const results = wallets.map(this.walletSanitizer.formatWalletData);
 
     return this.responseService.sendSuccess(SuccessMessage.RETRIEVE_WALLETS, {
       results,
@@ -170,8 +168,8 @@ export class WalletService {
         pagination: { page, limit },
       });
 
-    const results = beneficiaries.map((beneficiary) =>
-      this.walletSanitizer.formatBeneficiaryData(beneficiary),
+    const results = beneficiaries.map(
+      this.walletSanitizer.formatBeneficiaryData,
     );
 
     return this.responseService.sendSuccess(

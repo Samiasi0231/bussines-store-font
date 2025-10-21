@@ -73,10 +73,11 @@ export class Util {
    * ```
    */
   static parseSortParam = (
-    params: string[],
+    params: string[] = [],
     allowedSortFields: Record<string, string>,
+    skipDefault = false,
   ): Record<string, 1 | -1> => {
-    if (!params) {
+    if (!params && !skipDefault) {
       params = ['-createdAt'];
       allowedSortFields = { createdAt: 'createdAt' };
     }

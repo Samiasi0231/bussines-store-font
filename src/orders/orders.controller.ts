@@ -17,6 +17,8 @@ import { GetByIdParamDTO } from '../@common/dtos/general.dto';
 import { UUID } from 'crypto';
 import { OrderAnalyticsDTO } from './dtos/analytics.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { User } from '../@common/decorators/user.decorator';
+import { UserProfile } from '../user/interfaces/user.interface';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
@@ -44,5 +46,10 @@ export class OrdersController {
   @Get('analytics')
   getOrderAnalytics(@Query() query: OrderAnalyticsDTO) {
     return this.ordersService.getOrderAnalytics(query);
+  }
+
+  @Get(':id')
+  getOrder(@Param() param: GetByIdParamDTO, @User() user: UserProfile) {
+    return this.ordersService.getOrder(param.id as UUID, user.id as UUID);
   }
 }
