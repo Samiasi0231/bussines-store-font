@@ -20,7 +20,10 @@ import { UUID } from 'crypto';
 import { CouponRepository } from '../repositories/coupon.repository';
 import { Status } from '../@common/constants/status.constant';
 import { OrderCouponRepository } from '../repositories/order-coupon.repository';
-import { FormattedOrder, OrderSanitizer } from './sanitizers/order.sanitizer';
+import {
+  FormattedOrderForList,
+  OrderSanitizer,
+} from './sanitizers/order.sanitizer';
 import { UserService } from '../user/user.service';
 import { OrderRepository } from '../repositories/order.repository';
 import { OrderAnalyticsDTO } from './dtos/analytics.dto';
@@ -52,7 +55,7 @@ export class OrdersService {
     let { userId } = payload;
 
     const response = await this.dbTransactionManager.transaction<
-      IResponse<FormattedOrder>
+      IResponse<FormattedOrderForList>
     >(async (manager) => {
       const entityManager = manager.entityManager;
       if (email) {
@@ -217,7 +220,7 @@ export class OrdersService {
       order.payableAmount = order.totalAmount - order.discountAmount;
       entityManager.save(order);
 
-      const data = this.orderSanitizer.formatOrder(order);
+      const data = this.orderSanitizer.formatOrderForList(order);
 
       return this.responseService.sendSuccess(
         SuccessMessage.OPERATION_SUCCESSFUL,
@@ -365,13 +368,16 @@ export class OrdersService {
         quantity: 'quantity',
       };
 
-      const sortFilter = Util.parseSortParam(sort, sortFieldsMap);
+      const sortFilter = Util.parseSortParam(sort, sortFieldsMap, true);
 
       Object.entries(sortFilter).forEach(
         ([field, direction]: [field: string, direction: number]) => {
           query.addOrderBy(field, direction === 1 ? 'ASC' : 'DESC');
         },
       );
+
+      if (!sortFilter || Object.keys(sortFilter).length === 0)
+        query.addOrderBy(`${group.joins.at(-1)?.alias}.createdAt`, 'DESC');
     }
 
     type OrderAnalyticsGroupResult = {
@@ -444,11 +450,32 @@ export class OrdersService {
       },
     );
 
-    const results = orders.map(this.orderSanitizer.formatOrder);
+    const results = orders.map(this.orderSanitizer.formatOrderForList);
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
       { results, pagination },
+    );
+  }
+
+  async getOrder(orderId: string, userId: UUID) {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId as UUID, user: userId },
+      relations: ['orderItems', 'orderItems.product'],
+    });
+
+    if (!order)
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Order'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+
+    const data = this.orderSanitizer.formatOrder(order);
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      data,
     );
   }
 }
