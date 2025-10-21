@@ -10,6 +10,7 @@ import { TransformToArray } from '../../@common/decorators/array-transformer.dec
 import { TransformToBoolean } from '../../@common/decorators/boolean-transformer.decorator';
 import { IsDateFilterList } from '../../@common/validators/date.validator';
 import { PaginationDTO } from '../../@common/dtos/pagination.dto';
+import { UUID } from 'crypto';
 
 export enum OrderAnalyticsGroupBy {
   PRODUCT = 'product',
@@ -22,25 +23,25 @@ export class OrderAnalyticsDTO extends PaginationDTO {
   @IsOptional()
   @IsArray()
   @IsUUID('7', { each: true })
-  products: string[];
+  product: string[];
 
   @TransformToArray()
   @IsOptional()
   @IsArray()
   @IsUUID('7', { each: true })
-  productVariants: string[];
+  productVariant: string[];
 
   @TransformToArray()
   @IsOptional()
   @IsArray()
   @IsUUID('7', { each: true })
-  stores: string[];
+  store: string[];
 
   @TransformToArray()
   @IsOptional()
   @IsArray()
   @IsUUID('7', { each: true })
-  businesses: string[];
+  business: string[];
 
   @IsOptional()
   @IsArray()
@@ -65,4 +66,16 @@ export class OrderAnalyticsDTO extends PaginationDTO {
     message: `groupBy must be one of: ${Object.values(OrderAnalyticsGroupBy).join(', ')}`,
   })
   groupBy?: OrderAnalyticsGroupBy = OrderAnalyticsGroupBy.PRODUCT;
+
+  @TransformToArray()
+  @IsOptional()
+  @IsArray()
+  @IsUUID('7', { each: true })
+  category: UUID[];
+
+  @TransformToArray()
+  @IsOptional()
+  @IsArray()
+  @IsUUID('7', { each: true })
+  subCategory: UUID[];
 }

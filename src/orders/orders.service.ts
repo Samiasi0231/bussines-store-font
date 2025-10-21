@@ -242,16 +242,18 @@ export class OrdersService {
 
   async getOrderAnalytics(payload: OrderAnalyticsDTO) {
     const {
-      businesses = [],
+      business: businesses = [],
       paymentCompleted = true,
-      products = [],
-      productVariants = [],
+      product: products = [],
+      productVariant: productVariants = [],
       sort,
       date,
       page,
       limit,
-      stores = [],
+      store: stores = [],
       groupBy,
+      category: categories = [],
+      subCategory: subCategories = [],
     } = payload;
 
     const filter: FindOptionsWhere<OrderItem> = {};
@@ -305,6 +307,20 @@ export class OrdersService {
         query.andWhere('order.paymentStatus != :status', {
           status: Status.PAID,
         });
+    }
+
+    if (subCategories.length > 0) {
+      query = safeInnerJoin(query, 'orderItem.product', 'product');
+      query.andWhere('product.subCategory IN (:...subCategories)', {
+        subCategories,
+      });
+    }
+
+    if (categories.length > 0) {
+      query = safeInnerJoin(query, 'orderItem.product', 'product');
+      query = safeInnerJoin(query, 'product.subCategory', 'subCategory');
+      query = safeInnerJoin(query, 'subCategory.productCategory', 'category');
+      query.andWhere('category.id IN (:...categories)', { categories });
     }
 
     const failedOrderStatuses: OrderStatus[] = [Status.CANCELLED];
