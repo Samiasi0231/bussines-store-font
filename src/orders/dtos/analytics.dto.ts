@@ -4,10 +4,12 @@ import {
   IsString,
   IsBoolean,
   IsEnum,
+  IsUUID,
 } from 'class-validator';
 import { TransformToArray } from '../../@common/decorators/array-transformer.decorator';
 import { TransformToBoolean } from '../../@common/decorators/boolean-transformer.decorator';
 import { IsDateFilterList } from '../../@common/validators/date.validator';
+import { PaginationDTO } from '../../@common/dtos/pagination.dto';
 
 export enum OrderAnalyticsGroupBy {
   PRODUCT = 'product',
@@ -15,29 +17,29 @@ export enum OrderAnalyticsGroupBy {
   STORE = 'store',
 }
 
-export class OrderAnalyticsDTO {
+export class OrderAnalyticsDTO extends PaginationDTO {
   @TransformToArray()
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
+  @IsUUID('7', { each: true })
   products: string[];
 
   @TransformToArray()
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
+  @IsUUID('7', { each: true })
   productVariants: string[];
 
   @TransformToArray()
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
+  @IsUUID('7', { each: true })
   stores: string[];
 
   @TransformToArray()
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
+  @IsUUID('7', { each: true })
   businesses: string[];
 
   @IsOptional()

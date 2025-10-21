@@ -10,7 +10,7 @@ import {
 import { OrdersService } from './orders.service';
 import {
   CreateOrderDTO,
-  GetOrderDTO,
+  GetOrdersDTO,
   updateOrderStatusDTO,
 } from './dtos/order.dto';
 import { GetByIdParamDTO } from '../@common/dtos/general.dto';
@@ -29,7 +29,7 @@ export class OrdersController {
   }
 
   @Get()
-  getOrders(@Query() query: GetOrderDTO) {
+  getOrders(@Query() query: GetOrdersDTO) {
     return this.ordersService.getOrders(query);
   }
 

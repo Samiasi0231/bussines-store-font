@@ -90,7 +90,7 @@ export class updateOrderStatusDTO {
   status: OrderStatus;
 }
 
-export class GetOrderDTO extends PaginationDTO {
+export class GetOrdersDTO extends PaginationDTO {
   @IsOptional()
   @IsNotEmpty()
   @IsString()

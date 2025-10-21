@@ -112,6 +112,46 @@ export class EntityRepository<T> extends Repository<T> {
     return this.getPaginatedResults({ page, limit, total, records });
   }
 
+  async paginateRaw(
+    query: SelectQueryBuilder<T>,
+    pagination: {
+      limit: number;
+      page: number;
+    },
+  ) {
+    const { page, limit } = pagination;
+    const totalCountQueryBuilder = query.clone();
+
+    totalCountQueryBuilder
+      .skip(undefined)
+      .limit(undefined)
+      .offset(undefined)
+      .take(undefined)
+      .orderBy(undefined);
+
+    const skip = (page - 1) * limit;
+
+    const [results, { value: total }] = await Promise.all([
+      query.limit(limit).offset(skip).getRawMany(),
+      query.connection
+        .createQueryBuilder()
+        .select('COUNT(*)', 'value')
+        .from(
+          `(${totalCountQueryBuilder.getQuery()})`,
+          'totalCountQueryBuilder',
+        )
+        .setParameters(query.getParameters())
+        .getRawOne<{ value: string }>(),
+    ]);
+
+    return this.getPaginatedResults({
+      records: results,
+      page,
+      total: Number(total),
+      limit,
+    });
+  }
+
   private getPaginatedResults(data: {
     page: number;
     limit: number;

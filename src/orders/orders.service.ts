@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateOrderDTO, GetOrderDTO } from './dtos/order.dto';
+import { CreateOrderDTO, GetOrdersDTO } from './dtos/order.dto';
 import { UserRepository } from '../repositories/user.repository';
 import { IResponse, ResponseService } from '../@common/response';
 import {
@@ -27,7 +27,8 @@ import { OrderAnalyticsDTO } from './dtos/analytics.dto';
 import { OrderItem } from '../entities/order-item.entity';
 import { Util } from '../@common/utilities/helpers.utility';
 import { QueryUtil } from '../@common/utilities/query.utility';
-import { FindOptionsWhere, In } from 'typeorm';
+import { FindOptionsWhere, In, SelectQueryBuilder } from 'typeorm';
+import { Paginated } from '../@common/types/pagination.type';
 
 @Injectable()
 export class OrdersService {
@@ -239,11 +240,13 @@ export class OrdersService {
   async getOrderAnalytics(payload: OrderAnalyticsDTO) {
     const {
       businesses = [],
-      paymentCompleted,
+      paymentCompleted = true,
       products = [],
       productVariants = [],
       sort,
       date,
+      page,
+      limit,
       stores = [],
       groupBy,
     } = payload;
@@ -253,6 +256,20 @@ export class OrdersService {
     let query = this.orderItemRepository
       .createQueryBuilder('orderItem')
       .where('orderItem.deletedAt IS NULL');
+
+    const joinedAliases = new Set<string>();
+
+    function safeInnerJoin(
+      query: SelectQueryBuilder<any>,
+      relation: string,
+      alias: string,
+    ) {
+      if (!joinedAliases.has(alias)) {
+        query.innerJoin(relation, alias);
+        joinedAliases.add(alias);
+      }
+      return query;
+    }
 
     if (stores.length > 0) filter.store = In(stores);
     if (products.length > 0) filter.product = In(products);
@@ -268,23 +285,52 @@ export class OrdersService {
       );
     }
 
+    if (businesses.length > 0) {
+      query = safeInnerJoin(query, 'orderItem.store', 'store');
+      query = safeInnerJoin(query, 'store.business', 'business');
+      query.andWhere('business.id IN (:...businesses)', { businesses });
+    }
+
+    if (paymentCompleted !== undefined) {
+      query = safeInnerJoin(query, 'orderItem.order', 'order');
+
+      if (paymentCompleted)
+        query.andWhere('order.paymentStatus = :status', {
+          status: Status.PAID,
+        });
+      else
+        query.andWhere('order.paymentStatus != :status', {
+          status: Status.PAID,
+        });
+    }
+
+    const failedOrderStatuses: OrderStatus[] = [Status.CANCELLED];
+
+    query = safeInnerJoin(query, 'orderItem.order', 'order');
+    query.andWhere('order.status NOT IN (:...failedOrderStatuses)', {
+      failedOrderStatuses,
+    });
+
     const allowedGroupFields = {
       product: {
-        join: { relation: 'orderItem.product', alias: 'product' },
+        joins: [{ relation: 'orderItem.product', alias: 'product' }],
         id: 'product.id',
         name: 'product.name',
         keyLabel: 'productId',
         nameLabel: 'productName',
       },
       business: {
-        join: { relation: 'orderItem.business', alias: 'business' },
+        joins: [
+          { relation: 'orderItem.store', alias: 'store' },
+          { relation: 'store.business', alias: 'business' },
+        ],
         id: 'business.id',
         name: 'business.name',
         keyLabel: 'businessId',
         nameLabel: 'businessName',
       },
       store: {
-        join: { relation: 'orderItem.store', alias: 'store' },
+        joins: [{ relation: 'orderItem.store', alias: 'store' }],
         id: 'store.id',
         name: 'store.name',
         keyLabel: 'storeId',
@@ -295,11 +341,14 @@ export class OrdersService {
     const group = allowedGroupFields[groupBy] || allowedGroupFields.product;
 
     if (group) {
+      group.joins.forEach((j) => {
+        query = safeInnerJoin(query, j.relation, j.alias);
+      });
+
       query = query
-        .innerJoin(group.join.relation, group.join.alias)
         .select(`${group.id}`, group.keyLabel)
         .addSelect(`${group.name}`, group.nameLabel)
-        .addSelect('SUM(orderItem.quantity)', 'totalQuantity')
+        .addSelect('SUM(orderItem.quantity)', 'quantity')
         .addSelect('SUM(orderItem.quantity * orderItem.unitPrice)', 'revenue')
         .addSelect('SUM(orderItem.quantity * orderItem.unitCostPrice)', 'cost')
         .addSelect(
@@ -313,7 +362,7 @@ export class OrdersService {
         revenue: 'revenue',
         profit: 'profit',
         cost: 'cost',
-        quantity: 'totalQuantity',
+        quantity: 'quantity',
       };
 
       const sortFilter = Util.parseSortParam(sort, sortFieldsMap);
@@ -325,8 +374,20 @@ export class OrdersService {
       );
     }
 
-    const [result, totals] = await Promise.all([
-      query.getRawMany(),
+    type OrderAnalyticsGroupResult = {
+      id: string;
+      name: string;
+      revenue: number;
+      cost: number;
+      profit: number;
+      quantity: number;
+    };
+
+    const [{ results, pagination }, totals] = await Promise.all([
+      this.orderItemRepository.paginateRaw(query, {
+        page,
+        limit,
+      }) as unknown as Paginated<OrderAnalyticsGroupResult>,
       this.orderItemRepository
         .createQueryBuilder('orderItem')
         .select('SUM(orderItem.quantity)', 'totalQuantity')
@@ -346,8 +407,6 @@ export class OrdersService {
         .getRawOne(),
     ]);
 
-    const keyName = `by${groupBy.charAt(0).toUpperCase() + groupBy.slice(1)}`;
-
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
       {
@@ -357,19 +416,22 @@ export class OrdersService {
           totalProfit: Util.toNaira(totals.totalProfit),
           totalQuantity: Number(totals.totalQuantity) || 0,
         },
-        [keyName]: result.map((item) => ({
-          id: item[group.keyLabel],
-          name: item[group.nameLabel],
-          revenue: Util.toNaira(item.revenue),
-          cost: Util.toNaira(item.cost),
-          profit: Util.toNaira(item.profit),
-          quantity: Number(item.quantity) || 0,
-        })),
+        grouped: {
+          results: results.map((item) => ({
+            id: item[group.keyLabel],
+            name: item[group.nameLabel],
+            revenue: Util.toNaira(item.revenue),
+            cost: Util.toNaira(item.cost),
+            profit: Util.toNaira(item.profit),
+            quantity: Number(item.quantity) || 0,
+          })),
+          pagination,
+        },
       },
     );
   }
 
-  async getOrders(data: GetOrderDTO) {
+  async getOrders(data: GetOrdersDTO) {
     const { page, limit, userId } = data;
     const filter: FindOptionsWhere<Order> = {};
 
