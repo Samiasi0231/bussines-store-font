@@ -179,7 +179,7 @@ export class OrdersService {
             unitCostPrice: costPrice,
             unitPrice: price,
             discountAmount,
-            totalPrice: totalItemPrice,
+            subtotal: totalItemPrice,
             store: product.store,
           });
 

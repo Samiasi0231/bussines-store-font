@@ -228,7 +228,7 @@ export class UserService {
 
     if (user && !user.isGuest)
       return this.responseService.sendError(
-        ErrorMessage.USER_ALREADY_EXISTS,
+        ErrorMessage.USER_WITH_EMAIL_EXISTS,
         null,
       );
 

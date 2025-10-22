@@ -52,6 +52,12 @@ import { Order } from '../../entities/order.entity';
 import { OrderItem } from '../../entities/order-item.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { OrderCoupon } from '../../entities/order-coupon.entity';
+import { InvoiceUser } from '../../entities/incoice-user.entity';
+import { Invoice } from '../../entities/invoice.entity';
+import { InvoiceItem } from '../../entities/invoice-item.entity';
+import { InvoiceRepository } from '../../repositories/invoice.repository';
+import { InvoiceUserRepository } from '../../repositories/invoice-user.repository';
+import { InvoiceItemRepository } from '../../repositories/invoice-item.repository';
 
 const repositories = [
   IdentityVerificationRepository,
@@ -77,6 +83,9 @@ const repositories = [
   OrderCouponRepository,
   OrderItemRepository,
   TransactionRepository,
+  InvoiceRepository,
+  InvoiceUserRepository,
+  InvoiceItemRepository,
 ];
 
 const providers = [...repositories, ResponseService];
@@ -105,6 +114,9 @@ const DATABASE_ENTITIES = [
   OrderItem,
   OrderCoupon,
   Transaction,
+  InvoiceUser,
+  Invoice,
+  InvoiceItem,
 ];
 
 @Global()

@@ -15,6 +15,7 @@ import { User } from '../@common/decorators/user.decorator';
 import { UserProfile } from '../user/interfaces/user.interface';
 import { AddBusinessesDTO, GetBusinessesQueryDTO } from './dtos/business.dto';
 import { UUID } from 'crypto';
+import { GetInvoicesDTO } from '../invoice/dtos/invoice.dto';
 
 @Controller('businesses')
 @UseGuards(JwtAuthGuard)
@@ -45,6 +46,19 @@ export class BusinessController {
     @Param() param: GetByIdParamDTO,
   ) {
     return this.businessService.activateBusiness(param.id as UUID, user.id);
+  }
+
+  @Get(':id/invoices')
+  async getInvoices(
+    @User() user: UserProfile,
+    @Param() param: GetByIdParamDTO,
+    @Query() query: GetInvoicesDTO,
+  ) {
+    return this.businessService.getBusinessInvoices(
+      param.id as UUID,
+      user.id as UUID,
+      query,
+    );
   }
 
   @Get(':id')

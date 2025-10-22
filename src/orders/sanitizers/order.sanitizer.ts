@@ -51,7 +51,7 @@ export class OrderSanitizer {
       discountAmount: Util.toNaira(item.discountAmount),
       quantity: item.quantity,
       unitPrice: Util.toNaira(item.unitPrice),
-      subtotal: Util.toNaira(item.totalPrice),
+      subtotal: Util.toNaira(item.subtotal),
       product: {
         name: (item.product as Product).name,
         description: (item.product as Product).description,

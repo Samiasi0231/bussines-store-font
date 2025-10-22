@@ -18,6 +18,7 @@ import { PaymentMethod } from '../../@common/constants/payment.constant';
 import { OrderStatus } from '../../entities/order.entity';
 import { MutuallyExclusive } from '../../@common/validators/mutually-exclusive.validator';
 import { PaginationDTO } from '../../@common/dtos/pagination.dto';
+import { TransformToLowerCase } from '../../@common/decorators/case-transformer.decorator';
 
 class OrderItemDTO {
   @IsUUID()
@@ -81,6 +82,7 @@ export class CreateOrderDTO {
   @Type(() => ShippinAddressDTO)
   shippingAddress: ShippinAddressDTO;
 
+  @TransformToLowerCase()
   @IsEnum(PaymentMethod)
   paymentMethod: PaymentMethod;
 }
