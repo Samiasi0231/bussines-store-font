@@ -12,14 +12,18 @@ export class CouponRepository extends EntityRepository<Coupon> {
   getDiscountAmount({
     coupon,
     amount,
+    discountValue,
+    discountType,
   }: {
-    coupon: Coupon;
+    coupon?: Coupon;
     amount: number;
+    discountValue?: number;
+    discountType?: DiscountType;
   }): number {
-    const value = coupon.discountValue;
-    const type = coupon.discountType;
-    const maxDiscount = coupon.maxDiscountAmount;
-    const minOrderAmount = coupon.minOrderAmount;
+    const value = coupon?.discountValue || discountValue;
+    const type = coupon?.discountType || discountType;
+    const maxDiscount = coupon?.maxDiscountAmount || amount;
+    const minOrderAmount = coupon?.minOrderAmount || 0;
     let discountAmount = 0;
 
     if (minOrderAmount > amount) return discountAmount;

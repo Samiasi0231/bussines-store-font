@@ -179,7 +179,7 @@ export class OrdersService {
             unitCostPrice: costPrice,
             unitPrice: price,
             discountAmount,
-            totalPrice: totalItemPrice,
+            subtotal: totalItemPrice,
             store: product.store,
           });
 
@@ -477,7 +477,7 @@ export class OrdersService {
   async getOrder(orderId: string, userId: UUID) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId as UUID, user: userId },
-      relations: ['orderItems', 'orderItems.product'],
+      relations: ['orderItems', 'orderItems.product', 'shippingAddress'],
     });
 
     if (!order)

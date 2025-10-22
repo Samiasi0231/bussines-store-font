@@ -14,6 +14,7 @@ import { UUID } from 'crypto';
 import { PaginationDTO } from '../../@common/dtos/pagination.dto';
 import { MutuallyExclusive } from '../../@common/validators/mutually-exclusive.validator';
 import { TransformToArray } from '../../@common/decorators/array-transformer.decorator';
+import { TransformToLowerCase } from '../../@common/decorators/case-transformer.decorator';
 
 export class CreateCouponDTO {
   @MutuallyExclusive('businesses', 'products')
@@ -26,6 +27,7 @@ export class CreateCouponDTO {
   @IsString()
   description?: string;
 
+  @TransformToLowerCase()
   @IsEnum(DiscountType)
   discountType: DiscountType;
 
@@ -76,6 +78,7 @@ export class CreateCouponDTO {
 }
 
 export class GetCouponsQueryDTO extends PaginationDTO {
+  @TransformToLowerCase()
   @IsOptional()
   @IsEnum(DiscountType)
   discountType: DiscountType;

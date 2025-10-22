@@ -1,7 +1,8 @@
 export const ErrorMessage = {
   AN_ERROR_OCCURRED: 'Something went wrong. Please try again.',
   USER_NOT_FOUND: 'User not found',
-  USER_ALREADY_EXISTS: 'User with this email already exists',
+  USER_WITH_EMAIL_EXISTS: 'A user with this email exists',
+  USER_WITH_PHONE_EXISTS: 'A user with this phone number exists',
   ACTIVE_STATUS_NOT_FOUND: 'Active status not found',
   INVALID_CREDENTIALS: 'Email/phone number or password is incorrect',
   EMAIL_ALREADY_VERIFIED: 'Email already verified',

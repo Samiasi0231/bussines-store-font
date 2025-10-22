@@ -66,7 +66,7 @@ export class EntityRepository<T> extends Repository<T> {
   }
 
   async paginate(payload: {
-    filter?: FindOptionsWhere<T>;
+    filter?: FindOptionsWhere<T> | FindOptionsWhere<T>[];
     pagination: {
       limit: number;
       page: number;

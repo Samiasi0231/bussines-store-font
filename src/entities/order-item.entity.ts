@@ -41,9 +41,9 @@ export class OrderItem extends BaseEntity {
   @IsNotEmpty()
   product: Product | UUID;
 
-  @Column({ type: 'uuid', nullable: true, name: 'variant_id' })
+  @Column({ type: 'uuid', nullable: true, name: 'product_variant_id' })
   @ManyToOne(() => ProductVariant, { onDelete: 'RESTRICT', nullable: true })
-  @JoinColumn({ name: 'variant_id' })
+  @JoinColumn({ name: 'product_variant_id' })
   productVariant?: ProductVariant | UUID;
 
   @Column({ type: 'int', name: 'quantity' })
@@ -64,7 +64,7 @@ export class OrderItem extends BaseEntity {
 
   @Column({
     type: 'int',
-    name: 'total_price',
+    name: 'subtotal',
   })
-  totalPrice: number;
+  subtotal: number;
 }

@@ -22,6 +22,9 @@ import { WalletRepository } from '../repositories/wallet.repository';
 import { WalletType } from '../@common/constants/wallet.constant';
 import { Status } from '../@common/constants/status.constant';
 import { StoreRepository } from '../repositories/store.repository';
+import { InvoiceService } from '../invoice/services/invoice.service';
+import { GetInvoicesDTO } from '../invoice/dtos/invoice.dto';
+import { isUUID } from 'class-validator';
 
 @Injectable()
 export class BusinessService {
@@ -34,6 +37,7 @@ export class BusinessService {
     private readonly addressRepository: AddressRepository,
     private readonly walletRepository: WalletRepository,
     private readonly storeRepository: StoreRepository,
+    private readonly invoiceService: InvoiceService,
   ) {}
 
   async lookupCACDetails(regNumber: string) {
@@ -83,10 +87,12 @@ export class BusinessService {
     id: UUID,
     userId: UUID,
   ): Promise<IResponse<BusinessData | null>> {
-    const business = await this.businessRepository.findOne({
-      where: { id, user: userId },
-      relations: ['stores'],
-    });
+    const business = isUUID(id)
+      ? await this.businessRepository.findOne({
+          where: { id, user: userId },
+          relations: ['stores'],
+        })
+      : null;
 
     if (!business)
       return this.responseService.sendError(
@@ -195,5 +201,31 @@ export class BusinessService {
       SuccessMessage.ACTIVATE_BUSINESS,
       data,
     );
+  }
+
+  async getBusinessInvoices(
+    businessId: UUID,
+    userId: UUID,
+    query: GetInvoicesDTO,
+  ) {
+    delete query.business;
+
+    const business = isUUID(businessId)
+      ? await this.businessRepository.exists({
+          where: { user: userId, id: businessId },
+        })
+      : null;
+
+    if (!business)
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Business'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+
+    return this.invoiceService.getInvoices({
+      ...query,
+      business: [businessId],
+    });
   }
 }

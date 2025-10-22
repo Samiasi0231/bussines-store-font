@@ -164,7 +164,12 @@ export class GetProductsQueryDTO extends PaginationDTO {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
-  name: UUID;
+  search: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  name: string;
 
   @IsOptional()
   @IsUUID()

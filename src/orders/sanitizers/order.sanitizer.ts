@@ -4,6 +4,8 @@ import { Order } from '../../entities/order.entity';
 import { OrderItem } from '../../entities/order-item.entity';
 import { Product } from '../../entities/product.entity';
 import { Util } from '../../@common/utilities/helpers.utility';
+import { Address } from '../../entities/address.entity';
+import { KycSanitizer } from '../../kyc/sanitizers/kyc.sanitizer';
 
 export type FormattedOrderForList = {
   id: string;
@@ -25,11 +27,12 @@ type FormattedOrderItem = {
 
 export type FormattedOrder = FormattedOrderForList & {
   items: FormattedOrderItem[];
+  shippingAddress: Partial<Address>;
 };
 
 @Injectable()
 export class OrderSanitizer {
-  constructor() {}
+  constructor(private readonly kycSanitizer: KycSanitizer) {}
 
   formatOrderForList(data: Order): FormattedOrderForList {
     return {
@@ -48,7 +51,7 @@ export class OrderSanitizer {
       discountAmount: Util.toNaira(item.discountAmount),
       quantity: item.quantity,
       unitPrice: Util.toNaira(item.unitPrice),
-      subtotal: Util.toNaira(item.totalPrice),
+      subtotal: Util.toNaira(item.subtotal),
       product: {
         name: (item.product as Product).name,
         description: (item.product as Product).description,
@@ -66,6 +69,9 @@ export class OrderSanitizer {
       discountAmount: Util.toNaira(data.discountAmount),
       subtotal: Util.toNaira(data.subtotal),
       items: data.orderItems.map(this.formatOrderItem),
+      shippingAddress: this.kycSanitizer.formatAddress(
+        data.shippingAddress as Address,
+      ),
     };
   }
 }

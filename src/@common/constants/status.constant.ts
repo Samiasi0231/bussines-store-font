@@ -23,4 +23,6 @@ export enum Status {
   NOT_YET_VALID = 'not_yet_valid',
   USAGE_LIMIT_REACHED = 'usage_limit_reached',
   EXPIRED = 'expired',
+  OVERDUE = 'overdue',
+  UNPAID = 'unpaid',
 }
