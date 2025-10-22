@@ -51,12 +51,12 @@ export class CreateCouponDTO {
   @IsOptional()
   @TransformToArray()
   @IsUUID('7', { each: true })
-  products?: UUID[];
+  product?: UUID[];
 
   @IsOptional()
   @TransformToArray()
   @IsUUID('7', { each: true })
-  businesses?: UUID[];
+  business?: UUID[];
 
   @IsOptional()
   @IsDateString()
