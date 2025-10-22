@@ -17,7 +17,7 @@ import { TransformToArray } from '../../@common/decorators/array-transformer.dec
 import { TransformToLowerCase } from '../../@common/decorators/case-transformer.decorator';
 
 export class CreateCouponDTO {
-  @MutuallyExclusive('businesses', 'products')
+  @MutuallyExclusive('business', 'product')
   _exclusiveCheck: any;
 
   @IsString()
@@ -51,12 +51,12 @@ export class CreateCouponDTO {
   @IsOptional()
   @TransformToArray()
   @IsUUID('7', { each: true })
-  products?: UUID[];
+  product?: UUID[];
 
   @IsOptional()
   @TransformToArray()
   @IsUUID('7', { each: true })
-  businesses?: UUID[];
+  business?: UUID[];
 
   @IsOptional()
   @IsDateString()
