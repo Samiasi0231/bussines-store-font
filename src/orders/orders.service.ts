@@ -454,24 +454,100 @@ export class OrdersService {
   }
 
   async getOrders(data: GetOrdersDTO) {
-    const { page, limit, status: statuses, userId } = data;
-    const filter: FindOptionsWhere<Order> = {};
+    const {
+      page,
+      limit,
+      date,
+      sort,
+      status: statuses,
+      user: users,
+      totalAmount,
+      discountAmount,
+      subtotal,
+      business: businesses,
+    } = data;
 
-    if (userId) filter.user = userId;
-    if (statuses?.length > 0) filter.status = In(statuses);
+    let query = this.orderRepository
+      .createQueryBuilder('order')
+      .where('order.deletedAt IS NULL');
 
-    const { results: orders, pagination } = await this.orderRepository.paginate(
-      {
-        filter,
-        pagination: { page, limit },
-      },
-    );
+    if (date) {
+      const dateFilter = Util.parseDateFilter(date);
+      query = QueryUtil.applyRangeFilter(query, 'order', 'date', dateFilter);
+    }
+
+    const sortFieldsMap = {
+      date: 'date',
+      totalAmount: 'totalAmount',
+      subtotal: 'subtotal',
+      discountAmount: 'discountAmount',
+    };
+
+    const sortFilter = Util.parseSortParam(sort, sortFieldsMap);
+
+    if (users) {
+      query.andWhere('order.user IN (:...users)', { users });
+    }
+
+    if (statuses?.length > 0) {
+      query.andWhere('order.status IN (:...statuses)', { statuses });
+    }
+
+    if (discountAmount) {
+      const discountFilter = Util.parseNumericRangeFilter(discountAmount);
+
+      query = QueryUtil.applyNumericRangeFilter(
+        query,
+        'order',
+        'discountAmount',
+        discountFilter,
+      );
+    }
+
+    if (totalAmount) {
+      const totalAmountFilter = Util.parseNumericRangeFilter(totalAmount);
+
+      query = QueryUtil.applyNumericRangeFilter(
+        query,
+        'order',
+        'totalAmount',
+        totalAmountFilter,
+      );
+    }
+
+    if (subtotal) {
+      const subtotalFilter = Util.parseNumericRangeFilter(subtotal);
+
+      query = QueryUtil.applyNumericRangeFilter(
+        query,
+        'order',
+        'subtotal',
+        subtotalFilter,
+      );
+    }
+
+    if (businesses?.length > 0) {
+      query
+        .innerJoin('order.store', 'store')
+        .innerJoin('store.business', 'business');
+      query.andWhere('business.id IN (:...businesses)', { businesses });
+    }
+
+    const { results: orders, pagination } =
+      await this.orderRepository.paginateWithQuery({
+        query,
+        pagination: { limit, page },
+        sort: sortFilter,
+      });
 
     const results = orders.map(this.orderSanitizer.formatOrderForList);
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
-      { results, pagination },
+      {
+        results,
+        pagination,
+      },
     );
   }
 
