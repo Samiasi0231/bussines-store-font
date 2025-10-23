@@ -454,10 +454,11 @@ export class OrdersService {
   }
 
   async getOrders(data: GetOrdersDTO) {
-    const { page, limit, userId } = data;
+    const { page, limit, status: statuses, userId } = data;
     const filter: FindOptionsWhere<Order> = {};
 
     if (userId) filter.user = userId;
+    if (statuses?.length > 0) filter.status = In(statuses);
 
     const { results: orders, pagination } = await this.orderRepository.paginate(
       {

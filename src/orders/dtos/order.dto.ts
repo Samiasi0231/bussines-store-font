@@ -19,6 +19,7 @@ import { OrderStatus } from '../../entities/order.entity';
 import { MutuallyExclusive } from '../../@common/validators/mutually-exclusive.validator';
 import { PaginationDTO } from '../../@common/dtos/pagination.dto';
 import { TransformToLowerCase } from '../../@common/decorators/case-transformer.decorator';
+import { TransformToArray } from '../../@common/decorators/array-transformer.decorator';
 
 class OrderItemDTO {
   @IsUUID()
@@ -97,4 +98,10 @@ export class GetOrdersDTO extends PaginationDTO {
   @IsNotEmpty()
   @IsString()
   userId?: UUID;
+
+  @TransformToArray()
+  @IsOptional()
+  @IsArray()
+  @IsIn(OrderStatus, { each: true })
+  status: OrderStatus[];
 }
