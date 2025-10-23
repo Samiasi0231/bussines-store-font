@@ -19,6 +19,7 @@ import { SelectQueryBuilder } from 'typeorm';
 import { Util } from '../../@common/utilities/helpers.utility';
 import { QueryUtil } from '../../@common/utilities/query.utility';
 import { isUUID } from 'class-validator';
+import { DiscountType } from '../../entities/coupon.entity';
 
 @Injectable()
 export class InvoiceService {
@@ -43,10 +44,16 @@ export class InvoiceService {
       dueDate,
       paymentMethod,
       discountType,
-      discountValue,
       note,
       items,
     } = payload;
+
+    let { discountValue } = payload;
+
+    discountValue =
+      discountType === DiscountType.PERCENTAGE
+        ? discountValue
+        : Util.toKobo(discountValue);
 
     const business = await this.businessRepository.exists({
       where: { id: businessId, user: businessOwnerId },
