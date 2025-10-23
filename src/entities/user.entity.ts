@@ -4,6 +4,7 @@ import {
   BeforeInsert,
   PrimaryGeneratedColumn,
   Index,
+  AfterLoad,
 } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Util } from '../@common/utilities/helpers.utility';
@@ -80,8 +81,15 @@ export class User extends BaseEntity {
   })
   isProfileComplete?: boolean;
 
+  fullName?: string;
+
   @BeforeInsert()
   private async hashPassword() {
     if (this.password) this.password = await Util.hash(this.password);
+  }
+
+  @AfterLoad()
+  generateFullName?() {
+    this.fullName = [this.firstName, this.lastName].filter(Boolean).join(' ');
   }
 }
