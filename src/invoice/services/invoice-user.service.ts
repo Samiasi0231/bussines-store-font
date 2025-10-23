@@ -99,7 +99,9 @@ export class InvoiceUserService {
         pagination: { page, limit },
       });
 
-    const results = users.map(this.invoiceUserSanitizer.formatUser);
+    const results = users.map((user) =>
+      this.invoiceUserSanitizer.formatUser(user),
+    );
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,

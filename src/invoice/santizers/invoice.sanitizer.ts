@@ -91,7 +91,7 @@ export class InvoiceSanitizer {
       invoiceNo: invoice.invoiceNumber,
       user: { name: user.fullName },
       business: { id: business.id, name: business.name, logo: business.logo },
-      items: invoice.invoiceItems.map(this.formatInvoiceItem),
+      items: invoice.invoiceItems.map((item) => this.formatInvoiceItem(item)),
       note: invoice.note,
       payableAmount: Util.toNaira(invoice.payableAmount),
     };

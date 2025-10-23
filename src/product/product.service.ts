@@ -494,7 +494,9 @@ export class ProductService {
         sort: sortFilter,
       });
 
-    const results = products.map(this.productSanitizer.formatProductForList);
+    const results = products.map((product) =>
+      this.productSanitizer.formatProductForList(product),
+    );
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,

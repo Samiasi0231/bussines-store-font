@@ -107,7 +107,9 @@ export class WalletService {
         pagination: { page, limit },
       });
 
-    const results = wallets.map(this.walletSanitizer.formatWalletData);
+    const results = wallets.map((wallet) =>
+      this.walletSanitizer.formatWalletData(wallet),
+    );
 
     return this.responseService.sendSuccess(SuccessMessage.RETRIEVE_WALLETS, {
       results,

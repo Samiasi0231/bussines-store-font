@@ -234,7 +234,9 @@ export class InvoiceService {
         sort: sortFilter,
       });
 
-    const results = invoices.map(this.invoiceSanitizer.formatInvoiceForList);
+    const results = invoices.map((invoice) =>
+      this.invoiceSanitizer.formatInvoiceForList(invoice),
+    );
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
