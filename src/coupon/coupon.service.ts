@@ -11,7 +11,7 @@ import { CouponRepository } from '../repositories/coupon.repository';
 import { UUID } from 'crypto';
 import { FindOptionsWhere } from 'typeorm';
 import { Paginated } from '../@common/types/pagination.type';
-import { Coupon } from '../entities/coupon.entity';
+import { Coupon, DiscountType } from '../entities/coupon.entity';
 import {
   CouponSanitizer,
   FormattedCoupon,
@@ -19,6 +19,7 @@ import {
 import { DbTransactionManager } from '../@common/database/database-transaction.manager';
 import { Product } from '../entities/product.entity';
 import { Business } from '../entities/business.entity';
+import { Util } from '../@common/utilities/helpers.utility';
 
 @Injectable()
 export class CouponService {
@@ -36,9 +37,6 @@ export class CouponService {
       code,
       description,
       discountType,
-      discountValue,
-      minOrderAmount,
-      maxDiscountAmount,
       product: products = [],
       business: businesses = [],
       validFrom,
@@ -46,6 +44,15 @@ export class CouponService {
       usageLimit,
       usageLimitPerUser,
     } = payload;
+
+    let { discountValue, minOrderAmount, maxDiscountAmount } = payload;
+
+    minOrderAmount = Util.toNaira(minOrderAmount);
+    maxDiscountAmount = Util.toNaira(maxDiscountAmount);
+    discountValue =
+      discountType === DiscountType.PERCENTAGE
+        ? discountValue
+        : Util.toKobo(discountValue);
 
     let couponEntities: UUID[];
     let couponEntityType: 'product' | 'business';
