@@ -6,6 +6,7 @@ import { Product } from '../../entities/product.entity';
 import { Util } from '../../@common/utilities/helpers.utility';
 import { Address } from '../../entities/address.entity';
 import { KycSanitizer } from '../../kyc/sanitizers/kyc.sanitizer';
+import { User } from '../../entities/user.entity';
 
 export type FormattedOrderForList = {
   id: string;
@@ -15,6 +16,8 @@ export type FormattedOrderForList = {
   discountAmount: number;
   note: string;
   date: Date;
+  shippingAddress: Partial<Address>;
+  customer: { name: string };
 };
 
 type FormattedOrderItem = {
@@ -35,14 +38,20 @@ export class OrderSanitizer {
   constructor(private readonly kycSanitizer: KycSanitizer) {}
 
   formatOrderForList(data: Order): FormattedOrderForList {
+    const user = data.user as User;
+
     return {
       status: data.status,
       id: data.id,
+      customer: { name: user.fullName },
       note: data.note,
       subtotal: Util.toNaira(data.subtotal),
       date: data.date,
       totalAmount: Util.toNaira(data.totalAmount),
       discountAmount: Util.toNaira(data.discountAmount),
+      shippingAddress: this.kycSanitizer.formatAddress(
+        data.shippingAddress as Address,
+      ),
     };
   }
 
@@ -60,9 +69,11 @@ export class OrderSanitizer {
   }
 
   formatOrder(data: Order): FormattedOrder {
+    const user = data.user as User;
     return {
       status: data.status,
       id: data.id,
+      customer: { name: user.fullName },
       note: data.note,
       date: data.date,
       totalAmount: Util.toNaira(data.totalAmount),

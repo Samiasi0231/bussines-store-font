@@ -469,6 +469,7 @@ export class OrdersService {
 
     let query = this.orderRepository
       .createQueryBuilder('order')
+      .innerJoin('order.user', 'user')
       .where('order.deletedAt IS NULL');
 
     if (date) {
@@ -486,7 +487,7 @@ export class OrdersService {
     const sortFilter = Util.parseSortParam(sort, sortFieldsMap);
 
     if (users) {
-      query.andWhere('order.user IN (:...users)', { users });
+      query.andWhere('user.id IN (:...users)', { users });
     }
 
     if (statuses?.length > 0) {
@@ -555,7 +556,12 @@ export class OrdersService {
   async getOrder(orderId: string, userId: UUID) {
     const order = await this.orderRepository.findOne({
       where: { id: orderId as UUID, user: userId },
-      relations: ['orderItems', 'orderItems.product', 'shippingAddress'],
+      relations: [
+        'orderItems',
+        'user',
+        'orderItems.product',
+        'shippingAddress',
+      ],
     });
 
     if (!order)
