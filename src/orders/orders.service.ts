@@ -528,9 +528,10 @@ export class OrdersService {
 
     if (businesses?.length > 0) {
       query
-        .innerJoin('order.store', 'store')
-        .innerJoin('store.business', 'business');
-      query.andWhere('business.id IN (:...businesses)', { businesses });
+        .innerJoin('order.orderItems', 'orderItem')
+        .innerJoin('orderItem.store', 'store')
+        .innerJoin('store.business', 'business')
+        .andWhere('business.id IN (:...businesses)', { businesses });
     }
 
     const { results: orders, pagination } =
