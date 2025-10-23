@@ -20,6 +20,8 @@ import { MutuallyExclusive } from '../../@common/validators/mutually-exclusive.v
 import { PaginationDTO } from '../../@common/dtos/pagination.dto';
 import { TransformToLowerCase } from '../../@common/decorators/case-transformer.decorator';
 import { TransformToArray } from '../../@common/decorators/array-transformer.decorator';
+import { IsDateFilterList } from '../../@common/validators/date.validator';
+import { IsNumericRange } from '../../@common/validators/numeric-filter.validator';
 
 class OrderItemDTO {
   @IsUUID()
@@ -95,13 +97,42 @@ export class updateOrderStatusDTO {
 
 export class GetOrdersDTO extends PaginationDTO {
   @IsOptional()
-  @IsNotEmpty()
-  @IsString()
-  userId?: UUID;
+  @TransformToArray()
+  @IsArray()
+  @IsUUID('7', { each: true })
+  user: UUID[];
 
   @TransformToArray()
   @IsOptional()
   @IsArray()
   @IsIn(OrderStatus, { each: true })
   status: OrderStatus[];
+
+  @TransformToArray()
+  @IsOptional()
+  @IsArray()
+  @IsUUID('7', { each: true })
+  business: UUID[];
+
+  @IsOptional()
+  @IsArray()
+  @TransformToArray()
+  @IsString({ each: true })
+  sort: string[];
+
+  @IsOptional()
+  @IsDateFilterList()
+  @IsArray()
+  @TransformToArray()
+  @IsString({ each: true })
+  date: string[];
+
+  @IsNumericRange()
+  totalAmount: string;
+
+  @IsNumericRange()
+  discountAmount: string;
+
+  @IsNumericRange()
+  subtotal: string;
 }
