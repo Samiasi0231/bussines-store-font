@@ -157,13 +157,15 @@ export class CouponService {
     if (discountType) filter.discountType = discountType;
     if (businessId) filter.business = businessId;
 
-    const { results: subCategories, pagination } =
+    const { results: coupons, pagination } =
       await this.couponRepository.paginate({
         filter,
         pagination: { page, limit },
       });
 
-    const results = subCategories.map(this.couponSanitizer.formatCoupon);
+    const results = coupons.map((coupon) =>
+      this.couponSanitizer.formatCoupon(coupon),
+    );
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,

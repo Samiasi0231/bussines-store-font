@@ -79,7 +79,7 @@ export class OrderSanitizer {
       totalAmount: Util.toNaira(data.totalAmount),
       discountAmount: Util.toNaira(data.discountAmount),
       subtotal: Util.toNaira(data.subtotal),
-      items: data.orderItems.map(this.formatOrderItem),
+      items: data.orderItems.map((item) => this.formatOrderItem(item)),
       shippingAddress: this.kycSanitizer.formatAddress(
         data.shippingAddress as Address,
       ),

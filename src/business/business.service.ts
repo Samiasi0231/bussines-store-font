@@ -72,7 +72,9 @@ export class BusinessService {
         options: { relations: ['stores'] },
       });
 
-    const results = businesses.map(this.businessSanitizer.formatBusinessData);
+    const results = businesses.map((business) =>
+      this.businessSanitizer.formatBusinessData(business),
+    );
 
     return this.responseService.sendSuccess(
       SuccessMessage.RETRIEVE_BUSINESSES,

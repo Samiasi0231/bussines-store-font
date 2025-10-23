@@ -469,7 +469,8 @@ export class OrdersService {
 
     let query = this.orderRepository
       .createQueryBuilder('order')
-      .innerJoin('order.user', 'user')
+      .innerJoinAndSelect('order.user', 'user')
+      .innerJoinAndSelect('order.shippingAddress', 'shippingAddress')
       .where('order.deletedAt IS NULL');
 
     if (date) {
@@ -542,7 +543,9 @@ export class OrdersService {
         sort: sortFilter,
       });
 
-    const results = orders.map(this.orderSanitizer.formatOrderForList);
+    const results = orders.map((order) =>
+      this.orderSanitizer.formatOrderForList(order),
+    );
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
