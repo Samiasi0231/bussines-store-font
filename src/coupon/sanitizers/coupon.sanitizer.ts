@@ -28,7 +28,7 @@ export class CouponSanitizer {
       discountValue:
         data.discountType === DiscountType.PERCENTAGE
           ? data.discountValue
-          : Util.toKobo(data.discountValue),
+          : Util.toNaira(data.discountValue),
     };
   }
 }

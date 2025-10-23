@@ -47,8 +47,8 @@ export class CouponService {
 
     let { discountValue, minOrderAmount, maxDiscountAmount } = payload;
 
-    minOrderAmount = Util.toNaira(minOrderAmount);
-    maxDiscountAmount = Util.toNaira(maxDiscountAmount);
+    minOrderAmount = Util.toKobo(minOrderAmount);
+    maxDiscountAmount = Util.toKobo(maxDiscountAmount);
     discountValue =
       discountType === DiscountType.PERCENTAGE
         ? discountValue
