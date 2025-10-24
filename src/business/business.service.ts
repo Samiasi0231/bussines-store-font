@@ -25,6 +25,9 @@ import { StoreRepository } from '../repositories/store.repository';
 import { InvoiceService } from '../invoice/services/invoice.service';
 import { GetInvoicesDTO } from '../invoice/dtos/invoice.dto';
 import { isUUID } from 'class-validator';
+import { CACLookupData } from '../kyc/dtos/cac.dto';
+import { CacheService } from '../@common/cache/cache.service';
+import { DEFAULT_PROVIDER_RESPONSE_CACHE_TTL } from '../@common/constants/cache.constant';
 
 @Injectable()
 export class BusinessService {
@@ -38,9 +41,10 @@ export class BusinessService {
     private readonly walletRepository: WalletRepository,
     private readonly storeRepository: StoreRepository,
     private readonly invoiceService: InvoiceService,
+    private readonly cacheService: CacheService,
   ) {}
 
-  async lookupCACDetails(regNumber: string) {
+  async lookupCACDetails(regNumber: string): Promise<IResponse<CACLookupData>> {
     const response =
       await this.kycService.identityProvider.lookupCAC(regNumber);
 
@@ -112,10 +116,30 @@ export class BusinessService {
   }
 
   async addBusiness(payload: AddBusinessesDTO, userId: UUID) {
-    const { name, description, logo, address, cacNumber } = payload;
+    const { description, logo, address, cacNumber } = payload;
+
+    const cacLookup = await this.cacheService.remember(
+      `CAC:${cacNumber}`,
+      DEFAULT_PROVIDER_RESPONSE_CACHE_TTL,
+      () => this.lookupCACDetails(cacNumber),
+    );
+
+    if (!cacLookup.success) return cacLookup;
+
+    const name = cacLookup.data.companyName;
+
     const response = await this.dbTransactionManager.transaction(
       async (manager) => {
         const entityManager = manager.entityManager;
+
+        const businessWithCACNumberExists = await this.businessRepository
+          .withManager(entityManager)
+          .findByCacNumber(cacNumber, {
+            lock: { mode: 'pessimistic_write' },
+          });
+
+        if (businessWithCACNumberExists)
+          return this.responseService.sendError(ErrorMessage.CAC_NUMBER_TAKEN);
 
         const businesses = await this.businessRepository
           .withManager(entityManager)

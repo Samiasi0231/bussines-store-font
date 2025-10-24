@@ -62,6 +62,7 @@ export const ErrorMessage = {
   AT_LEAST_ONE_OUT_OF_STOCK:
     'Oops! It looks like one or more items in your order are out of stock. Please update your cart to continue.',
   INVALID_COUPON_CODE: (code: string) => `Coupon ${code} is invalid`,
+  CAC_NUMBER_TAKEN: 'A business has been registered with this CAC number',
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];

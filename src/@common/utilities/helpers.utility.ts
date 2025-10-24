@@ -1,6 +1,7 @@
 import moment from 'moment';
 import { Environment } from '../constants/environment.constant';
 import argon2 from 'argon2';
+import { parsePhoneNumberWithError } from 'libphonenumber-js';
 
 export interface NumericRange {
   type: 'eq' | 'gte' | 'lte' | 'range';
@@ -210,4 +211,12 @@ export class Util {
 
     return result;
   }
+
+  static formatPhone = (phone: string) => {
+    try {
+      return parsePhoneNumberWithError(phone, 'NG').number;
+    } catch (e) {
+      return phone;
+    }
+  };
 }

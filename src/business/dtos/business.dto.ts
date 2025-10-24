@@ -24,6 +24,8 @@ export class GetBusinessesQueryDTO extends PaginationDTO {
 }
 
 export class AddBusinessesDTO {
+  //TODO: remove
+  @IsOptional()
   @IsNotEmpty()
   @IsString()
   name: string;
