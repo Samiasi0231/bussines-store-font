@@ -33,6 +33,8 @@ import {
   DefaultProviderConfig,
   SystemSettingsService,
 } from '../../system-settings/system-settings.service';
+import { CacheService } from '../../@common/cache/cache.service';
+import { DEFAULT_PROVIDER_RESPONSE_CACHE_TTL } from '../../@common/constants/cache.constant';
 
 @Injectable()
 export class KycService implements OnModuleInit {
@@ -54,6 +56,7 @@ export class KycService implements OnModuleInit {
     private readonly addressRepository: AddressRepository,
     private readonly emailService: EmailService,
     private readonly systemSettingsSevice: SystemSettingsService,
+    private readonly cacheService: CacheService,
   ) {
     this.logger = new Logger(KycService.name);
     this.isProduction = Util.isProduction();
@@ -122,14 +125,24 @@ export class KycService implements OnModuleInit {
 
     switch (type) {
       case IdentityVerificationType.BVN:
-        providerResponse = await this.identityProvider.verifyBVN({
-          bvn: idNumber,
-        });
+        providerResponse = await this.cacheService.remember(
+          `BVN:${idNumber}`,
+          DEFAULT_PROVIDER_RESPONSE_CACHE_TTL,
+          () =>
+            this.identityProvider.verifyBVN({
+              bvn: idNumber,
+            }),
+        );
         break;
       case IdentityVerificationType.NIN:
-        providerResponse = await this.identityProvider.verifyNIN({
-          nin: idNumber,
-        });
+        providerResponse = await this.cacheService.remember(
+          `NIN:${idNumber}`,
+          DEFAULT_PROVIDER_RESPONSE_CACHE_TTL,
+          () =>
+            this.identityProvider.verifyNIN({
+              nin: idNumber,
+            }),
+        );
         break;
     }
 

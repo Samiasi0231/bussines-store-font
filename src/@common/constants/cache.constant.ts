@@ -1,0 +1,1 @@
+export const DEFAULT_PROVIDER_RESPONSE_CACHE_TTL = 60 * 60 * 24 * 7;

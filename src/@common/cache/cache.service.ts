@@ -36,4 +36,16 @@ export class CacheService {
     const numberOfMatches = await this.cache.exists(key);
     return numberOfMatches > 0;
   }
+
+  async remember<T>(
+    key: string,
+    ttl: number,
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    const value = await this.get(key);
+    if (value) return JSON.parse(value);
+    const result = await fn();
+    await this.set(key, JSON.stringify(result), ttl);
+    return result;
+  }
 }
