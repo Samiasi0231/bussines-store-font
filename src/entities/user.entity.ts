@@ -5,6 +5,7 @@ import {
   PrimaryGeneratedColumn,
   Index,
   AfterLoad,
+  BeforeUpdate,
 } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Util } from '../@common/utilities/helpers.utility';
@@ -91,5 +92,13 @@ export class User extends BaseEntity {
   @AfterLoad()
   generateFullName?() {
     this.fullName = [this.firstName, this.lastName].filter(Boolean).join(' ');
+  }
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  normalizePhone?() {
+    if (this.phoneNumber) {
+      this.phoneNumber = Util.formatPhone(this.phoneNumber);
+    }
   }
 }

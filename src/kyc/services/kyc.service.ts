@@ -172,7 +172,6 @@ export class KycService implements OnModuleInit {
       firstName: user.firstName,
       lastName: user.lastName,
       otherName: user.otherName,
-      phone: user.phoneNumber,
       dateOfBirth: dayjs(user.dateOfBirth).format('YYYY-MM-DD'),
     };
 

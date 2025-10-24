@@ -23,6 +23,7 @@ import { User } from '../entities/user.entity';
 import { AddressRepository } from '../repositories/address.repository';
 import { KycSanitizer } from '../kyc/sanitizers/kyc.sanitizer';
 import { PaginationDTO } from '../@common/dtos/pagination.dto';
+import { Util } from '../@common/utilities/helpers.utility';
 
 @Injectable()
 export class UserService {
@@ -97,7 +98,9 @@ export class UserService {
   }
 
   async verifyPhoneNumber(data: { id?: UUID; phoneNumber?: string }) {
-    const { phoneNumber, id } = data;
+    const { id } = data;
+
+    const phoneNumber = Util.formatPhone(data.phoneNumber);
 
     await this.dbTransactionManager.transaction(async (manager) => {
       const entityManager = manager.entityManager;
@@ -126,6 +129,9 @@ export class UserService {
     isInitialProfileUpdate = false,
   ) {
     const { userId, ...update } = data;
+
+    if ('phoneNumber' in update)
+      update.phoneNumber = Util.formatPhone(update.phoneNumber);
 
     let isProfileComplete: boolean;
 
