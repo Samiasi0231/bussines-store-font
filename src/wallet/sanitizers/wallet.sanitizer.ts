@@ -20,6 +20,7 @@ export type WalletData = {
   hasTransactionPin: boolean;
   businessId: string;
 };
+
 export type BeneficiaryData = {
   bankName: string;
   accountName: string;

@@ -99,7 +99,7 @@ export class GetOrdersDTO extends PaginationDTO {
   @IsOptional()
   @TransformToArray()
   @IsArray()
-  @IsUUID('7', { each: true })
+  @IsUUID(null, { each: true })
   user: UUID[];
 
   @TransformToArray()
@@ -111,7 +111,7 @@ export class GetOrdersDTO extends PaginationDTO {
   @TransformToArray()
   @IsOptional()
   @IsArray()
-  @IsUUID('7', { each: true })
+  @IsUUID(null, { each: true })
   business: UUID[];
 
   @IsOptional()

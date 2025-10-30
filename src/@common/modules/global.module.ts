@@ -58,6 +58,8 @@ import { InvoiceItem } from '../../entities/invoice-item.entity';
 import { InvoiceRepository } from '../../repositories/invoice.repository';
 import { InvoiceUserRepository } from '../../repositories/invoice-user.repository';
 import { InvoiceItemRepository } from '../../repositories/invoice-item.repository';
+import { Storefront } from '../../entities/storefront.entity';
+import { StorefrontRepository } from '../../repositories/storefront.repository';
 
 const repositories = [
   IdentityVerificationRepository,
@@ -86,6 +88,7 @@ const repositories = [
   InvoiceRepository,
   InvoiceUserRepository,
   InvoiceItemRepository,
+  StorefrontRepository,
 ];
 
 const providers = [...repositories, ResponseService];
@@ -117,6 +120,7 @@ const DATABASE_ENTITIES = [
   InvoiceUser,
   Invoice,
   InvoiceItem,
+  Storefront,
 ];
 
 @Global()

@@ -22,25 +22,25 @@ export class OrderAnalyticsDTO extends PaginationDTO {
   @TransformToArray()
   @IsOptional()
   @IsArray()
-  @IsUUID('7', { each: true })
+  @IsUUID(null, { each: true })
   product: string[];
 
   @TransformToArray()
   @IsOptional()
   @IsArray()
-  @IsUUID('7', { each: true })
+  @IsUUID(null, { each: true })
   productVariant: string[];
 
   @TransformToArray()
   @IsOptional()
   @IsArray()
-  @IsUUID('7', { each: true })
+  @IsUUID(null, { each: true })
   store: string[];
 
   @TransformToArray()
   @IsOptional()
   @IsArray()
-  @IsUUID('7', { each: true })
+  @IsUUID(null, { each: true })
   business: string[];
 
   @IsOptional()
@@ -70,12 +70,12 @@ export class OrderAnalyticsDTO extends PaginationDTO {
   @TransformToArray()
   @IsOptional()
   @IsArray()
-  @IsUUID('7', { each: true })
+  @IsUUID(null, { each: true })
   category: UUID[];
 
   @TransformToArray()
   @IsOptional()
   @IsArray()
-  @IsUUID('7', { each: true })
+  @IsUUID(null, { each: true })
   subCategory: UUID[];
 }
