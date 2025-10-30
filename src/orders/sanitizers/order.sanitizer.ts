@@ -40,6 +40,8 @@ export class OrderSanitizer {
   formatOrderForList(data: Order): FormattedOrderForList {
     const user = data.user as User;
 
+    console.debug({ data });
+
     return {
       status: data.status,
       id: data.id,
