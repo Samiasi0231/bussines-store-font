@@ -4,6 +4,7 @@ import { WalletType } from '../../@common/constants/wallet.constant';
 import { Currency } from '../../@common/constants/currency.constant';
 import { Util } from '../../@common/utilities/helpers.utility';
 import { Beneficiary } from '../../entities/beneficiary.entity';
+import { UUID } from 'crypto';
 
 export type WalletData = {
   id: string;
@@ -17,8 +18,9 @@ export type WalletData = {
   singleTransactionLimit: number;
   bankName: string;
   hasTransactionPin: boolean;
-  //   businessId: string;
+  businessId: string;
 };
+
 export type BeneficiaryData = {
   bankName: string;
   accountName: string;
@@ -43,7 +45,7 @@ export class WalletSanitizer {
       type: wallet.type,
       bankName: wallet.bankName,
       hasTransactionPin: !!wallet.transactionPin,
-      //   businessId: wallet.businessId
+      businessId: wallet.business as UUID,
     };
   }
 

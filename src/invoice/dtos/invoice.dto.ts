@@ -81,12 +81,12 @@ export class CreateInvoiceDTO {
 export class GetInvoicesDTO extends PaginationDTO {
   @IsOptional()
   @TransformToArray()
-  @IsUUID('7', { each: true })
+  @IsUUID(null, { each: true })
   business?: UUID[];
 
   @IsOptional()
   @TransformToArray()
-  @IsUUID('7', { each: true })
+  @IsUUID(null, { each: true })
   user?: UUID[];
 
   @IsOptional()
