@@ -655,10 +655,15 @@ export class ProductService {
     );
   }
 
-  async deleteProduct(id: UUID): Promise<IResponse<null>> {
-    const product = await this.productRepository.exists({
-      where: { id },
-    });
+  async deleteProduct(id: UUID, userId: UUID): Promise<IResponse<null>> {
+    const product = await this.productRepository
+      .createQueryBuilder('product')
+      .innerJoin('product.store', 'store')
+      .innerJoin('store.business', 'business')
+      .where('product.id = :id', { id })
+      .andWhere('product.deletedAt IS NULL')
+      .andWhere('business.user_id = :userId', { userId })
+      .getExists();
 
     if (!product)
       return this.responseService.sendError(

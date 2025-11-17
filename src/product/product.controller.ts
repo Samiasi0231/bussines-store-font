@@ -68,9 +68,13 @@ export class ProductController {
     return this.productService.getProduct(param.id as UUID);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  async deleteProduct(@Param() param: GetByIdParamDTO) {
-    return this.productService.deleteProduct(param.id as UUID);
+  async deleteProduct(
+    @Param() param: GetByIdParamDTO,
+    @User() user: UserProfile,
+  ) {
+    return this.productService.deleteProduct(param.id as UUID, user.id as UUID);
   }
 
   @EventPattern(RmqQueue.PRODUCT_DELETED)
