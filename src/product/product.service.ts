@@ -691,7 +691,6 @@ export class ProductService {
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
-      null,
     );
   }
 
