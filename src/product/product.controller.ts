@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Logger,
   Param,
@@ -65,6 +66,11 @@ export class ProductController {
   @Get(':id')
   async getProduct(@Param() param: GetByIdParamDTO) {
     return this.productService.getProduct(param.id as UUID);
+  }
+
+  @Delete(':id')
+  async deleteProduct(@Param() param: GetByIdParamDTO) {
+    return this.productService.deleteProduct(param.id as UUID);
   }
 
   @EventPattern(RmqQueue.PRODUCT_DELETED)
