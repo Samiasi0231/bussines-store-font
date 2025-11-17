@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { RmqProducerService } from './rmq.producer.service';
-import { AmqpClient } from './amqpClient';
+import { AmqpClient } from './amqp-client';
 
 @Module({
   providers: [RmqProducerService, AmqpClient],

@@ -12,7 +12,7 @@ import { AppModule } from './app.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { RmqDeserializer } from './@common/microservices/rmq-queue-pattern.deserializer';
 import { RmqQueue } from './@common/constants/queues.constant';
-import { AmqpClient } from './@common/rmq/amqpClient';
+import { AmqpClient } from './@common/rmq/amqp-client';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

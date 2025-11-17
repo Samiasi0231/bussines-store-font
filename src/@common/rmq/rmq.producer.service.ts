@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { AmqpClient } from './amqpClient';
+import { AmqpClient } from './amqp-client';
 import { RmqQueue } from '../constants/queues.constant';
 
 @Injectable()
