@@ -10,6 +10,8 @@ import {
   IsNotEmpty,
   IsEnum,
   IsIn,
+  IsBoolean,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AddressDTO } from '../../kyc/dtos/address.dto';
@@ -22,6 +24,8 @@ import { TransformToLowerCase } from '../../@common/decorators/case-transformer.
 import { TransformToArray } from '../../@common/decorators/array-transformer.decorator';
 import { IsDateFilterList } from '../../@common/validators/date.validator';
 import { IsNumericRange } from '../../@common/validators/numeric-filter.validator';
+import { IsE164PhoneNumber } from '../../@common/decorators/is-e164-phone-number.decorator';
+import { TransformToBoolean } from '../../@common/decorators/boolean-transformer.decorator';
 
 class OrderItemDTO {
   @IsUUID()
@@ -40,8 +44,8 @@ class OrderItemDTO {
   quantity: number;
 }
 
-export class ShippinAddressDTO {
-  @MutuallyExclusive('address', 'addressId')
+export class ShippingAddressDTO {
+  @MutuallyExclusive(['address', 'addressId'])
   _exclusiveCheck?: any;
 
   @IsOptional()
@@ -54,9 +58,42 @@ export class ShippinAddressDTO {
   addressId: UUID;
 }
 
+export class InStoreOrderDTO {
+  @IsOptional()
+  @IsEmail()
+  email: string;
+
+  @IsOptional()
+  @IsE164PhoneNumber()
+  phone: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AddressDTO)
+  address: AddressDTO;
+}
+
 export class CreateOrderDTO {
-  @MutuallyExclusive('userId', 'email')
+  @ValidateIf((object) => object.inStoreOrder === true)
+  @MutuallyExclusive(['userId', 'email', 'inStoreOrder'])
   _exclusiveCheck: any;
+
+  @MutuallyExclusive(['inStoreOrder', 'shippingAddress'])
+  _exclusiveCheck2: any;
+
+  @ValidateIf((object) => object.inStoreOrder === false)
+  @MutuallyExclusive(['userId', 'email'])
+  _exclusiveCheck3: any;
+
+  @ValidateIf((object) => object.inStoreOrder === true)
+  @ValidateNested()
+  @Type(() => InStoreOrderDTO)
+  inStoreOrderData: InStoreOrderDTO;
 
   @IsArray()
   @ValidateNested({ each: true })
@@ -82,12 +119,17 @@ export class CreateOrderDTO {
   note?: string;
 
   @ValidateNested()
-  @Type(() => ShippinAddressDTO)
-  shippingAddress: ShippinAddressDTO;
+  @Type(() => ShippingAddressDTO)
+  shippingAddress?: ShippingAddressDTO;
 
   @TransformToLowerCase()
   @IsEnum(PaymentMethod)
   paymentMethod: PaymentMethod;
+
+  @IsOptional()
+  @TransformToBoolean()
+  @IsBoolean()
+  inStoreOrder: boolean;
 }
 
 export class updateOrderStatusDTO {
@@ -135,4 +177,9 @@ export class GetOrdersDTO extends PaginationDTO {
 
   @IsNumericRange()
   subtotal: string;
+
+  @IsOptional()
+  @TransformToBoolean()
+  @IsBoolean()
+  inStoreOrder: boolean;
 }

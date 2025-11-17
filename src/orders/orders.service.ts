@@ -50,8 +50,16 @@ export class OrdersService {
   ) {}
 
   async createOrder(payload: CreateOrderDTO) {
-    const { items, couponId, paymentMethod, email, note, shippingAddress } =
-      payload;
+    const {
+      items,
+      inStoreOrderData,
+      couponId,
+      paymentMethod,
+      email,
+      note,
+      shippingAddress,
+      inStoreOrder = false,
+    } = payload;
     let { userId } = payload;
 
     const response = await this.dbTransactionManager.transaction<
@@ -109,6 +117,8 @@ export class OrdersService {
       let totalDiscountAmount = 0;
 
       const order = new Order();
+      order.inStoreOrder = inStoreOrder;
+      order.inStoreOrderData = inStoreOrder ? inStoreOrderData : null;
       order.shippingAddress = shippingAddressId;
       order.user = userId;
       order.paymentMethod = paymentMethod;
@@ -465,13 +475,20 @@ export class OrdersService {
       discountAmount,
       subtotal,
       business: businesses,
+      inStoreOrder,
     } = data;
 
     let query = this.orderRepository
       .createQueryBuilder('order')
-      .innerJoinAndSelect('order.user', 'user')
-      .innerJoinAndSelect('order.shippingAddress', 'shippingAddress')
+      .leftJoinAndSelect('order.user', 'user')
+      .leftJoinAndSelect('order.shippingAddress', 'shippingAddress')
       .where('order.deletedAt IS NULL');
+
+    if (inStoreOrder !== undefined) {
+      query.andWhere('order.inStoreOrder = :inStoreOrder', {
+        inStoreOrder,
+      });
+    }
 
     if (date) {
       const dateFilter = Util.parseDateFilter(date);
@@ -556,7 +573,8 @@ export class OrdersService {
     );
   }
 
-  async getOrder(orderId: string, userId: UUID) {
+  async getOrder(orderId: string) {
+    //TODO: restrict order retrieval to only the user who placed the order or the owner of the business that the purchased product belongs to
     const order = await this.orderRepository.findOne({
       where: { id: orderId as UUID },
       relations: [

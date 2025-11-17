@@ -18,6 +18,7 @@ export type FormattedOrderForList = {
   date: Date;
   shippingAddress: Partial<Address>;
   customer: { name: string };
+  isInStoreOrder: boolean;
 };
 
 type FormattedOrderItem = {
@@ -29,6 +30,7 @@ type FormattedOrderItem = {
 };
 
 export type FormattedOrder = FormattedOrderForList & {
+  isInStoreOrder: boolean;
   items: FormattedOrderItem[];
   shippingAddress: Partial<Address>;
 };
@@ -40,20 +42,19 @@ export class OrderSanitizer {
   formatOrderForList(data: Order): FormattedOrderForList {
     const user = data.user as User;
 
-    console.debug({ data });
-
     return {
       status: data.status,
       id: data.id,
-      customer: { name: user.fullName },
+      customer: { name: user?.fullName || data.inStoreOrderData?.name },
       note: data.note,
       subtotal: Util.toNaira(data.subtotal),
       date: data.date,
       totalAmount: Util.toNaira(data.totalAmount),
       discountAmount: Util.toNaira(data.discountAmount),
-      shippingAddress: this.kycSanitizer.formatAddress(
-        data.shippingAddress as Address,
-      ),
+      shippingAddress: data.shippingAddress
+        ? this.kycSanitizer.formatAddress(data.shippingAddress as Address)
+        : data.inStoreOrderData?.address,
+      isInStoreOrder: data.inStoreOrder,
     };
   }
 
@@ -71,20 +72,9 @@ export class OrderSanitizer {
   }
 
   formatOrder(data: Order): FormattedOrder {
-    const user = data.user as User;
     return {
-      status: data.status,
-      id: data.id,
-      customer: { name: user.fullName },
-      note: data.note,
-      date: data.date,
-      totalAmount: Util.toNaira(data.totalAmount),
-      discountAmount: Util.toNaira(data.discountAmount),
-      subtotal: Util.toNaira(data.subtotal),
+      ...this.formatOrderForList(data),
       items: data.orderItems.map((item) => this.formatOrderItem(item)),
-      shippingAddress: this.kycSanitizer.formatAddress(
-        data.shippingAddress as Address,
-      ),
     };
   }
 }

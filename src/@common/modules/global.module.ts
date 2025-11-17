@@ -60,6 +60,7 @@ import { InvoiceUserRepository } from '../../repositories/invoice-user.repositor
 import { InvoiceItemRepository } from '../../repositories/invoice-item.repository';
 import { Storefront } from '../../entities/storefront.entity';
 import { StorefrontRepository } from '../../repositories/storefront.repository';
+import { RmqModule } from '../rmq/rmq.module';
 
 const repositories = [
   IdentityVerificationRepository,
@@ -131,6 +132,7 @@ const DATABASE_ENTITIES = [
     ImageRecognitionModule,
     NotificationModule,
     SystemSettingsModule,
+    RmqModule,
     TypeOrmModule.forFeature(DATABASE_ENTITIES),
   ],
   providers,
@@ -141,6 +143,7 @@ const DATABASE_ENTITIES = [
     ImageRecognitionModule,
     NotificationModule,
     SystemSettingsModule,
+    RmqModule,
   ],
 })
 export class GlobalModule {}

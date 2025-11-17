@@ -1,5 +1,5 @@
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
-import { VersioningType, ValidationPipe } from '@nestjs/common';
+import { Logger, VersioningType, ValidationPipe } from '@nestjs/common';
 import { json, urlencoded } from 'express';
 import morgan from 'morgan-body';
 import { TrimPipe } from './@common/pipes/trim-pipe';
@@ -9,15 +9,19 @@ import { ConfigService } from '@nestjs/config';
 import { APIVersion } from './@common/constants/api-version.constant';
 import { HttpInterceptor } from './@common/interceptors/http.interceptor';
 import { AppModule } from './app.module';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { RmqDeserializer } from './@common/microservices/rmq-queue-pattern.deserializer';
+import { RmqQueue } from './@common/constants/queues.constant';
+import { AmqpClient } from './@common/rmq/amqp-client';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(helmet());
 
   const config = app.get(ConfigService);
+  const logger = new Logger('Bootstrap');
 
   const ENV = config.get<Environment>('ENV');
-  // const logger = new Logger('App');
 
   app.get(HttpAdapterHost);
   app.use(json({ limit: '50mb' }));
@@ -66,6 +70,51 @@ async function bootstrap() {
       },
     },
   });
+
+  // Get AmqpClient instance to reuse connection settings
+  let amqpUrl = config.get<string>('AMQP_URL') || 'amqp://localhost:5672';
+  let socketOptions: any;
+
+  try {
+    const amqpClient = app.get(AmqpClient, { strict: false });
+    if (amqpClient) {
+      amqpUrl = amqpClient.getConnectionUrl() || amqpUrl;
+      socketOptions = amqpClient.getSocketOptions();
+    }
+  } catch (error) {
+    // AmqpClient not available yet, use config directly
+    logger.warn('AmqpClient not available, using config directly');
+  }
+
+  const queues = Object.values(RmqQueue);
+
+  for (const queue of queues) {
+    const deserializer = new RmqDeserializer();
+    deserializer.setPattern(queue);
+
+    app.connectMicroservice<MicroserviceOptions>({
+      transport: Transport.RMQ,
+      options: {
+        urls: [amqpUrl],
+        queue: queue.trim(),
+        noAssert: false,
+        prefetchCount: 50,
+        noAck: true,
+        deserializer,
+        queueOptions: {
+          durable: true,
+        },
+        ...(socketOptions && {
+          socketOptions: {
+            connectionOptions: socketOptions,
+          },
+        }),
+      },
+    });
+  }
+
+  await app.startAllMicroservices();
+  logger.log(`RabbitMQ consumers connected to queues: ${queues.join(', ')}`);
 
   const APP_PORT = config.get<string>('PORT');
 

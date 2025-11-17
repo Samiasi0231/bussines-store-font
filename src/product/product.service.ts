@@ -54,6 +54,10 @@ import { ProductCollection } from '../entities/product-collection.entity';
 import { SystemSettingsService } from '../system-settings/system-settings.service';
 import { ProductCollectionProduct } from '../entities/product-collection-product.entity';
 import { Status } from '../@common/constants/status.constant';
+import { OrderItemRepository } from '../repositories/order-item.repository';
+import { CouponRepository } from '../repositories/coupon.repository';
+import { RmqQueue } from '../@common/constants/queues.constant';
+import { RmqProducerService } from '../@common/rmq/rmq.producer.service';
 
 @Injectable()
 export class ProductService {
@@ -74,6 +78,9 @@ export class ProductService {
     private readonly businessRepository: BusinessRepository,
     private readonly dbTransactionManager: DbTransactionManager,
     private readonly systemSettingsService: SystemSettingsService,
+    private readonly orderItemRepository: OrderItemRepository,
+    private readonly couponRepository: CouponRepository,
+    private readonly rmqProducerService: RmqProducerService,
   ) {}
 
   async addCategory(
@@ -646,5 +653,78 @@ export class ProductService {
         pagination,
       },
     );
+  }
+
+  async deleteProduct(id: UUID, userId: UUID): Promise<IResponse<null>> {
+    const product = await this.productRepository
+      .createQueryBuilder('product')
+      .innerJoin('product.store', 'store')
+      .innerJoin('store.business', 'business')
+      .where('product.id = :id', { id })
+      .andWhere('product.deletedAt IS NULL')
+      .andWhere('business.user_id = :userId', { userId })
+      .getExists();
+
+    if (!product)
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Product'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+
+    const hasOrders = await this.orderItemRepository.exists({
+      where: { product: id },
+    });
+
+    if (hasOrders)
+      return this.responseService.sendError(
+        ErrorMessage.PRODUCT_HAS_ORDERS,
+        null,
+        HttpStatus.BAD_REQUEST,
+      );
+
+    await this.productRepository.softDeleteById(id);
+
+    this.rmqProducerService.sendToQueue(RmqQueue.PRODUCT_DELETED, {
+      id,
+    });
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+    );
+  }
+
+  async propagateProductDeletion(id: UUID): Promise<void> {
+    await this.dbTransactionManager.transaction(async (manager) => {
+      const entityManager = manager.entityManager;
+
+      await this.couponRepository
+        .withManager(entityManager)
+        .softDelete({ product: id });
+
+      await this.productCollectionProductRepository
+        .withManager(entityManager)
+        .softDelete({ product: id });
+
+      await this.productImageRepository
+        .withManager(entityManager)
+        .softDelete({ product: id });
+
+      await this.productVariantRepository
+        .withManager(entityManager)
+        .softDelete({ product: id });
+
+      await this.productAttributeRepository
+        .withManager(entityManager)
+        .createQueryBuilder()
+        .update()
+        .set({ deletedAt: new Date() })
+        .where(
+          'product_variant_id IN (SELECT id FROM product_variants WHERE product_id = :productId AND deleted_at IS NULL)',
+          { productId: id },
+        )
+        .andWhere('deleted_at IS NULL')
+        .execute();
+    });
   }
 }
