@@ -17,7 +17,7 @@ import { TransformToArray } from '../../@common/decorators/array-transformer.dec
 import { TransformToLowerCase } from '../../@common/decorators/case-transformer.decorator';
 
 export class CreateCouponDTO {
-  @MutuallyExclusive('business', 'product')
+  @MutuallyExclusive(['business', 'product'])
   _exclusiveCheck: any;
 
   @IsString()

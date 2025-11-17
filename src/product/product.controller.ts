@@ -2,11 +2,13 @@ import {
   Body,
   Controller,
   Get,
+  Logger,
   Param,
   Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { EventPattern } from '@nestjs/microservices';
 import { ProductService } from './product.service';
 import { AddCategoryDTO, GetCategoriesQueryDTO } from './dtos/category.dto';
 import {
@@ -19,9 +21,12 @@ import { User } from '../@common/decorators/user.decorator';
 import { UserProfile } from '../user/interfaces/user.interface';
 import { GetByIdParamDTO } from '../@common/dtos/general.dto';
 import { UUID } from 'crypto';
+import { RmqQueue } from '../@common/constants/queues.constant';
 
 @Controller('products')
 export class ProductController {
+  private readonly logger = new Logger(ProductController.name);
+
   constructor(private readonly productService: ProductService) {}
 
   @Get()
@@ -60,5 +65,18 @@ export class ProductController {
   @Get(':id')
   async getProduct(@Param() param: GetByIdParamDTO) {
     return this.productService.getProduct(param.id as UUID);
+  }
+
+  @EventPattern(RmqQueue.PRODUCT_DELETED)
+  async handleProductDeletion(data: { id: UUID }) {
+    try {
+      await this.productService.propagateProductDeletion(data.id);
+    } catch (error) {
+      this.logger.error(
+        `Failed to propagate deletion for product ${data.id}`,
+        error,
+        error.stack,
+      );
+    }
   }
 }

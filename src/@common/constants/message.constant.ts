@@ -64,6 +64,7 @@ export const ErrorMessage = {
   INVALID_COUPON_CODE: (code: string) => `Coupon ${code} is invalid`,
   CAC_NUMBER_TAKEN: 'A business has been registered with this CAC number',
   STORE_FRONT_EXISTS: 'A storefront exists for this store',
+  PRODUCT_HAS_ORDERS: 'Product has orders',
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];

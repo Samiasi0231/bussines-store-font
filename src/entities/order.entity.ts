@@ -7,17 +7,18 @@ import {
   JoinColumn,
   OneToMany,
   PrimaryGeneratedColumn,
+  Check,
 } from 'typeorm';
 import { uuidv7 } from 'uuidv7';
 import { User } from './user.entity';
 import { Status } from '../@common/constants/status.constant';
 import { OrderItem } from './order-item.entity';
 import { Transaction } from './transaction.entity';
-import { IsNotEmpty } from 'class-validator';
 import { PaymentMethod } from '../@common/constants/payment.constant';
 import { Address } from './address.entity';
 import { BaseEntity } from './base.entity';
 import { OrderCoupon } from './order-coupon.entity';
+import { InStoreOrderDTO } from '../orders/dtos/order.dto';
 
 export const OrderStatus = [
   Status.SHIPPED,
@@ -32,15 +33,15 @@ const PaymentStatus = [Status.PAID, Status.PENDING, Status.FAILED] as const;
 type PaymentStatus = (typeof PaymentStatus)[number];
 
 @Entity('orders')
+@Check(`(user_id IS NULL) = (in_store_order = true)`)
 export class Order extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id = uuidv7() as UUID;
 
   @Index()
-  @Column({ type: 'uuid', name: 'user_id' })
-  @ManyToOne(() => User, { onDelete: 'RESTRICT' })
+  @Column({ type: 'uuid', name: 'user_id', nullable: true })
+  @ManyToOne(() => User, { onDelete: 'RESTRICT', nullable: true })
   @JoinColumn({ name: 'user_id' })
-  @IsNotEmpty()
   user: User | UUID;
 
   @Column({
@@ -101,10 +102,9 @@ export class Order extends BaseEntity {
   coupons: OrderCoupon[];
 
   @Index()
-  @Column({ type: 'uuid', name: 'shipping_address_id' })
-  @ManyToOne(() => Address, { onDelete: 'RESTRICT' })
+  @Column({ type: 'uuid', name: 'shipping_address_id', nullable: true })
+  @ManyToOne(() => Address, { onDelete: 'RESTRICT', nullable: true })
   @JoinColumn({ name: 'shipping_address_id' })
-  @IsNotEmpty()
   shippingAddress: Address | UUID;
 
   @Column({
@@ -131,4 +131,10 @@ export class Order extends BaseEntity {
 
   @OneToMany(() => Transaction, (transaction) => transaction.order)
   transactions: Transaction[];
+
+  @Column({ name: 'in_store_order_data', type: 'jsonb', nullable: true })
+  inStoreOrderData?: InStoreOrderDTO;
+
+  @Column({ name: 'in_store_order', type: 'bool', default: false })
+  inStoreOrder?: boolean;
 }
