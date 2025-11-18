@@ -1,3 +1,5 @@
+
+
 export default () => ({
   db: {
     username: process.env.DB_USERNAME,
@@ -42,4 +44,15 @@ export default () => ({
   resend: {
     apiKey: process.env.RESEND_API_KEY,
   },
+vasBb: {
+  baseUrl: process.env.VAS_BB_BASE_URL || 'https://vas.broadbased.net',
+  authToken: process.env.VAS_BB_AUTH_TOKEN || '',
+  senderId: process.env.VAS_BB_SENDER_ID || '',
+  userId: process.env.VAS_BB_USER_ID || '',
+},
+
+
 });
+
+
+
