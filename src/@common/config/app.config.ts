@@ -42,9 +42,15 @@ export default () => ({
   resend: {
     apiKey: process.env.RESEND_API_KEY,
   },
-  monnify: {
-    apiKey: process.env.MONNIFY_API_KEY,
-    secretKey: process.env.MONNIFY_SECRET_KEY,
-    baseUrl: process.env.MONNIFY_BASE_URL,
-  },
+vasBb: {
+  baseUrl: process.env.VAS_BB_BASE_URL || 'https://vas.broadbased.net',
+  authToken: process.env.VAS_BB_AUTH_TOKEN || '',
+  senderId: process.env.VAS_BB_SENDER_ID || '',
+  userId: process.env.VAS_BB_USER_ID || '',
+},
+
+
 });
+
+
+

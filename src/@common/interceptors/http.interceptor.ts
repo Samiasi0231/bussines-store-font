@@ -16,30 +16,32 @@ export class HttpInterceptor<T> implements NestInterceptor<T, Response<T>> {
     next: CallHandler,
   ): Observable<Response<T>> {
     const response = context.switchToHttp().getResponse<Response>();
+return next.handle().pipe(
+  map((responseData) => {
+    const {
+      message,
+      status,
+      success = true,
+      responseCode,
+      error,
+      ...rest
+    } = responseData;
 
-    return next.handle().pipe(
-      map((responseData) => {
-        const {
-          message,
-          status,
-          success = true,
-          responseCode,
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          error,
-          ...rest
-        } = responseData;
+    const { data, ...finalData } = rest;
 
-        const { data, ...finalData } = rest;
+    // Default status to 200 if undefined
+    const statusCode = status || 200;
 
-        return response.status(status).json({
-          reqId: context.switchToHttp().getRequest().reqId,
-          message: message || SuccessMessage.OPERATION_SUCCESSFUL,
-          data: data || { ...finalData },
-          success,
-          status,
-          responseCode,
-        });
-      }),
-    );
+    return response.status(statusCode).json({
+      reqId: context.switchToHttp().getRequest().reqId,
+      message: message || SuccessMessage.OPERATION_SUCCESSFUL,
+      data: data || { ...finalData },
+      success,
+      status: statusCode,
+      responseCode,
+    });
+  }),
+);
+
   }
 }

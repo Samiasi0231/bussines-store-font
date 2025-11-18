@@ -28,6 +28,7 @@ import { StoreFrontModule } from './storefront/storefront.module';
 import { TransactionModule } from './transaction/transaction.module';
 
 const DB_CONNECTION_STRING = `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`;
+import { SmsModule } from './sms/sms.module';
 
 @Module({
   imports: [
