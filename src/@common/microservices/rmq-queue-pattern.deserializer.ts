@@ -7,7 +7,7 @@ export class RmqDeserializer implements Deserializer {
 
   /**
    * Set the pattern for this deserializer instance
-   * @param pattern The event pattern (usually matches the queue name)
+   * @param pattern RabbitMQ queue name
    */
   setPattern(pattern: string) {
     this.pattern = pattern;
@@ -50,7 +50,6 @@ export class RmqDeserializer implements Deserializer {
         };
       }
 
-      // Last resort: return parsed data as-is
       this.logger.warn(
         `No pattern set for deserializer, returning parsed data as-is`,
       );

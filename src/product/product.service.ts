@@ -685,7 +685,7 @@ export class ProductService {
 
     await this.productRepository.softDeleteById(id);
 
-    this.rmqProducerService.sendToQueue(RmqQueue.PRODUCT_DELETED, {
+    this.rmqProducerService.publish(RmqQueue.PRODUCT_DELETED, {
       id,
     });
 

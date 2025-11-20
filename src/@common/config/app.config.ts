@@ -54,6 +54,11 @@ export default () => ({
   },
   otp: {
     ttlSeconds: Number(process.env.OTP_TTL_SECONDS || 300),
-    length: Number(process.env.OTP_LENGTH || 6),
+    length: Number(process.env.OTP_LENGTH || 6)
+  },
+  monnify: {
+    apiKey: process.env.MONNIFY_API_KEY,
+    secretKey: process.env.MONNIFY_SECRET_KEY,
+    baseUrl: process.env.MONNIFY_BASE_URL,
   },
 });

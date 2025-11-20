@@ -6,6 +6,7 @@ export enum DefaultProviderConfig {
   IDENTITY = 'identity',
   EMAIL = 'email',
   IMAGE_RECOGNITION = 'image_recognition',
+  CHECKOUT = 'checkout',
 }
 
 @Injectable()

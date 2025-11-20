@@ -135,6 +135,7 @@ export class Coupon extends BaseEntity {
   @BeforeInsert()
   private generateCode?() {
     if (!this.code) {
+      //TODO: Modify logic to account for collisions
       this.code = randomstring.generate({
         length: 10,
         charset: 'alphanumeric',

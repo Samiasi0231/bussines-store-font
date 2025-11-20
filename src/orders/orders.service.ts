@@ -9,12 +9,13 @@ import { UserRepository } from '../repositories/user.repository';
 import { IResponse, ResponseService } from '../@common/response';
 import {
   ErrorMessage,
+  GeneralMessage,
   SuccessMessage,
 } from '../@common/constants/message.constant';
 import { AddressRepository } from '../repositories/address.repository';
 import { DbTransactionManager } from '../@common/database/database-transaction.manager';
 import { OrderItemRepository } from '../repositories/order-item.repository';
-import { Order, OrderStatus } from '../entities/order.entity';
+import { Order, OrderStatus, PaymentStatus } from '../entities/order.entity';
 import { ProductRepository } from '../repositories/product.repository';
 import { UUID } from 'crypto';
 import { CouponRepository } from '../repositories/coupon.repository';
@@ -32,6 +33,18 @@ import { Util } from '../@common/utilities/helpers.utility';
 import { QueryUtil } from '../@common/utilities/query.utility';
 import { FindOptionsWhere, In, SelectQueryBuilder } from 'typeorm';
 import { Paginated } from '../@common/types/pagination.type';
+import { PaymentMethod } from '../@common/constants/payment.constant';
+import { TransactionService } from '../transaction/transaction.service';
+import { WalletRepository } from '../repositories/wallet.repository';
+import { Product } from '../entities/product.entity';
+import { Store } from '../entities/store.entity';
+import {
+  TransactionChannel,
+  TransactionPurpose,
+} from '../@common/constants/transaction.constant';
+import { CreditBusinessWalletDTO } from '../transaction/dtos/transaction.dto';
+import { RmqProducerService } from '../@common/rmq/rmq.producer.service';
+import { RmqQueue } from '../@common/constants/queues.constant';
 
 @Injectable()
 export class OrdersService {
@@ -47,6 +60,9 @@ export class OrdersService {
     private readonly couponRepository: CouponRepository,
     private readonly orderSanitizer: OrderSanitizer,
     private readonly dbTransactionManager: DbTransactionManager,
+    private readonly transactionService: TransactionService,
+    private readonly walletRepository: WalletRepository,
+    private readonly rmqProducerService: RmqProducerService,
   ) {}
 
   async createOrder(payload: CreateOrderDTO) {
@@ -54,7 +70,7 @@ export class OrdersService {
       items,
       inStoreOrderData,
       couponId,
-      paymentMethod,
+      paymentData: { method: paymentMethod, reference: paymentReference },
       email,
       note,
       shippingAddress,
@@ -66,6 +82,21 @@ export class OrdersService {
       IResponse<FormattedOrderForList>
     >(async (manager) => {
       const entityManager = manager.entityManager;
+
+      const isDuplicatePaymentReference = await this.orderRepository
+        .withManager(entityManager)
+        .findOne({
+          where: { paymentReference },
+          lock: { mode: 'pessimistic_write' },
+        });
+
+      if (isDuplicatePaymentReference)
+        return this.responseService.sendError(
+          ErrorMessage.DUPLICATE_PAYMENT,
+          null,
+          HttpStatus.CONFLICT,
+        );
+
       if (email) {
         const createGuestUserRes =
           await this.userService.createOrFetchGuestUser(email, entityManager);
@@ -127,10 +158,44 @@ export class OrdersService {
       order.discountAmount = totalDiscountAmount;
       order.totalAmount = subtotal; //will eventually include tax, etc
       order.payableAmount = order.totalAmount - order.discountAmount;
-
+      const paymentStatus = await this.checkPaymentStatus(
+        paymentMethod,
+        paymentReference,
+      );
+      order.paymentStatus = paymentStatus;
+      order.paymentReference = paymentReference;
       entityManager.save(order);
 
-      for (const item of items) {
+      let generalDiscountAmount = 0;
+
+      if (couponId) {
+        const coupon = await this.couponRepository
+          .withManager(entityManager)
+          .findById(couponId, { lock: { mode: 'pessimistic_write' } });
+
+        if (coupon.status !== Status.ACTIVE)
+          throw new BadRequestException(
+            ErrorMessage.INVALID_COUPON_CODE(coupon.code || ''),
+          );
+
+        //TODO(future): check usage limit per user
+        const discountAmount = this.couponRepository.getDiscountAmount({
+          coupon,
+          amount: subtotal,
+        });
+
+        generalDiscountAmount = discountAmount;
+
+        totalDiscountAmount += discountAmount;
+      }
+
+      const generalDiscountPerItem = Math.floor(
+        totalDiscountAmount / items.length,
+      );
+
+      for (let index = 0; index < items.length; index++) {
+        const item = items[index];
+
         const { productId, quantity, couponId } = item;
 
         const product = await this.productRepository
@@ -155,7 +220,12 @@ export class OrdersService {
           .withManager(entityManager)
           .decreaseQuantity(productId, quantity);
 
-        let discountAmount = 0;
+        let discountAmount =
+          index !== items.length - 1
+            ? generalDiscountPerItem
+            : generalDiscountAmount -
+              (generalDiscountAmount - index * generalDiscountPerItem);
+
         const totalItemPrice = quantity * price;
         subtotal += totalItemPrice;
 
@@ -204,31 +274,17 @@ export class OrdersService {
         }
       }
 
-      if (couponId) {
-        const coupon = await this.couponRepository
-          .withManager(entityManager)
-          .findById(couponId, { lock: { mode: 'pessimistic_write' } });
-
-        if (coupon.status !== Status.ACTIVE)
-          throw new BadRequestException(
-            ErrorMessage.INVALID_COUPON_CODE(coupon.code || ''),
-          );
-
-        //TODO: check usage limit per user
-
-        const discountAmount = this.couponRepository.getDiscountAmount({
-          coupon,
-          amount: subtotal,
-        });
-
-        totalDiscountAmount += discountAmount;
-      }
-
       order.subtotal = subtotal;
       order.discountAmount = totalDiscountAmount;
       order.totalAmount = subtotal; //will eventually include tax, etc
       order.payableAmount = order.totalAmount - order.discountAmount;
       entityManager.save(order);
+
+      manager.on('committed', () => {
+        this.rmqProducerService.publish(RmqQueue.PROCESS_ORDER_PAYMENT, {
+          orderId: order.id,
+        });
+      });
 
       const data = this.orderSanitizer.formatOrderForList(order);
 
@@ -240,6 +296,25 @@ export class OrdersService {
     });
 
     return response;
+  }
+
+  async checkPaymentStatus(
+    method: PaymentMethod,
+    paymentReference: string,
+  ): Promise<PaymentStatus> {
+    if (method === PaymentMethod.CASH) return Status.PAID;
+
+    if (method === PaymentMethod.CHECKOUT) {
+      const status =
+        await this.transactionService.checkCheckoutPaymentStatus(
+          paymentReference,
+        );
+
+      if (status === Status.SUCCESSFUL) return Status.PAID;
+    }
+
+    //Future Note: Update logic based on expansion of payment methods and integration of webhook listener for checkout payments
+    return Status.FAILED;
   }
 
   async updateOrderStatus(id: UUID, status: OrderStatus) {
@@ -598,5 +673,69 @@ export class OrdersService {
       SuccessMessage.OPERATION_SUCCESSFUL,
       data,
     );
+  }
+
+  async processOrderPayment(payload: { orderId: string }) {
+    const { orderId } = payload;
+
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId as UUID },
+    });
+
+    if (!order)
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Order'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+
+    const paymentReference = order.paymentReference;
+
+    const orderItems = await this.orderItemRepository.find({
+      where: { order: order.id },
+      relations: ['product.store'],
+    });
+
+    for (const orderItem of orderItems) {
+      const payableAmount = orderItem.subtotal - orderItem.discountAmount;
+
+      const businessId = ((orderItem.product as Product)?.store as Store)
+        ?.business;
+
+      const isDuplicatePayment =
+        await this.transactionService.isDuplicateOrderPayment(
+          paymentReference,
+          order.id,
+          orderItem.id,
+        );
+
+      if (isDuplicatePayment)
+        return this.responseService.sendError(
+          ErrorMessage.DUPLICATE_PAYMENT,
+          null,
+          HttpStatus.CONFLICT,
+        );
+
+      const creditPayload: CreditBusinessWalletDTO = {
+        amount: payableAmount,
+        businessId: businessId as UUID,
+        purpose: TransactionPurpose.ORDER_CREDIT,
+        channel: TransactionChannel.WALLET,
+        narration: GeneralMessage.ORDER_PAYMENT_CREDIT_NARRATION(
+          order.id,
+          orderItem.id,
+        ), //narration can be improved to be more meaningful to the user
+        metadata: {
+          orderId: order.id,
+          orderItemId: orderItem.id,
+          externalReference: paymentReference,
+        },
+      };
+
+      return this.transactionService.creditBusinessWallet({
+        businessId: businessId as UUID,
+        ...creditPayload,
+      });
+    }
   }
 }
