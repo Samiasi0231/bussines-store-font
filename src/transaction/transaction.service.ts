@@ -33,6 +33,7 @@ import { DbTransactionManager } from '../@common/database/database-transaction.m
 import { TransactionSanitizer } from './sanitizers/transaction.sanitizer';
 import { FindOptionsWhere, In } from 'typeorm';
 import { Util } from '../@common/utilities/helpers.utility';
+import { nanoid } from 'nanoid';
 
 @Injectable()
 export class TransactionService {
@@ -199,13 +200,11 @@ export class TransactionService {
             purpose,
             channel,
             status: Status.SUCCESSFUL,
-            reference:
-              TransactionReferencePrefix.TRANSACTION +
-              uuidv7().replace(/-/g, ''),
+            reference: this.generateReference('transaction'),
             type: TransactionType.CREDIT,
             balanceBefore,
             balanceAfter,
-            groupReference: uuidv7().replace(/-/g, ''),
+            groupReference: this.generateReference('group'),
             narration,
             metadata,
           });
@@ -308,5 +307,23 @@ export class TransactionService {
     });
 
     return !!transaction;
+  }
+
+  private generateReference(type: 'transaction' | 'group') {
+    switch (type) {
+      case 'transaction':
+        return (
+          TransactionReferencePrefix.TRANSACTION + nanoid(15).toUpperCase()
+        );
+      case 'group':
+        return (
+          TransactionReferencePrefix.GROUP_TRANSACTION +
+          nanoid(15).toUpperCase()
+        );
+      default:
+        return (
+          TransactionReferencePrefix.TRANSACTION + nanoid(15).toUpperCase()
+        );
+    }
   }
 }

@@ -18,4 +18,5 @@ export enum TransactionPurpose {
 export const TransactionReferencePrefix = {
   CHECKOUT: 'CHK-',
   TRANSACTION: 'TRN-',
+  GROUP_TRANSACTION: 'GRP-',
 };

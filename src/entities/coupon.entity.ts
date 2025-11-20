@@ -15,7 +15,7 @@ import { Status } from '../@common/constants/status.constant';
 import { uuidv7 } from 'uuidv7';
 import { BaseEntity } from './base.entity';
 import { Business } from './business.entity';
-import * as randomstring from 'randomstring';
+import { nanoid } from 'nanoid';
 
 export enum DiscountType {
   PERCENTAGE = 'percentage',
@@ -136,11 +136,7 @@ export class Coupon extends BaseEntity {
   private generateCode?() {
     if (!this.code) {
       //TODO: Modify logic to account for collisions
-      this.code = randomstring.generate({
-        length: 10,
-        charset: 'alphanumeric',
-        capitalization: 'uppercase',
-      });
+      this.code = nanoid(8);
     }
   }
 }
