@@ -115,10 +115,7 @@ async function bootstrap() {
 
   await app.startAllMicroservices();
   logger.log(`RabbitMQ consumers connected to queues: ${queues.join(', ')}`);
-
   const APP_PORT = config.get<string>('PORT');
-  console.log('APP_PORT:', APP_PORT);
-
   await app.listen(parseInt(APP_PORT, 10));
 }
 bootstrap();

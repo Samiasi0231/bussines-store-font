@@ -9,23 +9,30 @@ export class SmsService {
   private readonly authToken: string;
   private readonly senderId: string;
   private readonly userId: string;
-  private readonly otpTtl = Number(process.env.OTP_TTL_SECONDS || 300);
+  private readonly otpTtl: number;
+  private readonly otpLength: number;
 
   constructor(private redisService: RedisService) {
-    const vasBb = config().vasBb;
+    const appConfig = config();
+    const vasBb = appConfig.vasBb;
+
     this.baseUrl = vasBb.baseUrl;
     this.authToken = vasBb.authToken;
     this.senderId = vasBb.senderId;
     this.userId = vasBb.userId;
+
+    this.otpTtl = appConfig.otp.ttlSeconds;
+    this.otpLength = appConfig.otp.length;
   }
 
-  private generateOtp(length = Number(process.env.OTP_LENGTH || 6)) {
+  private generateOtp(length = this.otpLength) {
     const digits = '0123456789';
     let otp = '';
-    for (let i = 0; i < length; i++) otp += digits[Math.floor(Math.random() * 10)];
+    for (let i = 0; i < length; i++) {
+      otp += digits[Math.floor(Math.random() * 10)];
+    }
     return otp;
   }
-
   async sendOtp(recipients: string[]) {
     if (!recipients || recipients.length === 0) {
       throw new HttpException('Recipients cannot be empty', HttpStatus.BAD_REQUEST);

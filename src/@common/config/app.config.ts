@@ -1,5 +1,3 @@
-
-
 export default () => ({
   db: {
     username: process.env.DB_USERNAME,
@@ -8,6 +6,7 @@ export default () => ({
     host: process.env.DB_HOST,
     port: parseInt(process.env.DB_PORT, 10),
     connectionLimit: process.env.DB_CONNECTION_LIMIT,
+    synchronize: process.env.DB_SYNCHRONIZATION || 'false',
   },
   jwt: {
     secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key',
@@ -44,15 +43,17 @@ export default () => ({
   resend: {
     apiKey: process.env.RESEND_API_KEY,
   },
-vasBb: {
-  baseUrl: process.env.VAS_BB_BASE_URL || 'https://vas.broadbased.net',
-  authToken: process.env.VAS_BB_AUTH_TOKEN || '',
-  senderId: process.env.VAS_BB_SENDER_ID || '',
-  userId: process.env.VAS_BB_USER_ID || '',
-},
-
-
+  vasBb: {
+    baseUrl: process.env.VAS_BB_BASE_URL || 'https://vas.broadbased.net',
+    authToken: process.env.VAS_BB_AUTH_TOKEN || '',
+    senderId: process.env.VAS_BB_SENDER_ID || '',
+    userId: process.env.VAS_BB_USER_ID || '',
+  },
+  rmq: {
+    url: process.env.RMQ_URL,
+  },
+  otp: {
+    ttlSeconds: Number(process.env.OTP_TTL_SECONDS || 300),
+    length: Number(process.env.OTP_LENGTH || 6),
+  },
 });
-
-
-
