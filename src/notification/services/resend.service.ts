@@ -4,51 +4,50 @@ import randomstring from 'randomstring';
 import fs from 'fs';
 import { SendEmailDTO } from '../dto/email.dto';
 import { ResponseService } from '../../@common/response';
-import { ErrorMessage, SuccessMessage } from '../../@common/constants/message.constant';
+import {
+  ErrorMessage,
+  SuccessMessage,
+} from '../../@common/constants/message.constant';
 import { IEmailService } from '../interfaces/email.interface';
 import { CreateEmailOptions, Resend } from 'resend';
 
 @Injectable()
 export class ResendService implements IEmailService {
   private transporter: Resend;
-  private readonly logger = new Logger(ResendService.name);
-
+  private logger: Logger;
   constructor(
-    private readonly configService: ConfigService,
+    private configService: ConfigService,
     private readonly responseService: ResponseService,
   ) {
-    // Initialize transporter using the public method
     this.transporter = this.createTransporter();
+    this.logger = new Logger(ResendService.name);
   }
 
-  // Must be public to satisfy IEmailService
-  public createTransporter(): Resend {
-    const apiKey = this.configService.get<string>('resend.apiKey'); // matches your appConfig
-    if (!apiKey) {
-      this.logger.error('RESEND_API_KEY is missing in environment variables');
-      throw new Error('RESEND_API_KEY is missing in environment variables');
-    }
-    this.logger.log('Resend API Key loaded successfully');
-    return new Resend(apiKey);
+  createTransporter() {
+    const API_KEY = this.configService.get<string>('resend.apiKey');
+    const transporter = new Resend(API_KEY);
+    return transporter;
   }
 
-  public async sendEmail(payload: SendEmailDTO) {
+  async sendEmail(payload: SendEmailDTO) {
     try {
       const { attachment, recipients, message } = payload;
 
-      const senderEmailAddress = this.configService.get<string>('appEmail.address');
-      const senderName = this.configService.get<string>('appEmail.name');
+      const senderEmailAddress = this.configService.get('appEmail.address');
+      const senderName = this.configService.get('appEmail.name');
 
       let attachments: any[] | undefined;
 
       if (attachment) {
         const lastIndex = attachment.lastIndexOf('.');
+
         if (lastIndex > 0) {
           const newFilename = randomstring.generate({
             charset: 'alphanumeric',
             length: 32,
           });
-          const extension = attachment.substring(lastIndex + 1); // remove dot
+          const extension = attachment.substring(lastIndex);
+
           attachments = [
             {
               content: fs.createReadStream(attachment),
@@ -68,15 +67,14 @@ export class ResendService implements IEmailService {
 
       const res = await this.transporter.emails.send(options);
 
-      this.logger.log('Resend Mail sent successfully', res);
+      this.logger.log('Resend Mail sent', res);
 
-      if (res.error) {
+      if (res.error)
         return this.responseService.sendError(ErrorMessage.SEND_EMAIL);
-      }
 
       return this.responseService.sendSuccess(SuccessMessage.EMAIL_SENT);
     } catch (error: any) {
-      this.logger.error('Unable to send email via Resend', error);
+      this.logger.error(`Unable to send email via Resend`, { error });
       return this.responseService.sendError(ErrorMessage.SEND_EMAIL);
     }
   }
