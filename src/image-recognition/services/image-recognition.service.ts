@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SuccessMessage } from '../../@common/constants/message.constant';
 import {
@@ -14,12 +14,9 @@ import {
 } from '../../system-settings/system-settings.service';
 
 @Injectable()
-export class ImageRecognitionService
-  implements IImageRecognitionService, OnModuleInit
-{
+export class ImageRecognitionService implements IImageRecognitionService {
   private similarityThreshold: number;
-  private providerName: Provider;
-  private provider: IImageRecognitionService;
+  private _providerName: Provider;
 
   constructor(
     private readonly configService: ConfigService,
@@ -33,16 +30,9 @@ export class ImageRecognitionService
     );
   }
 
-  async onModuleInit() {
-    this.providerName = this.systemSettingsSevice.getDefaultProvider(
-      DefaultProviderConfig.IMAGE_RECOGNITION,
-    );
-    this.provider = this.getProvider();
-  }
-
-  private getProvider(): IImageRecognitionService {
+  private get provider(): IImageRecognitionService {
     let provider: IImageRecognitionService;
-    switch (this.providerName) {
+    switch (this._providerName) {
       case Provider.AWS:
         provider = this.awsService;
         break;
@@ -52,6 +42,13 @@ export class ImageRecognitionService
     }
 
     return provider;
+  }
+
+  private get providerName(): Provider {
+    this._providerName = this.systemSettingsSevice.getDefaultProvider(
+      DefaultProviderConfig.IMAGE_RECOGNITION,
+    );
+    return this._providerName;
   }
 
   async compareFaces(

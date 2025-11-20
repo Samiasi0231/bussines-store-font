@@ -1,5 +1,9 @@
+import { UUID } from 'crypto';
+
 export const ErrorMessage = {
   AN_ERROR_OCCURRED: 'Something went wrong. Please try again.',
+  GENERIC_ERROR_CONTACT_SUPPORT:
+    'An error occurred. Please contact support if the problem persists.',
   USER_NOT_FOUND: 'User not found',
   USER_WITH_EMAIL_EXISTS: 'A user with this email exists',
   USER_WITH_PHONE_EXISTS: 'A user with this phone number exists',
@@ -65,6 +69,9 @@ export const ErrorMessage = {
   CAC_NUMBER_TAKEN: 'A business has been registered with this CAC number',
   STORE_FRONT_EXISTS: 'A storefront exists for this store',
   PRODUCT_HAS_ORDERS: 'Product has orders',
+  NO_CHECKOUT_PROVIDER_FOUND: 'No checkout provider found',
+  INVALID_AMOUNT: 'Invalid amount',
+  DUPLICATE_PAYMENT: 'Payment already processed',
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];
@@ -102,3 +109,10 @@ export type SuccessMessage =
   (typeof SuccessMessage)[keyof typeof SuccessMessage];
 
 export type ResponseMessage = ErrorMessage | SuccessMessage;
+
+export const GeneralMessage = {
+  ORDER_PAYMENT_CREDIT_NARRATION: (
+    orderId: string | UUID,
+    orderItemId: string | UUID,
+  ) => `Payment received for order ${orderId} and item ${orderItemId}`,
+};

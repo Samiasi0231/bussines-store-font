@@ -4,4 +4,5 @@ export enum PaymentMethod {
   CASH = 'cash',
   USSD = 'ussd',
   DIRECT_DEBIT = 'direct_debit',
+  CHECKOUT = 'checkout',
 }

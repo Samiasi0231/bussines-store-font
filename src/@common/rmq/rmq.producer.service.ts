@@ -7,7 +7,7 @@ import { RmqQueue } from '../constants/queues.constant';
 export class RmqProducerService {
   constructor(private readonly amqpClient: AmqpClient) {}
 
-  async sendToQueue(queueName: RmqQueue, payload: any) {
+  async publish(queueName: RmqQueue, payload: any) {
     await this.amqpClient.produce(queueName, payload);
   }
 }

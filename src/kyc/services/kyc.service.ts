@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { IIdentityService } from '../interfaces/IIdentity.service';
 import { ConfigService } from '@nestjs/config';
 import { Provider } from '../../@common/constants/providers.constant';
@@ -37,10 +37,9 @@ import { CacheService } from '../../@common/cache/cache.service';
 import { DEFAULT_PROVIDER_RESPONSE_CACHE_TTL } from '../../@common/constants/cache.constant';
 
 @Injectable()
-export class KycService implements OnModuleInit {
+export class KycService {
   private readonly logger: Logger;
-  public identityProvider: IIdentityService;
-  public identityProviderName: Provider;
+  private _identityProviderName: Provider;
   private isProduction: boolean;
 
   constructor(
@@ -62,14 +61,7 @@ export class KycService implements OnModuleInit {
     this.isProduction = Util.isProduction();
   }
 
-  async onModuleInit() {
-    this.identityProviderName = this.systemSettingsSevice.getDefaultProvider(
-      DefaultProviderConfig.IDENTITY,
-    );
-    this.identityProvider = this.getIdentityProvider();
-  }
-
-  private getIdentityProvider(): IIdentityService {
+  public get identityProvider(): IIdentityService {
     let provider: IIdentityService;
     switch (this.identityProviderName) {
       case Provider.DOJAH:
@@ -81,6 +73,13 @@ export class KycService implements OnModuleInit {
     }
 
     return provider;
+  }
+
+  public get identityProviderName(): Provider {
+    this._identityProviderName = this.systemSettingsSevice.getDefaultProvider(
+      DefaultProviderConfig.IDENTITY,
+    );
+    return this._identityProviderName;
   }
 
   async verifyIdentity(

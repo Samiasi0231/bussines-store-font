@@ -17,6 +17,9 @@ import { GetByIdParamDTO } from '../@common/dtos/general.dto';
 import { UUID } from 'crypto';
 import { OrderAnalyticsDTO } from './dtos/analytics.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RmqQueue } from '../@common/constants/queues.constant';
+import { EventPattern } from '@nestjs/microservices';
+import { Public } from '../@common/decorators/public.decorator';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
@@ -49,5 +52,11 @@ export class OrdersController {
   @Get(':id')
   getOrder(@Param() param: GetByIdParamDTO) {
     return this.ordersService.getOrder(param.id as UUID);
+  }
+
+  @Public()
+  @EventPattern(RmqQueue.PROCESS_ORDER_PAYMENT)
+  async handleOrderPaymentProcessed(payload: { orderId: string }) {
+    return this.ordersService.processOrderPayment(payload);
   }
 }

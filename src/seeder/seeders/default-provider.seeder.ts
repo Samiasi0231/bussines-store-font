@@ -15,6 +15,7 @@ export class DefaultProviderSeeder {
       [DefaultProviderConfig.IDENTITY]: Provider.DOJAH,
       [DefaultProviderConfig.EMAIL]: Provider.RESEND,
       [DefaultProviderConfig.IMAGE_RECOGNITION]: Provider.AWS,
+      [DefaultProviderConfig.CHECKOUT]: Provider.MONNIFY,
     };
 
     const configKey = SystemSettingKey.PROVIDERS;
