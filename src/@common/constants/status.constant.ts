@@ -25,4 +25,5 @@ export enum Status {
   EXPIRED = 'expired',
   OVERDUE = 'overdue',
   UNPAID = 'unpaid',
+  IN_PROGRESS = 'in_progress',
 }

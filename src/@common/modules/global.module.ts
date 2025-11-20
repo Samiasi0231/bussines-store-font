@@ -60,6 +60,8 @@ import { InvoiceUserRepository } from '../../repositories/invoice-user.repositor
 import { InvoiceItemRepository } from '../../repositories/invoice-item.repository';
 import { Storefront } from '../../entities/storefront.entity';
 import { StorefrontRepository } from '../../repositories/storefront.repository';
+import { CheckoutPayment } from '../../entities/checkout-payment.entity';
+import { CheckoutPaymentRepository } from '../../repositories/checkout-payment.repository';
 import { RmqModule } from '../rmq/rmq.module';
 
 const repositories = [
@@ -90,6 +92,7 @@ const repositories = [
   InvoiceUserRepository,
   InvoiceItemRepository,
   StorefrontRepository,
+  CheckoutPaymentRepository,
 ];
 
 const providers = [...repositories, ResponseService];
@@ -122,6 +125,7 @@ const DATABASE_ENTITIES = [
   Invoice,
   InvoiceItem,
   Storefront,
+  CheckoutPayment,
 ];
 
 @Global()

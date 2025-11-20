@@ -13,7 +13,6 @@ import { uuidv7 } from 'uuidv7';
 import { User } from './user.entity';
 import { Status } from '../@common/constants/status.constant';
 import { OrderItem } from './order-item.entity';
-import { Transaction } from './transaction.entity';
 import { PaymentMethod } from '../@common/constants/payment.constant';
 import { Address } from './address.entity';
 import { BaseEntity } from './base.entity';
@@ -30,7 +29,7 @@ export const OrderStatus = [
 export type OrderStatus = (typeof OrderStatus)[number];
 
 const PaymentStatus = [Status.PAID, Status.PENDING, Status.FAILED] as const;
-type PaymentStatus = (typeof PaymentStatus)[number];
+export type PaymentStatus = (typeof PaymentStatus)[number];
 
 @Entity('orders')
 @Check(`(user_id IS NULL) = (in_store_order = true)`)
@@ -110,10 +109,9 @@ export class Order extends BaseEntity {
   @Column({
     type: 'enum',
     enum: Object.values(PaymentMethod),
-    nullable: true,
     name: 'payment_method',
   })
-  paymentMethod: string;
+  paymentMethod: PaymentMethod;
 
   @Column({
     type: 'enum',
@@ -126,11 +124,18 @@ export class Order extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   note: string;
 
+  @Index()
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    name: 'payment_reference',
+    unique: true,
+  })
+  paymentReference?: string;
+
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order)
   orderItems: OrderItem[];
-
-  @OneToMany(() => Transaction, (transaction) => transaction.order)
-  transactions: Transaction[];
 
   @Column({ name: 'in_store_order_data', type: 'jsonb', nullable: true })
   inStoreOrderData?: InStoreOrderDTO;

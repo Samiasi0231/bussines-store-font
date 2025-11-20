@@ -72,7 +72,7 @@ async function bootstrap() {
   });
 
   // Get AmqpClient instance to reuse connection settings
-  let amqpUrl = config.get<string>('AMQP_URL') || 'amqp://localhost:5672';
+  let amqpUrl = config.get<string>('AMQP_URL');
   let socketOptions: any;
 
   try {
@@ -82,7 +82,6 @@ async function bootstrap() {
       socketOptions = amqpClient.getSocketOptions();
     }
   } catch (error) {
-    // AmqpClient not available yet, use config directly
     logger.warn('AmqpClient not available, using config directly');
   }
 

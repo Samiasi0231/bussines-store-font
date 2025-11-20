@@ -122,6 +122,7 @@ export class Invoice extends BaseEntity {
 
   @BeforeInsert()
   private generateInvoiceNumber?() {
+    //TODO: Modify logic to account for collisions
     this.invoiceNumber = randomstring.generate({
       length: 12,
       charset: 'numeric',

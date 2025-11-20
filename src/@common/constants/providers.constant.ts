@@ -3,4 +3,5 @@ export enum Provider {
   AWS = 'aws',
   SMTP = 'smtp',
   RESEND = 'resend',
+  MONNIFY = 'monnify',
 }

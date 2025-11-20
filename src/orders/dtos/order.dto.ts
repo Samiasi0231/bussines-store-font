@@ -78,6 +78,17 @@ export class InStoreOrderDTO {
   address: AddressDTO;
 }
 
+export class PaymentDataDTO {
+  @TransformToLowerCase()
+  @IsEnum(PaymentMethod)
+  method: PaymentMethod;
+
+  @ValidateIf((object) => object.method === PaymentMethod.CHECKOUT)
+  @IsString()
+  @IsNotEmpty()
+  reference: string;
+}
+
 export class CreateOrderDTO {
   @ValidateIf((object) => object.inStoreOrder === true)
   @MutuallyExclusive(['userId', 'email', 'inStoreOrder'])
@@ -122,9 +133,9 @@ export class CreateOrderDTO {
   @Type(() => ShippingAddressDTO)
   shippingAddress?: ShippingAddressDTO;
 
-  @TransformToLowerCase()
-  @IsEnum(PaymentMethod)
-  paymentMethod: PaymentMethod;
+  @ValidateNested()
+  @Type(() => PaymentDataDTO)
+  paymentData: PaymentDataDTO;
 
   @IsOptional()
   @TransformToBoolean()

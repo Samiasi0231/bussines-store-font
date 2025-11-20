@@ -42,4 +42,9 @@ export default () => ({
   resend: {
     apiKey: process.env.RESEND_API_KEY,
   },
+  monnify: {
+    apiKey: process.env.MONNIFY_API_KEY,
+    secretKey: process.env.MONNIFY_SECRET_KEY,
+    baseUrl: process.env.MONNIFY_BASE_URL,
+  },
 });

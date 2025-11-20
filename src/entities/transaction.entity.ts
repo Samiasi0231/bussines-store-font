@@ -7,14 +7,17 @@ import {
   JoinColumn,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Order } from './order.entity';
 import { Wallet } from './wallet.entity';
 import { uuidv7 } from 'uuidv7';
 import { Status } from '../@common/constants/status.constant';
+import {
+  TransactionChannel,
+  TransactionPurpose,
+} from '../@common/constants/transaction.constant';
 import { IsNotEmpty } from 'class-validator';
 import { BaseEntity } from './base.entity';
 
-const TransactionStatus = [
+export const TransactionStatus = [
   Status.SUCCESSFUL,
   Status.FAILED,
   Status.PENDING,
@@ -22,7 +25,7 @@ const TransactionStatus = [
   Status.REVERSED,
 ] as const;
 
-type TransactionStatus = (typeof TransactionStatus)[number];
+export type TransactionStatus = (typeof TransactionStatus)[number];
 
 export enum TransactionType {
   DEBIT = 'debit',
@@ -32,16 +35,7 @@ export enum TransactionType {
 @Entity('transactions')
 export class Transaction extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
-  id = uuidv7() as UUID;
-
-  @Index()
-  @Column({ nullable: true, name: 'order_id' })
-  @ManyToOne(() => Order, (order) => order.transactions, {
-    onDelete: 'RESTRICT',
-    nullable: true,
-  })
-  @JoinColumn({ name: 'order_id' })
-  order: Order | UUID;
+  id? = uuidv7() as UUID;
 
   @Index()
   @Column({ nullable: true, name: 'wallet_id' })
@@ -59,6 +53,12 @@ export class Transaction extends BaseEntity {
 
   @Column({ type: 'bigint', name: 'amount' })
   amount: number;
+
+  @Column({ type: 'bigint', name: 'balance_before' })
+  balanceBefore: number;
+
+  @Column({ type: 'bigint', name: 'balance_after' })
+  balanceAfter: number;
 
   @Column({
     type: 'enum',
@@ -84,9 +84,29 @@ export class Transaction extends BaseEntity {
   })
   groupReference: string;
 
-  @Column({ type: 'text', nullable: true, name: 'description' })
-  description: string;
+  @Column({ type: 'text', nullable: true, name: 'narration' })
+  narration: string;
+
+  @Column({
+    type: 'enum',
+    enum: TransactionChannel,
+    nullable: true,
+  })
+  channel?: TransactionChannel;
+
+  @Column({
+    type: 'enum',
+    enum: TransactionPurpose,
+    nullable: true,
+  })
+  purpose?: TransactionPurpose;
 
   @Column({ type: 'jsonb', nullable: true, name: 'metadata' })
   metadata: Record<string, unknown>;
+
+  @Column({
+    type: 'timestamptz',
+    default: () => 'CURRENT_TIMESTAMP(6)',
+  })
+  date?: Date;
 }

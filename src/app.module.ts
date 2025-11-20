@@ -25,6 +25,7 @@ import { OrdersModule } from './orders/orders.module';
 import { CouponModule } from './coupon/coupon.module';
 import { InvoiceModule } from './invoice/invoice.module';
 import { StoreFrontModule } from './storefront/storefront.module';
+import { TransactionModule } from './transaction/transaction.module';
 
 const DB_CONNECTION_STRING = `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`;
 
@@ -83,6 +84,7 @@ const DB_CONNECTION_STRING = `postgresql://${process.env.DB_USERNAME}:${process.
     CouponModule,
     InvoiceModule,
     StoreFrontModule,
+    TransactionModule,
   ],
   controllers: [AppController],
   providers: [
