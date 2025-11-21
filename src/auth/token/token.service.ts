@@ -13,13 +13,13 @@ export class TokenService {
   ) {}
 
   async generateJWTToken(userId: string): Promise<JwtResponse> {
-    const accessToken = await this.jwtService.signAsync(
-      { userId },
-      {
-        secret: this.configService.get<string>('jwt.secret'),
-        expiresIn: this.configService.get<string>('jwt.expiresIn') || '24h',
-      },
-    );
+     const accessToken = await this.jwtService.signAsync(
+    { userId },
+    {
+      secret: this.configService.get('jwt.secret'),
+      expiresIn: Number(this.configService.get('jwt.expiresIn') || 86400),
+    },
+  );
 
     const hashedAccessToken = await Util.hash(accessToken);
 
