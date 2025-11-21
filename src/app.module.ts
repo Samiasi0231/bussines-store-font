@@ -85,6 +85,7 @@ import { SmsModule } from './sms/sms.module';
     CouponModule,
     InvoiceModule,
     StoreFrontModule,
+    SmsModule,
     TransactionModule,
   ],
   controllers: [AppController],
