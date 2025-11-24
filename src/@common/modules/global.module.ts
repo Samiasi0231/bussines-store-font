@@ -52,7 +52,7 @@ import { Order } from '../../entities/order.entity';
 import { OrderItem } from '../../entities/order-item.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { OrderCoupon } from '../../entities/order-coupon.entity';
-import { InvoiceUser } from '../../entities/incoice-user.entity';
+import { InvoiceUser } from '../../entities/invoice-user.entity';
 import { Invoice } from '../../entities/invoice.entity';
 import { InvoiceItem } from '../../entities/invoice-item.entity';
 import { InvoiceRepository } from '../../repositories/invoice.repository';

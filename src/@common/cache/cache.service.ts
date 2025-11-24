@@ -1,45 +1,57 @@
-import { Injectable } from '@nestjs/common';
-import Redis from 'ioredis';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ICache } from './interfaces/cache.interface';
+import { MemoryCache } from './implementations/memory-cache.implementation';
+import { RedisCache } from './implementations/redis-cache.implementation';
 
 @Injectable()
-export class CacheService {
-  private cache: Redis;
+export class CacheService implements ICache, OnModuleInit {
+  private readonly logger = new Logger(CacheService.name);
+  private cache: ICache;
 
-  constructor(private readonly configService: ConfigService) {
-    const options = {
-      port: this.configService.getOrThrow('REDIS_PORT'),
-      host: this.configService.getOrThrow('REDIS_HOST'),
-    };
-//     const options = {
-//   port: Number(this.configService.get('REDIS_PORT') ?? 6379),
-//   host: this.configService.get('REDIS_HOST') ?? '127.0.0.1',
-// };
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly memoryCache: MemoryCache,
+    private readonly redisCache: RedisCache,
+  ) {}
 
-    this.cache = new Redis(options);
+  onModuleInit() {
+    const cacheType = this.configService.get<string>('cache.type') || 'memory';
+    const redisEnabled = this.configService.get<boolean>('cache.redis.enabled');
+
+    // Use Redis if explicitly enabled, otherwise use memory cache
+    if (cacheType === 'redis' && redisEnabled) {
+      this.cache = this.redisCache;
+      this.logger.log('Using Redis cache');
+    } else {
+      this.cache = this.memoryCache;
+      this.logger.log('Using in-memory cache');
+      if (cacheType === 'redis' && !redisEnabled) {
+        this.logger.warn(
+          'Redis cache requested but not enabled. Falling back to in-memory cache.',
+        );
+      }
+    }
   }
 
-  async get(key: string): Promise<string> {
+  async get(key: string): Promise<string | null> {
     return this.cache.get(key);
   }
 
-  async set(key: string, value: any, ttl?: number) {
-    if (ttl !== undefined && ttl !== null)
-      await this.cache.set(key, value, 'EX', ttl);
-    else await this.cache.set(key, value);
+  async set(key: string, value: any, ttl?: number): Promise<void> {
+    return this.cache.set(key, value, ttl);
   }
 
-  async del(key: string) {
-    await this.cache.del(key);
+  async del(key: string): Promise<void> {
+    return this.cache.del(key);
   }
 
-  async setAndKeepTTL(key: string, value: any) {
-    await this.cache.set(key, value, 'KEEPTTL');
+  async setAndKeepTTL(key: string, value: any): Promise<void> {
+    return this.cache.setAndKeepTTL(key, value);
   }
 
   async exists(key: string): Promise<boolean> {
-    const numberOfMatches = await this.cache.exists(key);
-    return numberOfMatches > 0;
+    return this.cache.exists(key);
   }
 
   async remember<T>(
@@ -47,10 +59,14 @@ export class CacheService {
     ttl: number,
     fn: () => Promise<T>,
   ): Promise<T> {
-    const value = await this.get(key);
-    if (value) return JSON.parse(value);
-    const result = await fn();
-    await this.set(key, JSON.stringify(result), ttl);
-    return result;
+    return this.cache.remember(key, ttl, fn);
+  }
+
+  async getOrSet<T>(
+    key: string,
+    ttl: number,
+    valueOrFn: T | (() => Promise<T>),
+  ): Promise<T> {
+    return this.cache.getOrSet(key, ttl, valueOrFn);
   }
 }

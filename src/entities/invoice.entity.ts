@@ -12,7 +12,7 @@ import { uuidv7 } from 'uuidv7';
 import { UUID } from 'crypto';
 import { BaseEntity } from './base.entity';
 import { PaymentMethod } from '../@common/constants/payment.constant';
-import { InvoiceUser } from './incoice-user.entity';
+import { InvoiceUser } from './invoice-user.entity';
 import { Status } from '../@common/constants/status.constant';
 import { IsNotEmpty, IsOptional } from 'class-validator';
 import { DiscountType } from './coupon.entity';

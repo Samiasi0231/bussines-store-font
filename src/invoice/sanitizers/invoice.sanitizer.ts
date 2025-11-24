@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { UUID } from 'crypto';
 import { Invoice, InvoiceStatus } from '../../entities/invoice.entity';
 import { Business } from '../../entities/business.entity';
-import { InvoiceUser } from '../../entities/incoice-user.entity';
+import { InvoiceUser } from '../../entities/invoice-user.entity';
 import { InvoiceItem } from '../../entities/invoice-item.entity';
 import { Product } from '../../entities/product.entity';
 import { Util } from '../../@common/utilities/helpers.utility';
@@ -97,3 +97,4 @@ export class InvoiceSanitizer {
     };
   }
 }
+

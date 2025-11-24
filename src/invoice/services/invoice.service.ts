@@ -14,7 +14,7 @@ import { InvoiceUserRepository } from '../../repositories/invoice-user.repositor
 import { CouponRepository } from '../../repositories/coupon.repository';
 import { Invoice, InvoiceStatus } from '../../entities/invoice.entity';
 import { ProductRepository } from '../../repositories/product.repository';
-import { InvoiceSanitizer } from '../santizers/invoice.sanitizer';
+import { InvoiceSanitizer } from '../sanitizers/invoice.sanitizer';
 import { SelectQueryBuilder } from 'typeorm';
 import { Util } from '../../@common/utilities/helpers.utility';
 import { QueryUtil } from '../../@common/utilities/query.utility';

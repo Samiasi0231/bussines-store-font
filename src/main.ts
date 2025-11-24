@@ -13,6 +13,7 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { RmqDeserializer } from './@common/microservices/rmq-queue-pattern.deserializer';
 import { RmqQueue } from './@common/constants/queues.constant';
 import { AmqpClient } from './@common/rmq/amqp-client';
+import { SwaggerConfig } from './@common/swagger/swagger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -71,50 +72,74 @@ async function bootstrap() {
     },
   });
 
-  // Get AmqpClient instance to reuse connection settings
-  let amqpUrl = config.get<string>('AMQP_URL');
-  let socketOptions: any;
+  // Configure message queue (RabbitMQ or in-memory)
+  const queueType = config.get<string>('queue.type') || 'memory';
+  const rabbitMQEnabled = config.get<boolean>('queue.rabbitmq.enabled');
+  const amqpUrl = config.get<string>('AMQP_URL');
 
-  try {
-    const amqpClient = app.get(AmqpClient, { strict: false });
-    if (amqpClient) {
-      amqpUrl = amqpClient.getConnectionUrl() || amqpUrl;
-      socketOptions = amqpClient.getSocketOptions();
+  // Only connect to RabbitMQ microservices if explicitly enabled
+  if (queueType === 'rabbitmq' && rabbitMQEnabled && amqpUrl) {
+    let socketOptions: any;
+
+    try {
+      const amqpClient = app.get(AmqpClient, { strict: false });
+      if (amqpClient) {
+        const clientUrl = amqpClient.getConnectionUrl() || amqpUrl;
+        socketOptions = amqpClient.getSocketOptions();
+
+        const queues = Object.values(RmqQueue);
+
+        for (const queue of queues) {
+          const deserializer = new RmqDeserializer();
+          deserializer.setPattern(queue);
+
+          app.connectMicroservice<MicroserviceOptions>({
+            transport: Transport.RMQ,
+            options: {
+              urls: [clientUrl],
+              queue: queue.trim(),
+              noAssert: false,
+              prefetchCount: 50,
+              noAck: true,
+              deserializer,
+              queueOptions: {
+                durable: true,
+              },
+              ...(socketOptions && {
+                socketOptions: {
+                  connectionOptions: socketOptions,
+                },
+              }),
+            },
+          });
+        }
+
+        await app.startAllMicroservices();
+        logger.log(
+          `RabbitMQ consumers connected to queues: ${queues.join(', ')}`,
+        );
+      }
+    } catch (error) {
+      logger.warn(
+        'Failed to connect to RabbitMQ, falling back to in-memory queue',
+      );
     }
-  } catch (error) {
-    logger.warn('AmqpClient not available, using config directly');
+  } else {
+    logger.log('Using in-memory message queue (RabbitMQ not enabled)');
   }
 
-  const queues = Object.values(RmqQueue);
-
-  for (const queue of queues) {
-    const deserializer = new RmqDeserializer();
-    deserializer.setPattern(queue);
-
-    app.connectMicroservice<MicroserviceOptions>({
-      transport: Transport.RMQ,
-      options: {
-        urls: [amqpUrl],
-        queue: queue.trim(),
-        noAssert: false,
-        prefetchCount: 50,
-        noAck: true,
-        deserializer,
-        queueOptions: {
-          durable: true,
-        },
-        ...(socketOptions && {
-          socketOptions: {
-            connectionOptions: socketOptions,
-          },
-        }),
-      },
-    });
+  // Setup Swagger documentation
+  SwaggerConfig.setup(app, config);
+  if (ENV !== Environment.PRODUCTION) {
+    const swaggerPath = config.get<string>('SWAGGER_PATH') || 'docs';
+    logger.log(`Swagger documentation available at /${swaggerPath}`);
   }
 
-  await app.startAllMicroservices();
-  logger.log(`RabbitMQ consumers connected to queues: ${queues.join(', ')}`);
+  // await app.startAllMicroservices();
+  // logger.log(`RabbitMQ consumers connected to queues: ${queues.join(', ')}`);
+
   const APP_PORT = config.get<string>('PORT');
   await app.listen(parseInt(APP_PORT, 10));
+  logger.log(`Application is running on: http://localhost:${APP_PORT}/api/v1`);
 }
 bootstrap();

@@ -50,3 +50,4 @@ export class InvoiceUser extends BaseEntity {
     this.fullName = [this.firstName, this.lastName].filter(Boolean).join(' ');
   }
 }
+

@@ -26,10 +26,11 @@ import { CouponModule } from './coupon/coupon.module';
 import { InvoiceModule } from './invoice/invoice.module';
 import { StoreFrontModule } from './storefront/storefront.module';
 import { TransactionModule } from './transaction/transaction.module';
+import { CartModule } from './cart/cart.module';
 
-const DB_CONNECTION_STRING = `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`;
 import { SmsModule } from './sms/sms.module';
 import { UploadModule } from './upload/upload.module';
+const config = appConfig();
 
 @Module({
   imports: [
@@ -40,23 +41,50 @@ import { UploadModule } from './upload/upload.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get<string>('db.host'),
-        port: config.get<number>('db.port'),
-        username: config.get<string>('db.username'),
-        password: config.get<string>('db.password'),
-        database: config.get<string>('db.name'),
-        entities: [__dirname + '/entities/*.entity{.ts,.js}'],
-        autoLoadEntities: true,
-        retryAttempts: 5,
-        extra: {
-          connectionLimit: config.get<number>('db.connectionLimit'),
-        },
-      }),
+      useFactory: (config: ConfigService) => {
+        const retryAttempts = config.get<number>('db.retryAttempts') || 5;
+        const retryDelay = config.get<number>('db.retryDelay') || 3000;
+
+        const synchronize = config.get<boolean>('db.synchronize') || false;
+        const env = config.get<string>('ENV');
+
+        // Warn if synchronize is enabled in production
+        if (synchronize && env === 'production') {
+          throw new Error(
+            'DB_SYNCHRONIZE cannot be enabled in production. Use migrations instead.',
+          );
+        }
+
+        return {
+          type: 'postgres',
+          host: config.get<string>('db.host'),
+          port: config.get<number>('db.port'),
+          username: config.get<string>('db.username'),
+          password: config.get<string>('db.password'),
+          database: config.get<string>('db.name'),
+          entities: [__dirname + '/entities/*.entity{.ts,.js}'],
+          autoLoadEntities: true,
+          // Synchronize: Only enable in development (auto-creates tables from entities)
+          // WARNING: This will drop and recreate tables. Use migrations in production.
+          synchronize,
+          // Retry configuration for connection attempts
+          retryAttempts,
+          retryDelay,
+          // Connection pool configuration with retry support
+          extra: {
+            connectionLimit: config.get<number>('db.connectionLimit'),
+            max: config.get<number>('db.connectionLimit') || 10,
+            min: 2,
+            idleTimeoutMillis: 30000,
+            connectionTimeoutMillis: 10000,
+            // Enable connection retry on pool errors
+            acquireTimeoutMillis: 60000,
+          },
+        };
+      },
     }),
     PgPubSubModule.forRoot({
-      databaseUrl: DB_CONNECTION_STRING,
+      databaseUrl: config.db.connectionString,
       queue: {
         maxRetries: 5,
         messageTTL: 24 * 60 * 60 * 1000,
@@ -89,6 +117,7 @@ import { UploadModule } from './upload/upload.module';
     SmsModule,
     TransactionModule,
     UploadModule,
+    CartModule,
   ],
   controllers: [AppController],
   providers: [

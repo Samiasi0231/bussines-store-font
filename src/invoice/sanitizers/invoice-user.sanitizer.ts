@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { UUID } from 'crypto';
-import { InvoiceUser } from '../../entities/incoice-user.entity';
+import { InvoiceUser } from '../../entities/invoice-user.entity';
 
 export type FormattedInvoiceUser = {
   id: UUID;
@@ -22,3 +22,4 @@ export class InvoiceUserSanitizer {
     };
   }
 }
+

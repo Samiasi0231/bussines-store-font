@@ -10,5 +10,6 @@ import { TransactionModule } from '../transaction/transaction.module';
   imports: [UserModule, KycModule, TransactionModule],
   controllers: [OrdersController],
   providers: [OrdersService, OrderSanitizer],
+  exports: [OrdersService],
 })
 export class OrdersModule {}
