@@ -29,6 +29,7 @@ import { TransactionModule } from './transaction/transaction.module';
 
 const DB_CONNECTION_STRING = `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`;
 import { SmsModule } from './sms/sms.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -87,6 +88,7 @@ import { SmsModule } from './sms/sms.module';
     StoreFrontModule,
     SmsModule,
     TransactionModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [

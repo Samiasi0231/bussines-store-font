@@ -24,11 +24,14 @@ export default () => ({
       cac: '/v1/kyc/cac/basic?rc_number=',
     },
   },
-  aws: {
-    region: process.env.AWS_REGION,
-    serviceKey: process.env.AWS_SERVICE_KEY,
-    secretKey: process.env.AWS_SECRET_KEY,
-  },
+aws: {
+  region: process.env.AWS_REGION,
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  bucketName: process.env.AWS_BUCKET_NAME,
+  defaultFolder: process.env.UPLOAD_DEFAULT_FOLDER || 'uploads',
+  maxFileSize: parseInt(process.env.MAX_UPLOAD_FILE_SIZE, 10) || 52428800,
+},
   smtp: {
     password: process.env.SMTP_PASSWORD,
     host: process.env.SMTP_HOST,
@@ -56,4 +59,5 @@ export default () => ({
     ttlSeconds: Number(process.env.OTP_TTL_SECONDS || 300),
     length: Number(process.env.OTP_LENGTH || 6),
   },
+
 });
