@@ -62,7 +62,8 @@ async function bootstrap() {
 
   // Configure morgan-body to avoid interfering with exception filter
   // Disable response body logging to prevent wrapping response.send() which causes ERR_HTTP_HEADERS_SENT
-  (morgan as any)(app.getHttpAdapter().getInstance(), {
+  const httpAdapter = app.getHttpAdapter().getInstance();
+  (morgan as any)(httpAdapter, {
     prettify: false,
     filterParameters: LOG_FIELDS_TO_HIDE,
     logReqBody: false, // Disable request body logging
@@ -79,6 +80,26 @@ async function bootstrap() {
       },
     },
   });
+
+  // Patch ServerResponse.prototype.send() AFTER morgan-body to catch ERR_HTTP_HEADERS_SENT errors
+  // morgan-body wraps ServerResponse.prototype.send, so we wrap its wrapper to suppress errors
+  const http = require('http');
+  const morganWrappedSend = http.ServerResponse.prototype.send;
+  
+  http.ServerResponse.prototype.send = function (body?: any) {
+    try {
+      return morganWrappedSend.call(this, body);
+    } catch (err: any) {
+      // Suppress ERR_HTTP_HEADERS_SENT errors from morgan-body's wrapper
+      // This happens when headers are already sent (e.g., by exception filter or other middleware)
+      if (err?.code === 'ERR_HTTP_HEADERS_SENT' || err?.message?.includes('headers')) {
+        // Headers already sent, response was already handled - just return response object
+        return this;
+      }
+      // Re-throw other errors
+      throw err;
+    }
+  };
 
   // Configure message queue (RabbitMQ or in-memory)
   const queueType = config.get<string>('queue.type') || 'memory';
