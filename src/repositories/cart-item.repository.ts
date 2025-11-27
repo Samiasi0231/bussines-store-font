@@ -4,14 +4,27 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { CartItem } from '../entities/cart-item.entity';
 import { UUID } from 'crypto';
 
+// Force extract UUID string - handles all cases
+function ensureUuidString(value: any): string {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object') {
+    if (value.id) {
+      const id = value.id;
+      return typeof id === 'string' ? id : ensureUuidString(id);
+    }
+  }
+  return String(value);
+}
+
 export class CartItemRepository extends EntityRepository<CartItem> {
   constructor(@InjectRepository(CartItem) repo: Repository<CartItem>) {
     super(repo);
   }
 
   async findByCartId(cartId: UUID) {
+    const cartIdString = ensureUuidString(cartId);
     return this.find({
-      where: { cart: { id: cartId } as any },
+      where: { cart: { id: cartIdString } as any },
       relations: ['product', 'productVariant', 'productVariant.attributes'],
       order: {
         createdAt: 'ASC',
@@ -25,13 +38,17 @@ export class CartItemRepository extends EntityRepository<CartItem> {
     productId: UUID,
     productVariantId?: UUID,
   ) {
+    const cartIdString = ensureUuidString(cartId);
+    const productIdString = ensureUuidString(productId);
+    const productVariantIdString = productVariantId ? ensureUuidString(productVariantId) : undefined;
+
     const where: any = {
-      cart: { id: cartId } as any,
-      product: { id: productId } as any,
+      cart: { id: cartIdString } as any,
+      product: { id: productIdString } as any,
     };
 
-    if (productVariantId) {
-      where.productVariant = { id: productVariantId } as any;
+    if (productVariantIdString) {
+      where.productVariant = { id: productVariantIdString } as any;
     } else {
       where.productVariant = null;
     }
@@ -44,7 +61,8 @@ export class CartItemRepository extends EntityRepository<CartItem> {
   }
 
   async softDeleteByCartId(cartId: UUID) {
-    const items = await this.findByCartId(cartId);
+    const cartIdString = ensureUuidString(cartId);
+    const items = await this.findByCartId(cartIdString as UUID);
     for (const item of items) {
       await this.softDeleteById(item.id);
     }

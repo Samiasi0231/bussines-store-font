@@ -96,13 +96,14 @@ export class CartService {
       }
     }
 
-    // Get or create cart (repository ensures cart.id is always a string)
+    // Get or create cart
     const cart = await this.cartRepository.findOrCreateByUserId(userIdString as UUID);
-    const cartId = cart.id as UUID; // Now guaranteed to be a string UUID
+    // Extract cart ID as string (repository methods will also extract, but be explicit here)
+    const cartId = typeof cart.id === 'string' ? cart.id : (cart.id as any)?.id || String(cart.id);
 
-    // Check if item already exists in cart
+    // Check if item already exists in cart (repository will extract again for safety)
     const existingItem = await this.cartItemRepository.findByCartIdAndProductId(
-      cartId,
+      cartId as UUID,
       productId,
       productVariantId,
     );
@@ -188,8 +189,8 @@ export class CartService {
     cartItem.quantity = quantity;
     await this.cartItemRepository.save(cartItem);
 
-    // Get cart ID (now guaranteed to be string)
-    const cartId = cart.id as UUID;
+    // Extract cart ID as string
+    const cartId = typeof cart.id === 'string' ? cart.id : (cart.id as any)?.id || String(cart.id);
 
     // Reload cart
     const updatedCart = await this.cartRepository.findById(cartId, {
@@ -239,8 +240,8 @@ export class CartService {
 
     await this.cartItemRepository.softDeleteById(cartItem.id);
 
-    // Get cart ID (now guaranteed to be string)
-    const cartId = cart.id as UUID;
+    // Extract cart ID as string
+    const cartId = typeof cart.id === 'string' ? cart.id : (cart.id as any)?.id || String(cart.id);
 
     // Reload cart
     const updatedCart = await this.cartRepository.findById(cartId, {
@@ -271,9 +272,9 @@ export class CartService {
       );
     }
 
-    // Get cart ID (guaranteed to be string from repository)
-    const cartId = cart.id as UUID;
-    await this.cartItemRepository.softDeleteByCartId(cartId);
+    // Extract cart ID as string
+    const cartId = typeof cart.id === 'string' ? cart.id : (cart.id as any)?.id || String(cart.id);
+    await this.cartItemRepository.softDeleteByCartId(cartId as UUID);
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
@@ -315,14 +316,14 @@ export class CartService {
       };
     });
 
-    // Get cart ID (guaranteed to be string from repository)
-    const cartId = cart.id as UUID;
+    // Extract cart ID as string
+    const cartId = typeof cart.id === 'string' ? cart.id : (cart.id as any)?.id || String(cart.id);
 
     // Create order from cart
     const createOrderDTO: CreateOrderDTO = {
       items: orderItems,
       userId: userIdString as UUID,
-      cartId: cartId, // Link cart to order
+      cartId: cartId as UUID, // Link cart to order
       couponId: payload.couponId,
       note: payload.note,
       shippingAddress: payload.shippingAddress as OrderShippingAddressDTO,
