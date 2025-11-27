@@ -23,14 +23,15 @@ export class CartItemRepository extends EntityRepository<CartItem> {
 
   async findByCartId(cartId: UUID) {
     const cartIdString = ensureUuidString(cartId);
-    return this.find({
-      where: { cart: { id: cartIdString } as any },
-      relations: ['product', 'productVariant', 'productVariant.attributes'],
-      order: {
-        createdAt: 'ASC',
-      },
-      withDeleted: false, // Exclude soft-deleted items
-    });
+
+    return this.createQueryBuilder('cartItem')
+      .leftJoinAndSelect('cartItem.product', 'product')
+      .leftJoinAndSelect('cartItem.productVariant', 'productVariant')
+      .leftJoinAndSelect('productVariant.attributes', 'productVariantAttributes')
+      .where('cartItem.cart_id = :cartId', { cartId: cartIdString })
+      .andWhere('cartItem.deleted_at IS NULL')
+      .orderBy('cartItem.created_at', 'ASC')
+      .getMany();
   }
 
   async findByCartIdAndProductId(
@@ -40,24 +41,27 @@ export class CartItemRepository extends EntityRepository<CartItem> {
   ) {
     const cartIdString = ensureUuidString(cartId);
     const productIdString = ensureUuidString(productId);
-    const productVariantIdString = productVariantId ? ensureUuidString(productVariantId) : undefined;
+    const productVariantIdString = productVariantId
+      ? ensureUuidString(productVariantId)
+      : null;
 
-    const where: any = {
-      cart: { id: cartIdString } as any,
-      product: { id: productIdString } as any,
-    };
+    const query = this.createQueryBuilder('cartItem')
+      .leftJoinAndSelect('cartItem.product', 'product')
+      .leftJoinAndSelect('cartItem.productVariant', 'productVariant')
+      .leftJoinAndSelect('productVariant.attributes', 'productVariantAttributes')
+      .where('cartItem.cart_id = :cartId', { cartId: cartIdString })
+      .andWhere('cartItem.product_id = :productId', { productId: productIdString })
+      .andWhere('cartItem.deleted_at IS NULL');
 
     if (productVariantIdString) {
-      where.productVariant = { id: productVariantIdString } as any;
+      query.andWhere('cartItem.product_variant_id = :variantId', {
+        variantId: productVariantIdString,
+      });
     } else {
-      where.productVariant = null;
+      query.andWhere('cartItem.product_variant_id IS NULL');
     }
 
-    return this.findOne({
-      where,
-      relations: ['product', 'productVariant', 'productVariant.attributes'],
-      withDeleted: false, // Exclude soft-deleted items
-    });
+    return query.getOne();
   }
 
   async softDeleteByCartId(cartId: UUID) {
