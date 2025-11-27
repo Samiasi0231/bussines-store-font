@@ -7,7 +7,7 @@ import config from '../config/app.config';
 const { db } = config();
 
 // Convert env string 'true'/'false' to actual boolean
-const synchronize = db.synchronize === 'true';
+// const synchronize = db.synchronize === 'true';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
