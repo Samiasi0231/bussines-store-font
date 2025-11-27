@@ -46,11 +46,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       avatar,
     } = (await this.userService.getCachedUserData(userId)) || {};
 
-    await this.tokenService.verifyToken(hashedAccessToken, token);
+    if (!hashedAccessToken) {
+      throw new ForbiddenException(ErrorMessage.ACCESS_DENIED);
+    }
 
     const match = await this.tokenService.verifyToken(hashedAccessToken, token);
 
-    if (!match) throw new ForbiddenException(ErrorMessage.ACCESS_DENIED);
+    if (!match) {
+      throw new ForbiddenException(ErrorMessage.ACCESS_DENIED);
+    }
 
     return {
       ...payload,
