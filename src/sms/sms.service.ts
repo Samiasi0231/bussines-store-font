@@ -1,7 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import axios from 'axios';
 import config from '../@common/config/app.config';
-import { RedisService } from '../../redis/redis.service';
+import { CacheService } from '../@common/cache/cache.service';
 
 @Injectable()
 export class SmsService {
@@ -12,7 +12,7 @@ export class SmsService {
   private readonly otpTtl: number;
   private readonly otpLength: number;
 
-  constructor(private redisService: RedisService) {
+  constructor(private cacheService: CacheService) {
     const appConfig = config();
     const vasBb = appConfig.vasBb;
 
@@ -40,7 +40,7 @@ export class SmsService {
 
     const otp = this.generateOtp();
 
-    await this.redisService.set(`otp:${recipients[0]}`, otp, this.otpTtl);
+    await this.cacheService.set(`otp:${recipients[0]}`, otp, this.otpTtl);
 
     const messageText = `Your Bizvantage OTP is ${otp}. It expires in ${this.otpTtl / 60} minutes.`;
 
