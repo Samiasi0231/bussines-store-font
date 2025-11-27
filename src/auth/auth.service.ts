@@ -127,12 +127,16 @@ export class AuthService {
     const { accessToken, hashedAccessToken } =
       await this.tokenService.generateJWTToken(userId);
 
+    // Get JWT expiration in seconds to match cache TTL with token expiration
+    const jwtExpirationSeconds = this.tokenService.getJwtExpirationInSeconds();
+
     await this.userService.cacheUserData(
       {
         ...user,
         hashedAccessToken,
       } as any,
       kyc,
+      jwtExpirationSeconds, // Cache TTL matches JWT expiration
     );
 
     const data = {
