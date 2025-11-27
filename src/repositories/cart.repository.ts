@@ -11,7 +11,7 @@ export class CartRepository extends EntityRepository<Cart> {
 
   async findByUserId(userId: UUID) {
     return this.findOne({
-      where: { user: { id: userId } as any },
+      where: { user: userId as any },
       relations: [
         'items',
         'items.product',
@@ -31,7 +31,7 @@ export class CartRepository extends EntityRepository<Cart> {
     const now = new Date();
     const cart = await this.findOne({
       where: {
-        user: { id: userId } as any,
+        user: userId as any,
       },
       relations:
         options?.relations || [

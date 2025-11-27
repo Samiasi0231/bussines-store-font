@@ -44,11 +44,13 @@ export class CartService {
   ) {}
 
   async getCart(userId: UUID): Promise<IResponse<FormattedCart>> {
-    const cart = await this.cartRepository.findActiveCartByUserId(userId);
+    // Ensure userId is a string UUID, not an object
+    const userIdString = typeof userId === 'string' ? userId : (userId as any)?.id || userId;
+    const cart = await this.cartRepository.findActiveCartByUserId(userIdString as UUID);
 
     if (!cart) {
       // Create empty cart if none exists
-      const newCart = await this.cartRepository.findOrCreateByUserId(userId);
+      const newCart = await this.cartRepository.findOrCreateByUserId(userIdString as UUID);
       const formatted = this.cartSanitizer.formatCart(newCart);
       return this.responseService.sendSuccess(
         SuccessMessage.OPERATION_SUCCESSFUL,
@@ -67,6 +69,8 @@ export class CartService {
     userId: UUID,
     payload: AddCartItemDTO,
   ): Promise<IResponse<FormattedCart>> {
+    // Ensure userId is a string UUID, not an object
+    const userIdString = typeof userId === 'string' ? userId : (userId as any)?.id || userId;
     const { productId, productVariantId, quantity } = payload;
 
     // Verify product exists
@@ -90,7 +94,7 @@ export class CartService {
     }
 
     // Get or create cart
-    const cart = await this.cartRepository.findOrCreateByUserId(userId);
+    const cart = await this.cartRepository.findOrCreateByUserId(userIdString as UUID);
 
     // Check if item already exists in cart
     const existingItem = await this.cartItemRepository.findByCartIdAndProductId(
@@ -147,6 +151,8 @@ export class CartService {
     userId: UUID,
     payload: UpdateCartItemDTO,
   ): Promise<IResponse<FormattedCart>> {
+    // Ensure userId is a string UUID, not an object
+    const userIdString = typeof userId === 'string' ? userId : (userId as any)?.id || userId;
     const { cartItemId, quantity } = payload;
 
     const cartItem = await this.cartItemRepository.findById(cartItemId, {
@@ -158,7 +164,10 @@ export class CartService {
     }
 
     const cart = cartItem.cart as Cart;
-    if ((cart.user as any).id !== userId) {
+    const cartUserId = typeof (cart.user as any) === 'string' 
+      ? (cart.user as any) 
+      : (cart.user as any)?.id;
+    if (cartUserId !== userIdString) {
       throw new BadRequestException(ErrorMessage.ACCESS_DENIED);
     }
 
@@ -191,6 +200,8 @@ export class CartService {
     userId: UUID,
     payload: RemoveCartItemDTO,
   ): Promise<IResponse<FormattedCart>> {
+    // Ensure userId is a string UUID, not an object
+    const userIdString = typeof userId === 'string' ? userId : (userId as any)?.id || userId;
     const { cartItemId } = payload;
 
     const cartItem = await this.cartItemRepository.findById(cartItemId, {
@@ -202,7 +213,10 @@ export class CartService {
     }
 
     const cart = cartItem.cart as Cart;
-    if ((cart.user as any).id !== userId) {
+    const cartUserId = typeof (cart.user as any) === 'string' 
+      ? (cart.user as any) 
+      : (cart.user as any)?.id;
+    if (cartUserId !== userIdString) {
       throw new BadRequestException(ErrorMessage.ACCESS_DENIED);
     }
 
@@ -226,7 +240,9 @@ export class CartService {
   }
 
   async clearCart(userId: UUID): Promise<IResponse<{ message: string }>> {
-    const cart = await this.cartRepository.findActiveCartByUserId(userId);
+    // Ensure userId is a string UUID, not an object
+    const userIdString = typeof userId === 'string' ? userId : (userId as any)?.id || userId;
+    const cart = await this.cartRepository.findActiveCartByUserId(userIdString as UUID);
 
     if (!cart) {
       return this.responseService.sendSuccess(
@@ -247,7 +263,9 @@ export class CartService {
     userId: UUID,
     payload: CheckoutCartDTO,
   ): Promise<IResponse<any>> {
-    const cart = await this.cartRepository.findActiveCartByUserId(userId);
+    // Ensure userId is a string UUID, not an object
+    const userIdString = typeof userId === 'string' ? userId : (userId as any)?.id || userId;
+    const cart = await this.cartRepository.findActiveCartByUserId(userIdString as UUID);
 
     if (!cart || !cart.items || cart.items.length === 0) {
       throw new BadRequestException('Cart is empty');
@@ -278,7 +296,7 @@ export class CartService {
     // Create order from cart
     const createOrderDTO: CreateOrderDTO = {
       items: orderItems,
-      userId,
+      userId: userIdString as UUID,
       cartId: cart.id, // Link cart to order
       couponId: payload.couponId,
       note: payload.note,
