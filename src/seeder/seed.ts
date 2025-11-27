@@ -2,10 +2,20 @@ import { AppModule } from '../app.module';
 import { NestFactory } from '@nestjs/core';
 import { SEEDERS } from './seeder.module';
 import { Logger } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 
 const Seeder = {
   async appRun() {
     const app = await NestFactory.createApplicationContext(AppModule);
+
+    // Wait for database connection and synchronization to complete
+    const dataSource = app.get(DataSource);
+    if (!dataSource.isInitialized) {
+      await dataSource.initialize();
+    }
+
+    // Give TypeORM a moment to complete synchronization if enabled
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     return {
       app,

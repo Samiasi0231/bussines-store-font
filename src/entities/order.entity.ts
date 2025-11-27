@@ -18,6 +18,7 @@ import { Address } from './address.entity';
 import { BaseEntity } from './base.entity';
 import { OrderCoupon } from './order-coupon.entity';
 import { InStoreOrderDTO } from '../orders/dtos/order.dto';
+import { Cart } from './cart.entity';
 
 export const OrderStatus = [
   Status.SHIPPED,
@@ -142,4 +143,10 @@ export class Order extends BaseEntity {
 
   @Column({ name: 'in_store_order', type: 'bool', default: false })
   inStoreOrder?: boolean;
+
+  @Index()
+  @Column({ type: 'uuid', name: 'cart_id', nullable: true })
+  @ManyToOne(() => Cart, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'cart_id' })
+  cart?: Cart | UUID;
 }

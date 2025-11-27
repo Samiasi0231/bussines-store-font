@@ -164,6 +164,10 @@ export class OrdersService {
       );
       order.paymentStatus = paymentStatus;
       order.paymentReference = paymentReference;
+      // Link cart to order if provided
+      if (payload.cartId) {
+        order.cart = payload.cartId as any;
+      }
       entityManager.save(order);
 
       let generalDiscountAmount = 0;

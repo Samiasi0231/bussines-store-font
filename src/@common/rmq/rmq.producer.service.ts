@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
-
-import { AmqpClient } from './amqp-client';
+import { MessageQueueService } from './message-queue.service';
 import { RmqQueue } from '../constants/queues.constant';
 
 @Injectable()
 export class RmqProducerService {
-  constructor(private readonly amqpClient: AmqpClient) {}
+  constructor(private readonly messageQueueService: MessageQueueService) {}
 
   async publish(queueName: RmqQueue, payload: any) {
-    await this.amqpClient.produce(queueName, payload);
+    await this.messageQueueService.publish(queueName, payload);
   }
 }

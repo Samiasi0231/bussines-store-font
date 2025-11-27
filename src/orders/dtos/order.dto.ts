@@ -125,6 +125,10 @@ export class CreateOrderDTO {
   email?: string;
 
   @IsOptional()
+  @IsUUID()
+  cartId?: UUID;
+
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
   note?: string;

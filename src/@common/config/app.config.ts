@@ -6,7 +6,10 @@ export default () => ({
     host: process.env.DB_HOST,
     port: parseInt(process.env.DB_PORT, 10),
     connectionLimit: process.env.DB_CONNECTION_LIMIT,
-    synchronize: process.env.DB_SYNCHRONIZATION || 'false',
+    connectionString: `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
+    retryAttempts: parseInt(process.env.DB_RETRY_ATTEMPTS || '5', 10),
+    retryDelay: parseInt(process.env.DB_RETRY_DELAY || '3000', 10), // milliseconds
+    synchronize: process.env.DB_SYNCHRONIZE === 'true', // Only for development - NEVER in production
   },
   jwt: {
     secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key',
@@ -24,14 +27,14 @@ export default () => ({
       cac: '/v1/kyc/cac/basic?rc_number=',
     },
   },
-aws: {
-  region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  bucketName: process.env.AWS_BUCKET_NAME,
-  defaultFolder: process.env.UPLOAD_DEFAULT_FOLDER || 'uploads',
-  maxFileSize: parseInt(process.env.MAX_UPLOAD_FILE_SIZE, 10) || 52428800,
-},
+  aws: {
+    region: process.env.AWS_REGION,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    bucketName: process.env.AWS_BUCKET_NAME,
+    defaultFolder: process.env.UPLOAD_DEFAULT_FOLDER || 'uploads',
+    maxFileSize: parseInt(process.env.MAX_UPLOAD_FILE_SIZE, 10) || 52428800,
+  },
   smtp: {
     password: process.env.SMTP_PASSWORD,
     host: process.env.SMTP_HOST,
@@ -59,5 +62,18 @@ aws: {
     ttlSeconds: Number(process.env.OTP_TTL_SECONDS || 300),
     length: Number(process.env.OTP_LENGTH || 6),
   },
-
+  cache: {
+    type: process.env.CACHE_TYPE || 'memory', // 'memory' or 'redis'
+    redis: {
+      enabled: process.env.REDIS_ENABLED === 'true',
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    },
+  },
+  queue: {
+    type: process.env.QUEUE_TYPE || 'memory', // 'memory' or 'rabbitmq'
+    rabbitmq: {
+      enabled: process.env.RABBITMQ_ENABLED === 'true',
+    },
+  },
 });

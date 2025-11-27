@@ -12,8 +12,8 @@ import {
   CreateInvoiceUserDTO,
   GetInvoiceUsersDTO,
 } from '../dtos/invoice-user.dto';
-import { InvoiceUserSanitizer } from '../santizers/invoice-user.sanitizer';
-import { InvoiceUser } from '../../entities/incoice-user.entity';
+import { InvoiceUserSanitizer } from '../sanitizers/invoice-user.sanitizer';
+import { InvoiceUser } from '../../entities/invoice-user.entity';
 
 @Injectable()
 export class InvoiceUserService {

@@ -14,10 +14,14 @@ export class AmqpClient {
   private connectionUrl: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.connectionUrl = this.configService.get<string>('rmq.url');
+    this.connectionUrl = this.configService.get<string>('AMQP_URL') || '';
   }
 
   async onModuleInit() {
+    if (!this.connectionUrl) {
+      Logger.warn('AMQP_URL not configured, AmqpClient will not be available');
+      return;
+    }
     await this.initConnection('server');
   }
 
@@ -32,6 +36,9 @@ export class AmqpClient {
    * Get socket options that match this client's connection settings
    */
   getSocketOptions() {
+    if (!this.connectionUrl) {
+      throw new Error('AMQP_URL not configured');
+    }
     const { hostname } = new URL(this.connectionUrl);
     return {
       clientProperties: {
@@ -42,6 +49,10 @@ export class AmqpClient {
   }
 
   async initConnection(connectionName?: string) {
+    if (!this.connectionUrl) {
+      Logger.warn('AMQP_URL not configured, cannot initialize connection');
+      return;
+    }
     const url = this.connectionUrl;
     if (!this.conn) {
       const { hostname } = new URL(url);
@@ -55,6 +66,9 @@ export class AmqpClient {
   }
 
   public async getProducerChannel(): Promise<amqplib.Channel> {
+    if (!this.connectionUrl || !this.conn) {
+      throw new Error('AMQP connection not initialized');
+    }
     if (!this.producerChannel) {
       this.producerChannel = await this.conn.createChannel();
     }
@@ -67,6 +81,10 @@ export class AmqpClient {
     queueOptions?: amqplib.Options.AssertQueue,
     messageOptions?: amqplib.Options.Publish,
   ): Promise<void> {
+    if (!this.connectionUrl) {
+      Logger.warn('AMQP_URL not configured, cannot produce message');
+      return;
+    }
     await this.initConnection();
     this.producerChannel = await this.getProducerChannel();
     await this.producerChannel.assertQueue(queue, {
