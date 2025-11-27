@@ -50,6 +50,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
       };
     }
 
-    response.status(exceptionResponse.status).json(exceptionResponse);
+    // Try to send response, catch any header-related errors from middleware interference
+    try {
+      response.status(exceptionResponse.status).json(exceptionResponse);
+    } catch (err: any) {
+      // If headers were sent by middleware (e.g., morgan-body) before we could send,
+      // log the error but don't throw - the response was already sent
+      if (err?.code === 'ERR_HTTP_HEADERS_SENT') {
+        Logger.warn('Response headers already sent, likely by middleware. Exception was logged above.');
+      } else {
+        // Re-throw if it's a different error
+        throw err;
+      }
+    }
   }
 }

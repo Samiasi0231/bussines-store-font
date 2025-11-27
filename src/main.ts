@@ -60,14 +60,16 @@ async function bootstrap() {
   const LOG_FIELDS_TO_HIDE =
     config.get<string>('LOG_FIELDS_TO_HIDE')?.split(',') || [];
 
-  // TODO: Properly configure morgan-body to avoid interfering with exception filter
-  // For now, skip error responses to prevent ERR_HTTP_HEADERS_SENT errors
+  // Configure morgan-body to avoid interfering with exception filter
+  // Disable response body logging to prevent wrapping response.send() which causes ERR_HTTP_HEADERS_SENT
   (morgan as any)(app.getHttpAdapter().getInstance(), {
     prettify: false,
     filterParameters: LOG_FIELDS_TO_HIDE,
+    logReqBody: false, // Disable request body logging
+    logResBody: false, // Disable response body logging - this prevents wrapping response.send()
     skip: (req: any, res: any) => {
-      // Skip logging if headers have already been sent to prevent conflicts with exception filter
-      return res.headersSent || res.statusCode >= 400;
+      // Skip logging if headers have already been sent
+      return res.headersSent;
     },
     stream: {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
