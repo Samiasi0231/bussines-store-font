@@ -9,11 +9,13 @@ import { CartRepository } from '../repositories/cart.repository';
 import { CartItemRepository } from '../repositories/cart-item.repository';
 import { ProductRepository } from '../repositories/product.repository';
 import { ProductVariantRepository } from '../repositories/product-variant.repository';
+import { Product } from '../entities/product.entity';
+import { ProductVariant } from '../entities/product-variant.entity';
 import { OrdersModule } from '../orders/orders.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Cart, CartItem]),
+    TypeOrmModule.forFeature([Cart, CartItem, Product, ProductVariant]),
     OrdersModule,
   ],
   controllers: [CartController],
