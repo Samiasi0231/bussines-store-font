@@ -11,6 +11,11 @@ export class CacheService {
       port: this.configService.getOrThrow('REDIS_PORT'),
       host: this.configService.getOrThrow('REDIS_HOST'),
     };
+//     const options = {
+//   port: Number(this.configService.get('REDIS_PORT') ?? 6379),
+//   host: this.configService.get('REDIS_HOST') ?? '127.0.0.1',
+// };
+
     this.cache = new Redis(options);
   }
 

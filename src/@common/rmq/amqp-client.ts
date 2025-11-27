@@ -14,7 +14,7 @@ export class AmqpClient {
   private connectionUrl: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.connectionUrl = this.configService.get<string>('AMQP_URL');
+    this.connectionUrl = this.configService.get<string>('rmq.url');
   }
 
   async onModuleInit() {
