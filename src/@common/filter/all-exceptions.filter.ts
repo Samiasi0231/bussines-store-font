@@ -9,6 +9,20 @@ import {
 import { IResponse } from '../response';
 import { ErrorMessage } from '../constants/message.constant';
 
+// Helper function to safely serialize objects and avoid circular references
+function safeStringify(obj: any): string {
+  const seen = new WeakSet();
+  return JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) {
+        return '[Circular]';
+      }
+      seen.add(value);
+    }
+    return value;
+  });
+}
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: any, host: ArgumentsHost): void {
@@ -17,11 +31,33 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const { status } = exception;
     const error = exception?.message;
 
+    // Safely serialize exception to avoid circular reference errors
+    const safeException = {
+      name: exception?.name,
+      message: exception?.message,
+      stack: exception?.stack,
+      status: exception?.status,
+      response: exception?.response,
+      // Only include query/parameters if they exist and are serializable
+      ...(exception?.query && { query: exception.query }),
+      ...(exception?.parameters && { 
+        parameters: Array.isArray(exception.parameters) 
+          ? exception.parameters.map((p: any) => {
+              // Safely serialize parameters, extracting id if it's an object
+              if (p && typeof p === 'object' && p.id) {
+                return { id: typeof p.id === 'string' ? p.id : p.id?.id || p.id };
+              }
+              return p;
+            })
+          : exception.parameters 
+      }),
+    };
+
     Logger.error({
       name: exception?.name,
       errorMessage: exception?.message,
       stack: exception?.stack,
-      raw: exception,
+      raw: safeException,
     });
 
     // Check if headers have already been sent to avoid ERR_HTTP_HEADERS_SENT error
@@ -59,7 +95,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
         return;
       }
       
-      response.status(exceptionResponse.status).json(exceptionResponse);
+      // Ensure the response object is safe to serialize (no circular references)
+      const safeResponse = JSON.parse(safeStringify(exceptionResponse));
+      response.status(exceptionResponse.status).json(safeResponse);
     } catch (err: any) {
       // If headers were sent by middleware (e.g., morgan-body) before we could send,
       // log the error but don't throw - the response was already sent

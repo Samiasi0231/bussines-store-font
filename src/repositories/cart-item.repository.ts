@@ -10,8 +10,12 @@ export class CartItemRepository extends EntityRepository<CartItem> {
   }
 
   async findByCartId(cartId: UUID) {
+    // Extract UUID string from potentially object value
+    const cartIdString = typeof cartId === 'string' 
+      ? cartId 
+      : (cartId as any)?.id || cartId;
     return this.find({
-      where: { cart: { id: cartId } as any },
+      where: { cart: { id: cartIdString } as any },
       relations: ['product', 'productVariant', 'productVariant.attributes'],
       order: {
         createdAt: 'ASC',
@@ -25,13 +29,26 @@ export class CartItemRepository extends EntityRepository<CartItem> {
     productId: UUID,
     productVariantId?: UUID,
   ) {
+    // Extract UUID strings from potentially object values
+    const cartIdString = typeof cartId === 'string' 
+      ? cartId 
+      : (cartId as any)?.id || cartId;
+    const productIdString = typeof productId === 'string' 
+      ? productId 
+      : (productId as any)?.id || productId;
+    const productVariantIdString = productVariantId 
+      ? (typeof productVariantId === 'string' 
+          ? productVariantId 
+          : (productVariantId as any)?.id || productVariantId)
+      : undefined;
+
     const where: any = {
-      cart: { id: cartId } as any,
-      product: { id: productId } as any,
+      cart: { id: cartIdString } as any,
+      product: { id: productIdString } as any,
     };
 
-    if (productVariantId) {
-      where.productVariant = { id: productVariantId } as any;
+    if (productVariantIdString) {
+      where.productVariant = { id: productVariantIdString } as any;
     } else {
       where.productVariant = null;
     }
@@ -44,7 +61,11 @@ export class CartItemRepository extends EntityRepository<CartItem> {
   }
 
   async softDeleteByCartId(cartId: UUID) {
-    const items = await this.findByCartId(cartId);
+    // Extract UUID string from potentially object value
+    const cartIdString = typeof cartId === 'string' 
+      ? cartId 
+      : (cartId as any)?.id || cartId;
+    const items = await this.findByCartId(cartIdString as UUID);
     for (const item of items) {
       await this.softDeleteById(item.id);
     }

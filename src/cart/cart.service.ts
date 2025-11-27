@@ -96,11 +96,24 @@ export class CartService {
     // Get or create cart
     const cart = await this.cartRepository.findOrCreateByUserId(userIdString as UUID);
 
+    // Extract UUID strings from potentially object values
+    const cartIdString = typeof cart.id === 'string' 
+      ? cart.id 
+      : (cart.id as any)?.id || cart.id;
+    const productIdString = typeof productId === 'string' 
+      ? productId 
+      : (productId as any)?.id || productId;
+    const productVariantIdString = productVariantId 
+      ? (typeof productVariantId === 'string' 
+          ? productVariantId 
+          : (productVariantId as any)?.id || productVariantId)
+      : undefined;
+
     // Check if item already exists in cart
     const existingItem = await this.cartItemRepository.findByCartIdAndProductId(
-      cart.id,
-      productId,
-      productVariantId,
+      cartIdString as UUID,
+      productIdString as UUID,
+      productVariantIdString as UUID,
     );
 
     let unitPrice = product.sellingPrice;
@@ -121,9 +134,9 @@ export class CartService {
     } else {
       // Create new cart item
       const cartItem = this.cartItemRepository.create({
-        cart: cart.id as any,
-        product: productId as any,
-        productVariant: productVariantId ? (productVariantId as any) : null,
+        cart: cartIdString as any,
+        product: productIdString as any,
+        productVariant: productVariantIdString ? (productVariantIdString as any) : null,
         quantity,
         unitPrice,
       });
@@ -131,7 +144,7 @@ export class CartService {
     }
 
     // Reload cart with items
-    const updatedCart = await this.cartRepository.findById(cart.id, {
+    const updatedCart = await this.cartRepository.findById(cartIdString, {
       relations: [
         'items',
         'items.product',
@@ -179,8 +192,13 @@ export class CartService {
     cartItem.quantity = quantity;
     await this.cartItemRepository.save(cartItem);
 
+    // Extract UUID string from cart.id
+    const cartIdString = typeof cart.id === 'string' 
+      ? cart.id 
+      : (cart.id as any)?.id || cart.id;
+
     // Reload cart
-    const updatedCart = await this.cartRepository.findById(cart.id, {
+    const updatedCart = await this.cartRepository.findById(cartIdString, {
       relations: [
         'items',
         'items.product',
@@ -222,8 +240,13 @@ export class CartService {
 
     await this.cartItemRepository.softDeleteById(cartItem.id);
 
+    // Extract UUID string from cart.id
+    const cartIdString = typeof cart.id === 'string' 
+      ? cart.id 
+      : (cart.id as any)?.id || cart.id;
+
     // Reload cart
-    const updatedCart = await this.cartRepository.findById(cart.id, {
+    const updatedCart = await this.cartRepository.findById(cartIdString, {
       relations: [
         'items',
         'items.product',
@@ -251,7 +274,11 @@ export class CartService {
       );
     }
 
-    await this.cartItemRepository.softDeleteByCartId(cart.id);
+    // Extract UUID string from cart.id
+    const cartIdString = typeof cart.id === 'string' 
+      ? cart.id 
+      : (cart.id as any)?.id || cart.id;
+    await this.cartItemRepository.softDeleteByCartId(cartIdString as UUID);
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
@@ -293,11 +320,16 @@ export class CartService {
       };
     });
 
+    // Extract UUID string from cart.id
+    const cartIdString = typeof cart.id === 'string' 
+      ? cart.id 
+      : (cart.id as any)?.id || cart.id;
+
     // Create order from cart
     const createOrderDTO: CreateOrderDTO = {
       items: orderItems,
       userId: userIdString as UUID,
-      cartId: cart.id, // Link cart to order
+      cartId: cartIdString, // Link cart to order
       couponId: payload.couponId,
       note: payload.note,
       shippingAddress: payload.shippingAddress as OrderShippingAddressDTO,
@@ -313,7 +345,7 @@ export class CartService {
 
     // Soft delete cart items after successful order creation (paranoid delete)
     if (orderResult.success) {
-      await this.cartItemRepository.softDeleteByCartId(cart.id);
+      await this.cartItemRepository.softDeleteByCartId(cartIdString as UUID);
     }
 
     return orderResult;
