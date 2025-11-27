@@ -19,7 +19,7 @@ import { VerificationModule } from '../verification/verification.module';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('jwt.secret'),
         signOptions: {
-          expiresIn: Number(configService.get('jwt.expiresIn')),
+          expiresIn: (configService.get<string | number>('jwt.expiresIn') || '24h') as any,
         },
       }),
     }),
