@@ -88,32 +88,23 @@ export class CartService {
     let variant: ProductVariant | null = null;
     if (productVariantId) {
       variant = await this.productVariantRepository.findById(productVariantId);
-      if (!variant || (variant.product as any).id !== productId) {
+      const variantProductId = typeof (variant?.product as any)?.id === 'string' 
+        ? (variant?.product as any).id 
+        : (variant?.product as any)?.id?.id || (variant?.product as any)?.id;
+      if (!variant || variantProductId !== productId) {
         throw new NotFoundException(ErrorMessage.NOT_FOUND('Product variant'));
       }
     }
 
-    // Get or create cart
+    // Get or create cart (repository ensures cart.id is always a string)
     const cart = await this.cartRepository.findOrCreateByUserId(userIdString as UUID);
-
-    // Extract UUID strings from potentially object values
-    const cartIdString = typeof cart.id === 'string' 
-      ? cart.id 
-      : (cart.id as any)?.id || cart.id;
-    const productIdString = typeof productId === 'string' 
-      ? productId 
-      : (productId as any)?.id || productId;
-    const productVariantIdString = productVariantId 
-      ? (typeof productVariantId === 'string' 
-          ? productVariantId 
-          : (productVariantId as any)?.id || productVariantId)
-      : undefined;
+    const cartId = cart.id as UUID; // Now guaranteed to be a string UUID
 
     // Check if item already exists in cart
     const existingItem = await this.cartItemRepository.findByCartIdAndProductId(
-      cartIdString as UUID,
-      productIdString as UUID,
-      productVariantIdString as UUID,
+      cartId,
+      productId,
+      productVariantId,
     );
 
     let unitPrice = product.sellingPrice;
@@ -134,9 +125,9 @@ export class CartService {
     } else {
       // Create new cart item
       const cartItem = this.cartItemRepository.create({
-        cart: cartIdString as any,
-        product: productIdString as any,
-        productVariant: productVariantIdString ? (productVariantIdString as any) : null,
+        cart: cartId as any,
+        product: productId as any,
+        productVariant: productVariantId ? (productVariantId as any) : null,
         quantity,
         unitPrice,
       });
@@ -144,7 +135,7 @@ export class CartService {
     }
 
     // Reload cart with items
-    const updatedCart = await this.cartRepository.findById(cartIdString, {
+    const updatedCart = await this.cartRepository.findById(cartId, {
       relations: [
         'items',
         'items.product',
@@ -177,6 +168,11 @@ export class CartService {
     }
 
     const cart = cartItem.cart as Cart;
+    // Normalize cart.id if it came from relations
+    if (cart.id && typeof cart.id !== 'string') {
+      cart.id = (cart.id as any)?.id || String(cart.id);
+    }
+    
     const cartUserId = typeof (cart.user as any) === 'string' 
       ? (cart.user as any) 
       : (cart.user as any)?.id;
@@ -192,13 +188,11 @@ export class CartService {
     cartItem.quantity = quantity;
     await this.cartItemRepository.save(cartItem);
 
-    // Extract UUID string from cart.id
-    const cartIdString = typeof cart.id === 'string' 
-      ? cart.id 
-      : (cart.id as any)?.id || cart.id;
+    // Get cart ID (now guaranteed to be string)
+    const cartId = cart.id as UUID;
 
     // Reload cart
-    const updatedCart = await this.cartRepository.findById(cartIdString, {
+    const updatedCart = await this.cartRepository.findById(cartId, {
       relations: [
         'items',
         'items.product',
@@ -231,6 +225,11 @@ export class CartService {
     }
 
     const cart = cartItem.cart as Cart;
+    // Normalize cart.id if it came from relations
+    if (cart.id && typeof cart.id !== 'string') {
+      cart.id = (cart.id as any)?.id || String(cart.id);
+    }
+    
     const cartUserId = typeof (cart.user as any) === 'string' 
       ? (cart.user as any) 
       : (cart.user as any)?.id;
@@ -240,13 +239,11 @@ export class CartService {
 
     await this.cartItemRepository.softDeleteById(cartItem.id);
 
-    // Extract UUID string from cart.id
-    const cartIdString = typeof cart.id === 'string' 
-      ? cart.id 
-      : (cart.id as any)?.id || cart.id;
+    // Get cart ID (now guaranteed to be string)
+    const cartId = cart.id as UUID;
 
     // Reload cart
-    const updatedCart = await this.cartRepository.findById(cartIdString, {
+    const updatedCart = await this.cartRepository.findById(cartId, {
       relations: [
         'items',
         'items.product',
@@ -274,11 +271,9 @@ export class CartService {
       );
     }
 
-    // Extract UUID string from cart.id
-    const cartIdString = typeof cart.id === 'string' 
-      ? cart.id 
-      : (cart.id as any)?.id || cart.id;
-    await this.cartItemRepository.softDeleteByCartId(cartIdString as UUID);
+    // Get cart ID (guaranteed to be string from repository)
+    const cartId = cart.id as UUID;
+    await this.cartItemRepository.softDeleteByCartId(cartId);
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
@@ -320,16 +315,14 @@ export class CartService {
       };
     });
 
-    // Extract UUID string from cart.id
-    const cartIdString = typeof cart.id === 'string' 
-      ? cart.id 
-      : (cart.id as any)?.id || cart.id;
+    // Get cart ID (guaranteed to be string from repository)
+    const cartId = cart.id as UUID;
 
     // Create order from cart
     const createOrderDTO: CreateOrderDTO = {
       items: orderItems,
       userId: userIdString as UUID,
-      cartId: cartIdString, // Link cart to order
+      cartId: cartId, // Link cart to order
       couponId: payload.couponId,
       note: payload.note,
       shippingAddress: payload.shippingAddress as OrderShippingAddressDTO,
@@ -345,7 +338,7 @@ export class CartService {
 
     // Soft delete cart items after successful order creation (paranoid delete)
     if (orderResult.success) {
-      await this.cartItemRepository.softDeleteByCartId(cartIdString as UUID);
+      await this.cartItemRepository.softDeleteByCartId(cartId);
     }
 
     return orderResult;

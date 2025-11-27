@@ -10,7 +10,7 @@ export class CartRepository extends EntityRepository<Cart> {
   }
 
   async findByUserId(userId: UUID) {
-    return this.findOne({
+    const cart = await this.findOne({
       where: { user: userId as any },
       relations: [
         'items',
@@ -25,6 +25,13 @@ export class CartRepository extends EntityRepository<Cart> {
       },
       // TypeORM automatically excludes soft-deleted items when using relations
     });
+
+    // Ensure cart.id is always a string UUID (normalize after relation loading)
+    if (cart && cart.id && typeof cart.id !== 'string') {
+      cart.id = (cart.id as any)?.id || String(cart.id);
+    }
+
+    return cart;
   }
 
   async findActiveCartByUserId(userId: UUID, options?: any) {
@@ -54,6 +61,10 @@ export class CartRepository extends EntityRepository<Cart> {
       if (cart.items) {
         cart.items = cart.items.filter((item) => !item.deletedAt);
       }
+      // Ensure cart.id is always a string UUID (normalize after relation loading)
+      if (cart.id && typeof cart.id !== 'string') {
+        cart.id = (cart.id as any)?.id || String(cart.id);
+      }
       return cart;
     }
 
@@ -68,6 +79,12 @@ export class CartRepository extends EntityRepository<Cart> {
         user: userId as any,
         expiresAt: this.getDefaultExpirationDate(),
       } as any);
+    }
+
+    // Ensure cart.id is always a string UUID (like other models)
+    // This normalizes the ID after relation loading
+    if (cart && cart.id && typeof cart.id !== 'string') {
+      cart.id = (cart.id as any)?.id || String(cart.id);
     }
 
     return cart;

@@ -95,15 +95,31 @@ export class AllExceptionsFilter implements ExceptionFilter {
         return;
       }
       
-      // Ensure the response object is safe to serialize (no circular references)
-      const safeResponse = JSON.parse(safeStringify(exceptionResponse));
-      response.status(exceptionResponse.status).json(safeResponse);
+      // Send response directly - exceptionResponse is already a plain object with no circular refs
+      response.status(exceptionResponse.status).json(exceptionResponse);
     } catch (err: any) {
       // If headers were sent by middleware (e.g., morgan-body) before we could send,
       // log the error but don't throw - the response was already sent
       if (err?.code === 'ERR_HTTP_HEADERS_SENT' || err?.message?.includes('headers')) {
         Logger.warn('Response headers already sent, likely by middleware. Exception was logged above.');
         // Don't re-throw - the response was already sent by middleware
+        return;
+      } else if (err?.message?.includes('circular') || err?.message?.includes('Circular')) {
+        // If we get a circular reference error, try to send a minimal safe response
+        Logger.warn('Circular reference detected in response. Sending minimal error response.');
+        try {
+          if (!response.headersSent && !response.writableEnded) {
+            response.status(exceptionResponse.status).json({
+              status: exceptionResponse.status,
+              success: false,
+              error: ErrorMessage.AN_ERROR_OCCURRED,
+              message: ErrorMessage.AN_ERROR_OCCURRED,
+            });
+          }
+        } catch (finalErr: any) {
+          // If even that fails, just log and give up
+          Logger.error('Failed to send error response after circular reference error', finalErr?.message);
+        }
         return;
       } else {
         // Re-throw if it's a different error
