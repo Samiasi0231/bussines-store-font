@@ -20,6 +20,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RmqQueue } from '../@common/constants/queues.constant';
 import { EventPattern } from '@nestjs/microservices';
 import { Public } from '../@common/decorators/public.decorator';
+import { User } from '../@common/decorators/user.decorator';
+import { UserProfile } from '../user/interfaces/user.interface';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
@@ -32,8 +34,8 @@ export class OrdersController {
   }
 
   @Get()
-  getOrders(@Query() query: GetOrdersDTO) {
-    return this.ordersService.getOrders(query);
+  getOrders(@Query() query: GetOrdersDTO, @User() user: UserProfile) {
+    return this.ordersService.getOrders(query, user.id);
   }
 
   @Post(':id/status')

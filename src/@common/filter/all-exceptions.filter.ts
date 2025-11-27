@@ -7,12 +7,11 @@ import {
   Logger,
 } from '@nestjs/common';
 import { IResponse } from '../response';
-import { Observable } from 'rxjs';
 import { ErrorMessage } from '../constants/message.constant';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  catch(exception: any, host: ArgumentsHost): Observable<IResponse<any>> {
+  catch(exception: any, host: ArgumentsHost): void {
     let exceptionResponse: IResponse<unknown>;
     const response = host.switchToHttp().getResponse<any>();
     const { status } = exception;
@@ -24,6 +23,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
       stack: exception?.stack,
       raw: exception,
     });
+
+    // Check if headers have already been sent to avoid ERR_HTTP_HEADERS_SENT error
+    // This is a safety check in case any middleware tries to send a response
+    if (response.headersSent) {
+      // If headers are already sent, we can't send a response
+      // Just log the error and return early
+      return;
+    }
 
     if (exception instanceof HttpException) {
       const res = exception.getResponse() as any;
@@ -43,6 +50,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
       };
     }
 
-    return response.status(exceptionResponse.status).json(exceptionResponse);
+    response.status(exceptionResponse.status).json(exceptionResponse);
   }
 }

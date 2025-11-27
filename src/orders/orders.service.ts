@@ -542,7 +542,7 @@ export class OrdersService {
     );
   }
 
-  async getOrders(data: GetOrdersDTO) {
+  async getOrders(data: GetOrdersDTO, authenticatedUserId?: UUID) {
     const {
       page,
       limit,
@@ -583,8 +583,13 @@ export class OrdersService {
 
     const sortFilter = Util.parseSortParam(sort, sortFieldsMap);
 
+    // Filter by authenticated user if no user filter is provided in query
     if (users) {
       query.andWhere('user.id IN (:...users)', { users });
+    } else if (authenticatedUserId) {
+      query.andWhere('user.id = :authenticatedUserId', {
+        authenticatedUserId,
+      });
     }
 
     if (statuses?.length > 0) {
