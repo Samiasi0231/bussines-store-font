@@ -45,12 +45,9 @@ export class BusinessService {
     private readonly cacheService: CacheService,
   ) {}
 
-  async lookupCACDetails(
-    regNumber: string,
-  ): Promise<IResponse<CACLookupData>> {
-    const response = await this.kycService.identityProvider.lookupCAC(
-      regNumber,
-    );
+  async lookupCACDetails(regNumber: string): Promise<IResponse<CACLookupData>> {
+    const response =
+      await this.kycService.identityProvider.lookupCAC(regNumber);
 
     if (!response.success)
       return this.responseService.sendError(
@@ -84,17 +81,21 @@ export class BusinessService {
       this.businessSanitizer.formatBusinessData(b),
     );
 
-    return this.responseService.sendSuccess(SuccessMessage.RETRIEVE_BUSINESSES, {
-      results,
-      pagination,
-    });
+    return this.responseService.sendSuccess(
+      SuccessMessage.RETRIEVE_BUSINESSES,
+      {
+        results,
+        pagination,
+      },
+    );
   }
 
   async getBusiness(
     businessId: string,
     userId: string,
   ): Promise<IResponse<BusinessData | null>> {
-    const bId = businessId as `${string}-${string}-${string}-${string}-${string}`;
+    const bId =
+      businessId as `${string}-${string}-${string}-${string}-${string}`;
     const uId = userId as `${string}-${string}-${string}-${string}-${string}`;
 
     const business = isUUID(businessId)
@@ -112,7 +113,10 @@ export class BusinessService {
       );
 
     const data = this.businessSanitizer.formatBusinessData(business);
-    return this.responseService.sendSuccess(SuccessMessage.RETRIEVE_BUSINESS, data);
+    return this.responseService.sendSuccess(
+      SuccessMessage.RETRIEVE_BUSINESS,
+      data,
+    );
   }
 
   async addBusiness(payload: AddBusinessesDTO, userId: string) {
@@ -158,11 +162,20 @@ export class BusinessService {
         const cacProfile = (user as any)?.cacProfile ?? null;
 
         const finalDirectors =
-          directors ?? cacProfile?.directors ?? firstPrev?.extraData?.directors ?? null;
+          directors ??
+          cacProfile?.directors ??
+          firstPrev?.extraData?.directors ??
+          null;
         const finalShareholders =
-          shareholders ?? cacProfile?.shareholders ?? firstPrev?.extraData?.shareholders ?? null;
+          shareholders ??
+          cacProfile?.shareholders ??
+          firstPrev?.extraData?.shareholders ??
+          null;
         const finalTrustees =
-          trustees ?? cacProfile?.trustees ?? firstPrev?.extraData?.trustees ?? null;
+          trustees ??
+          cacProfile?.trustees ??
+          firstPrev?.extraData?.trustees ??
+          null;
         const finalAddress =
           address ?? cacProfile?.address ?? firstPrev?.addresses?.[0] ?? null;
 
@@ -183,8 +196,13 @@ export class BusinessService {
         if (cacNumber) {
           const existing = await this.businessRepository
             .withManager(entityManager)
-            .findByCacNumber(cacNumber, { lock: { mode: 'pessimistic_write' } });
-          if (existing) return this.responseService.sendError(ErrorMessage.CAC_NUMBER_TAKEN);
+            .findByCacNumber(cacNumber, {
+              lock: { mode: 'pessimistic_write' },
+            });
+          if (existing)
+            return this.responseService.sendError(
+              ErrorMessage.CAC_NUMBER_TAKEN,
+            );
         }
 
         const businesses = await this.businessRepository
@@ -192,10 +210,16 @@ export class BusinessService {
           .findByUser(uId, { lock: { mode: 'pessimistic_write' } });
 
         if (businesses.length >= MAX_NUM_BUSINESSES_PER_USER)
-          return this.responseService.sendError(ErrorMessage.MAX_BUSINESS_LIMIT);
+          return this.responseService.sendError(
+            ErrorMessage.MAX_BUSINESS_LIMIT,
+          );
 
         const name =
-          cacLookup?.data?.companyName ?? proposedName1 ?? proposedName2 ?? (payload as any).name ?? 'Untitled Business';
+          cacLookup?.data?.companyName ??
+          proposedName1 ??
+          proposedName2 ??
+          (payload as any).name ??
+          'Untitled Business';
 
         const activateBusiness = !!cacNumber;
 
@@ -223,7 +247,8 @@ export class BusinessService {
             ...(activateBusiness ? { status: Status.ACTIVE } : {}),
           });
 
-        const businessId = business.id as `${string}-${string}-${string}-${string}-${string}`;
+        const businessId =
+          business.id as `${string}-${string}-${string}-${string}-${string}`;
 
         let addressData = null;
         if (finalAddress) {
@@ -251,12 +276,15 @@ export class BusinessService {
           if (user) {
             const mergedProfile = {
               ...(user as any).cacProfile,
-              directors: finalDirectors ?? ((user as any).cacProfile?.directors),
-              shareholders: finalShareholders ?? ((user as any).cacProfile?.shareholders),
-              trustees: finalTrustees ?? ((user as any).cacProfile?.trustees),
-              address: finalAddress ?? ((user as any).cacProfile?.address),
+              directors: finalDirectors ?? (user as any).cacProfile?.directors,
+              shareholders:
+                finalShareholders ?? (user as any).cacProfile?.shareholders,
+              trustees: finalTrustees ?? (user as any).cacProfile?.trustees,
+              address: finalAddress ?? (user as any).cacProfile?.address,
             };
-            await entityManager.getRepository(User).update(uId, { cacProfile: mergedProfile });
+            await entityManager
+              .getRepository(User)
+              .update(uId, { cacProfile: mergedProfile });
           }
         } catch {}
 
@@ -265,7 +293,10 @@ export class BusinessService {
           addresses: addressData ? [addressData] : [],
         });
 
-        return this.responseService.sendSuccess(SuccessMessage.ADD_BUSINESS, data);
+        return this.responseService.sendSuccess(
+          SuccessMessage.ADD_BUSINESS,
+          data,
+        );
       },
     );
 
@@ -273,22 +304,40 @@ export class BusinessService {
   }
 
   async activateBusiness(businessId: string, userId: string) {
-    const bId = businessId as `${string}-${string}-${string}-${string}-${string}`;
+    const bId =
+      businessId as `${string}-${string}-${string}-${string}-${string}`;
     const uId = userId as `${string}-${string}-${string}-${string}-${string}`;
 
-    await this.businessRepository.update({ id: bId, user: uId }, { status: Status.ACTIVE });
+    await this.businessRepository.update(
+      { id: bId, user: uId },
+      { status: Status.ACTIVE },
+    );
 
-    const business = await this.businessRepository.findOne({ where: { id: bId, user: uId } });
+    const business = await this.businessRepository.findOne({
+      where: { id: bId, user: uId },
+    });
 
     if (!business)
-      return this.responseService.sendError(ErrorMessage.NOT_FOUND('Business'), null, HttpStatus.NOT_FOUND);
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Business'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
 
     const data = this.businessSanitizer.formatBusinessData(business);
-    return this.responseService.sendSuccess(SuccessMessage.ACTIVATE_BUSINESS, data);
+    return this.responseService.sendSuccess(
+      SuccessMessage.ACTIVATE_BUSINESS,
+      data,
+    );
   }
 
-  async getBusinessInvoices(businessId: string, userId: string, query: GetInvoicesDTO) {
-    const bId = businessId as `${string}-${string}-${string}-${string}-${string}`;
+  async getBusinessInvoices(
+    businessId: string,
+    userId: string,
+    query: GetInvoicesDTO,
+  ) {
+    const bId =
+      businessId as `${string}-${string}-${string}-${string}-${string}`;
     const uId = userId as `${string}-${string}-${string}-${string}-${string}`;
     delete query.business;
 
@@ -297,7 +346,11 @@ export class BusinessService {
       : null;
 
     if (!exists)
-      return this.responseService.sendError(ErrorMessage.NOT_FOUND('Business'), null, HttpStatus.NOT_FOUND);
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Business'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
 
     return this.invoiceService.getInvoices({ ...query, business: [bId] });
   }

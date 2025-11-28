@@ -29,7 +29,6 @@ export class GetBusinessesQueryDTO extends PaginationDTO {
   forCurrUser = true;
 }
 
-
 export class PersonDTO {
   @IsNotEmpty() @IsString() surname: string;
   @IsNotEmpty() @IsString() firstName: string;
@@ -40,7 +39,8 @@ export class PersonDTO {
   @IsNotEmpty() @IsString() phoneNumber: string;
   @IsOptional() @IsEmail() email?: string;
 
-  @ValidateNested() @Type(() => AddressDTO)
+  @ValidateNested()
+  @Type(() => AddressDTO)
   @IsOptional()
   contactAddress?: AddressDTO;
 
@@ -49,13 +49,11 @@ export class PersonDTO {
   @IsOptional() @IsUrl() idDocumentUrl?: string;
 }
 
-
 export class ShareholderDTO extends PersonDTO {
   @IsNotEmpty()
   @IsNumber()
   sharesAllotted: number;
 }
-
 
 export class TrusteeDTO extends PersonDTO {}
 
@@ -67,11 +65,10 @@ export class TrusteeListDTO {
 }
 
 export class AddBusinessesDTO {
-  @IsNotEmpty()
+  @IsOptional()
   @IsEnum(BusinessType)
-  businessType: BusinessType;
+  businessType?: BusinessType;
 
- 
   @IsOptional()
   @IsString()
   cacNumber?: string;
@@ -103,14 +100,12 @@ export class AddBusinessesDTO {
   @IsString({ each: true })
   objectsOfMemorandum?: string[];
 
- 
   @ValidateIf((o) => o.businessType === BusinessType.LIMITED_LIABILITY)
   @ValidateNested()
   @Type(() => PersonDTO)
   @IsOptional()
   witness?: PersonDTO;
 
- 
   @ValidateIf((o) => o.businessType === BusinessType.LIMITED_LIABILITY)
   @IsArray()
   @ValidateNested({ each: true })
@@ -118,7 +113,6 @@ export class AddBusinessesDTO {
   @IsOptional()
   directors?: PersonDTO[];
 
-  
   @ValidateIf((o) => o.businessType === BusinessType.LIMITED_LIABILITY)
   @IsArray()
   @ValidateNested({ each: true })
@@ -126,7 +120,6 @@ export class AddBusinessesDTO {
   @IsOptional()
   shareholders?: ShareholderDTO[];
 
- 
   @ValidateIf((o) => o.businessType === BusinessType.NGO)
   @ValidateNested()
   @Type(() => TrusteeListDTO)
