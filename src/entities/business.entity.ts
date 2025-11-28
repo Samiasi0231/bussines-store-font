@@ -15,6 +15,7 @@ import { UUID } from 'crypto';
 import { IsNotEmpty } from 'class-validator';
 import { User } from './user.entity';
 import { Store } from './store.entity';
+import { BusinessType } from '../@common/constants/business-type.contant';
 
 @Entity('businesses')
 export class Business extends BaseEntity {
@@ -37,6 +38,13 @@ export class Business extends BaseEntity {
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
+  // Proposed names (for CAC name reservation)
+  @Column({ name: 'proposed_name_1', type: 'varchar', length: 255, nullable: true })
+  proposedName1?: string;
+
+  @Column({ name: 'proposed_name_2', type: 'varchar', length: 255, nullable: true })
+  proposedName2?: string;
+
   @Column({ type: 'text', nullable: true })
   description?: string;
 
@@ -49,6 +57,18 @@ export class Business extends BaseEntity {
     default: Status.PENDING,
   })
   status?: Status;
+
+  @Column({
+    type: 'enum',
+    enum: BusinessType,
+    nullable: false,
+    default: BusinessType.BUSINESS_NAME,
+  })
+  businessType: BusinessType;
+
+  // type-specific data stored as jsonb for flexibility (directors, trustees, shareholders, objects...)
+  @Column({ name: 'extra_data', type: 'jsonb', nullable: true })
+  extraData?: any;
 
   @OneToMany(() => Address, (address) => address.kyc, { cascade: true })
   addresses?: Address[];
