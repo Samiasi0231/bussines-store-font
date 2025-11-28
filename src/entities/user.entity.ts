@@ -75,6 +75,9 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', default: 'NG', length: 2 })
   iso2?: string;
 
+  @Column({ name: 'cac_profile', type: 'jsonb', nullable: true })
+  cacProfile?: any;
+
   @Column({
     name: 'is_profile_complete',
     type: 'boolean',
