@@ -245,37 +245,41 @@ export class ProductService {
         business: { id: UUID; status: Status };
       };
 
-      if (!store)
+      if (!store) {
         return this.responseService.sendError(
           ErrorMessage.NOT_FOUND('Store'),
           null,
           HttpStatus.NOT_FOUND,
         );
+      }
 
-      if (store.business.status !== Status.ACTIVE)
+      if (store.business.status !== Status.ACTIVE) {
         return this.responseService.sendError(
           ErrorMessage.CANNOT_ADD_PROD_TO_INACTIVE_BUSINESS,
         );
+      }
 
       const subCategory = await this.productSubCategoryRepository
         .withManager(entityManager)
         .findById(subCategoryId);
 
-      if (!subCategory)
+      if (!subCategory) {
         return this.responseService.sendError(
           ErrorMessage.NOT_FOUND('Sub-category'),
           null,
           HttpStatus.NOT_FOUND,
         );
+      }
 
       const productNameExists = await this.productRepository
         .withManager(entityManager)
         .productNameExists(name, storeId);
 
-      if (productNameExists)
+      if (productNameExists) {
         return this.responseService.sendError(
           ErrorMessage.PRODUCT_NAME_EXISTS_FOR_STORE,
         );
+      }
 
       let product = await this.productRepository
         .withManager(entityManager)
@@ -291,7 +295,7 @@ export class ProductService {
           store: storeId,
         });
 
-      for (const image of images) {
+      for (const image of images || []) {
         await this.productImageRepository
           .withManager(entityManager)
           .createStrict({
@@ -333,18 +337,17 @@ export class ProductService {
           .withManager(entityManager)
           .findbyIdAndUpdate(
             product.id,
-            {
-              quantity: totalQuantity,
-            },
+            { quantity: totalQuantity },
             { relations: ['variants', 'variants.attributes'] },
           );
       }
 
       const defaultProductCollections =
-        this.systemSettingsService.getDefaultProductCollections();
+        this.systemSettingsService.getDefaultProductCollections() || [];
 
       for (const defaultCollection of defaultProductCollections) {
         const { name, description } = defaultCollection;
+
         const collection = await this.productCollectionRepository
           .withManager(entityManager)
           .createStrict({
