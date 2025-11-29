@@ -61,10 +61,10 @@ export class Business extends BaseEntity {
   @Column({
     type: 'enum',
     enum: BusinessType,
-    nullable: false,
-    default: BusinessType.BUSINESS_NAME,
+    nullable: true,
+    default: BusinessType.CAC_VERIFIED,
   })
-  businessType: BusinessType;
+  businessType?: BusinessType;
 
   // type-specific data stored as jsonb for flexibility (directors, trustees, shareholders, objects...)
   @Column({ name: 'extra_data', type: 'jsonb', nullable: true })

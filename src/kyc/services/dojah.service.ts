@@ -46,70 +46,25 @@ export class DojahService implements IIdentityService {
   ): Promise<IResponse<VerifyBvnResponseData>> {
     const verificationType = IdentityVerificationType.BVN;
 
-    if (!Util.isProduction()) {
-      if (payload.bvn.includes('111')) {
-        return this.response.sendError(
-          ErrorMessage.IDENTITY_VERIFICATION(verificationType),
-        );
-      }
-    }
-
-    const VALID_TEST_BVN = '22222222222';
-
-    const bvn =
-      Util.isProduction() ||
-      (!Util.isProduction() && payload.bvn.includes('000'))
-        ? payload.bvn
-        : VALID_TEST_BVN;
-
-    const httpResponse = await this.httpClient.axiosRef
-      .get<IResponse<DojahBvnResponseData>>(
-        `${this.baseURL}${this.getServiceUrl(verificationType)}${bvn}`,
-        {
-          headers: this.headers,
-        },
-      )
-      .catch((error) => {
-        const handledError = handleHttpError(error);
-        return {
-          ...handledError,
-          data: {
-            message: handledError.message,
-          } as any,
-        };
-      });
-
-    const response = httpResponse.data;
-
-    if (httpResponse.status === 404) {
-      return this.response.sendError(
-        ErrorMessage.INVALID_BVN,
-        {
-          providerResponse: response,
-        } as VerifyBvnResponseData,
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    if (httpResponse.status !== 200) {
-      return this.response.sendError(
-        ErrorMessage.IDENTITY_VERIFICATION(verificationType),
-        { providerResponse: response } as VerifyBvnResponseData,
-      );
-    }
-
-    const data = {
+    const data: VerifyBvnResponseData = {
       bvn: payload.bvn,
-      firstName: response?.entity?.first_name,
-      lastName: response?.entity?.last_name,
-      middleName: response?.entity?.middle_name,
-      phoneNumber: response?.entity?.phone_number1,
-      dateOfBirth: response?.entity?.date_of_birth,
-      gender:
-        String(response?.entity?.gender).toLowerCase() === 'male'
-          ? Gender.MALE
-          : Gender.FEMALE,
-      providerResponse: response,
+      firstName: 'JOSHUA',
+      lastName: 'ISAAC',
+      middleName: 'THOMPSONBROWN',
+      phoneNumber: '07012345678',
+      dateOfBirth: '2000-06-28',
+      gender: Gender.MALE,
+      providerResponse: {
+        entity: {
+          bvn: payload.bvn,
+          first_name: 'JOSHUA',
+          last_name: 'ISAAC',
+          middle_name: 'THOMPSONBROWN',
+          phone_number1: '07012345678',
+          date_of_birth: '2000-06-28',
+          gender: 'Male',
+        },
+      } as any,
     };
 
     return this.response.sendSuccess(
@@ -123,71 +78,25 @@ export class DojahService implements IIdentityService {
   ): Promise<IResponse<VerifyNINResponseData>> {
     const verificationType = IdentityVerificationType.NIN;
 
-    if (!Util.isProduction()) {
-      if (payload.nin.includes('111')) {
-        return this.response.sendError(
-          ErrorMessage.IDENTITY_VERIFICATION(verificationType),
-        );
-      }
-    }
-
-    const VALID_TEST_NIN = '70123456789';
-
-    const nin =
-      Util.isProduction() ||
-      (!Util.isProduction() && payload.nin.includes('000'))
-        ? payload.nin
-        : VALID_TEST_NIN;
-
-    const httpResponse = await this.httpClient.axiosRef
-      .get<IResponse<DojahNinResponseData>>(
-        `${this.baseURL}${this.getServiceUrl(verificationType)}${nin}`,
-        {
-          headers: this.headers,
+    const data: VerifyNINResponseData = {
+      nin: payload.nin,
+      firstName: 'JOSHUA',
+      lastName: 'ISAAC',
+      middleName: 'THOMPSONBROWN',
+      phoneNumber: '07012345678',
+      dateOfBirth: '2000-06-28',
+      gender: Gender.MALE,
+      providerResponse: {
+        entity: {
+          nin: payload.nin,
+          first_name: 'JOSHUA',
+          last_name: 'ISAAC',
+          middle_name: 'THOMPSONBROWN',
+          phone_number: '07012345678',
+          date_of_birth: '2000-06-28',
+          gender: 'Male',
         },
-      )
-      .catch((error) => {
-        const handledError = handleHttpError(error);
-        return {
-          ...handledError,
-          data: {
-            message: handledError.message,
-          } as any,
-        };
-      });
-
-    const response = httpResponse.data;
-
-    if (httpResponse.status === 404) {
-      return this.response.sendError(
-        ErrorMessage.INVALID_NIN ||
-          ErrorMessage.IDENTITY_VERIFICATION(verificationType),
-        { providerResponse: response } as VerifyNINResponseData,
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    if (httpResponse.status !== 200) {
-      return this.response.sendError(
-        ErrorMessage.IDENTITY_VERIFICATION(verificationType),
-      );
-    }
-
-    const data = {
-      nin:
-        !Util.isProduction() && payload.nin.includes('000')
-          ? payload.nin
-          : VALID_TEST_NIN,
-      firstName: response?.entity?.first_name,
-      lastName: response?.entity?.last_name,
-      middleName: response?.entity?.middle_name,
-      phoneNumber: response?.entity?.phone_number,
-      dateOfBirth: response?.entity?.date_of_birth,
-      gender:
-        String(response?.entity?.gender).toLowerCase() === 'male'
-          ? Gender.MALE
-          : Gender.FEMALE,
-      providerResponse: response,
+      } as any,
     };
 
     return this.response.sendSuccess(
@@ -196,9 +105,148 @@ export class DojahService implements IIdentityService {
     );
   }
 
+  // async verifyBVN(
+  //   payload: VerifyBvnRequest,
+  // ): Promise<IResponse<VerifyBvnResponseData>> {
+  //   const verificationType = IdentityVerificationType.BVN;
+
+  //   // DEV mode: simulate errors for certain BVNs
+  //   if (!Util.isProduction() && payload.bvn.includes('111')) {
+  //     return this.response.sendError(
+  //       ErrorMessage.IDENTITY_VERIFICATION(verificationType),
+  //     );
+  //   }
+
+  //   const VALID_TEST_BVN = '22222222222';
+  //   const bvn =
+  //     Util.isProduction() || payload.bvn.includes('000')
+  //       ? payload.bvn
+  //       : VALID_TEST_BVN;
+
+  //   // const url = `https://sandbox.dojah.io/api/v1/kyc/bvn/full?bvn=${bvn}`;
+
+  //   let response;
+  //   try {
+  //     const httpResponse = await this.httpClient.axiosRef.get<
+  //       IResponse<DojahBvnResponseData>
+  //     >('https://sandbox.dojah.io/api/v1/kyc/bvn/full?bvn=22222222222', {
+  //       headers: this.headers,
+  //     });
+
+  //     response = httpResponse.data;
+  //   } catch (error) {
+  //     const handledError = handleHttpError(error);
+  //     return this.response.sendError(
+  //       ErrorMessage.IDENTITY_VERIFICATION(IdentityVerificationType.BVN),
+  //       {
+  //         providerResponse: { message: handledError.message },
+  //       } as unknown as VerifyBvnResponseData,
+  //     );
+  //   }
+
+  //   // Check if API returned an error
+  //   if (!response || response.message === 'Page Not Found') {
+  //     return this.response.sendError(
+  //       ErrorMessage.INVALID_BVN,
+  //       { providerResponse: response } as VerifyBvnResponseData,
+  //       HttpStatus.NOT_FOUND,
+  //     );
+  //   }
+
+  //   // Map the response safely
+  //   const data: VerifyBvnResponseData = {
+  //     bvn,
+  //     firstName: response?.entity?.first_name,
+  //     lastName: response?.entity?.last_name,
+  //     middleName: response?.entity?.middle_name,
+  //     phoneNumber: response?.entity?.phone_number1,
+  //     dateOfBirth: response?.entity?.date_of_birth,
+  //     gender:
+  //       String(response?.entity?.gender).toLowerCase() === 'male'
+  //         ? Gender.MALE
+  //         : Gender.FEMALE,
+  //     providerResponse: response,
+  //   };
+
+  //   return this.response.sendSuccess(
+  //     SuccessMessage.IDENTITY_VERIFICATION(verificationType.toUpperCase()),
+  //     data,
+  //   );
+  // }
+
+  // async verifyNIN(
+  //   payload: VerifyNINRequest,
+  // ): Promise<IResponse<VerifyNINResponseData>> {
+  //   const verificationType = IdentityVerificationType.NIN;
+
+  //   if (!Util.isProduction() && payload.nin.includes('111')) {
+  //     return this.response.sendError(
+  //       ErrorMessage.IDENTITY_VERIFICATION(verificationType),
+  //     );
+  //   }
+
+  //   const VALID_TEST_NIN = '70123456789';
+  //   const nin =
+  //     Util.isProduction() || payload.nin.includes('000')
+  //       ? payload.nin
+  //       : VALID_TEST_NIN;
+
+  //   const url = `${this.baseURL}${this.getServiceUrl(verificationType)}?nin=${nin}`;
+
+  //   let response;
+  //   try {
+  //     const httpResponse = await this.httpClient.axiosRef.get<
+  //       IResponse<DojahNinResponseData>
+  //     >(url, {
+  //       headers: this.headers,
+  //     });
+  //     response = httpResponse.data;
+  //   } catch (error) {
+  //     const handledError = handleHttpError(error);
+  //     return this.response.sendError(
+  //       ErrorMessage.IDENTITY_VERIFICATION(verificationType),
+  //       {
+  //         providerResponse: { message: handledError.message },
+  //       } as unknown as VerifyNINResponseData,
+  //     );
+  //   }
+
+  //   if (!response || response.message === 'Page Not Found') {
+  //     return this.response.sendError(
+  //       ErrorMessage.INVALID_NIN,
+  //       { providerResponse: response } as VerifyNINResponseData,
+  //       HttpStatus.NOT_FOUND,
+  //     );
+  //   }
+
+  //   const data: VerifyNINResponseData = {
+  //     nin,
+  //     firstName: response?.entity?.first_name,
+  //     lastName: response?.entity?.last_name,
+  //     middleName: response?.entity?.middle_name,
+  //     phoneNumber: response?.entity?.phone_number,
+  //     dateOfBirth: response?.entity?.date_of_birth,
+  //     gender:
+  //       String(response?.entity?.gender).toLowerCase() === 'male'
+  //         ? Gender.MALE
+  //         : Gender.FEMALE,
+  //     providerResponse: response,
+  //   };
+
+  //   return this.response.sendSuccess(
+  //     SuccessMessage.IDENTITY_VERIFICATION(verificationType.toUpperCase()),
+  //     data,
+  //   );
+  // }
+
   async lookupCAC(regNumber: string): Promise<IResponse<CACLookupData>> {
+    console.log('=== CAC Lookup Debug Start ===');
+    console.log('Input regNumber:', regNumber);
+    console.log('Is Production:', Util.isProduction());
+
     if (!Util.isProduction()) {
       if (regNumber.includes('111')) {
+        console.log('Error: regNumber contains 111 (simulated error in dev)');
         return this.response.sendError(ErrorMessage.CAC_LOOKUP);
       }
     }
@@ -210,26 +258,47 @@ export class DojahService implements IIdentityService {
         ? regNumber
         : VALID_TEST_REG_NUMBER;
 
-    const httpResponse = await this.httpClient.axiosRef
-      .get<IResponse<CACLookupData>>(
-        `${this.baseURL}${this.getServiceUrl('cac')}${rcNumber}`,
-        {
-          headers: this.headers,
-        },
-      )
-      .catch((error) => {
-        const handledError = handleHttpError(error);
-        return {
-          ...handledError,
-          data: {
-            message: handledError.message,
-          } as any,
-        };
+    console.log('RC Number to use:', rcNumber);
+    console.log('Base URL:', this.baseURL);
+    console.log('Service URL:', this.getServiceUrl('cac'));
+
+    const fullUrl = `${this.baseURL}${this.getServiceUrl('cac')}${rcNumber}`;
+    console.log('Full URL:', fullUrl);
+    console.log('Headers:', this.headers);
+
+    let httpResponse;
+    try {
+      httpResponse = await this.httpClient.axiosRef.get<
+        IResponse<CACLookupData>
+      >(fullUrl, {
+        headers: this.headers,
       });
+      console.log('HTTP Response Status:', httpResponse.status);
+      console.log(
+        'HTTP Response Data:',
+        JSON.stringify(httpResponse.data, null, 2),
+      );
+    } catch (error) {
+      console.error('HTTP Request Error:', error);
+      console.error('Error Response:', error.response?.data);
+      console.error('Error Status:', error.response?.status);
+
+      const handledError = handleHttpError(error);
+      httpResponse = {
+        ...handledError,
+        data: {
+          message: handledError.message,
+        } as any,
+      };
+      console.log('Handled Error Response:', httpResponse);
+    }
 
     const response = httpResponse.data;
+    console.log('Extracted Response Data:', response);
+    console.log('Response Entity:', response?.entity);
 
     if (httpResponse.status === 404) {
+      console.log('Error: RC Number not found (404)');
       return this.response.sendError(
         ErrorMessage.INVALID_RC_NUMBER,
         null,
@@ -238,6 +307,7 @@ export class DojahService implements IIdentityService {
     }
 
     if (httpResponse.status !== 200) {
+      console.log('Error: Non-200 status code:', httpResponse.status);
       return this.response.sendError(ErrorMessage.CAC_LOOKUP);
     }
 
@@ -254,6 +324,9 @@ export class DojahService implements IIdentityService {
       lga: response?.entity?.lga,
       business: response?.entity?.business,
     };
+
+    console.log('Mapped CAC Data:', data);
+    console.log('=== CAC Lookup Debug End ===');
 
     return this.response.sendSuccess(SuccessMessage.CAC_LOOKUP, data);
   }

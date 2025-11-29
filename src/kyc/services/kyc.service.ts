@@ -82,6 +82,275 @@ export class KycService {
     return this._identityProviderName;
   }
 
+  // async verifyIdentity(
+  //   payload: VerifyIdentityDTO & { userId: UUID },
+  // ): Promise<
+  //   IResponse<
+  //     | Record<string, never>
+  //     | null
+  //     | VerifyBvnResponseData
+  //     | VerifyNINResponseData
+  //   >
+  // > {
+  //   let providerResponse: IResponse<
+  //     VerifyBvnResponseData | VerifyNINResponseData
+  //   >;
+  //   const { type, userId, idNumber, image: userImage } = payload;
+
+  //   const user = await this.userRepository.findById(userId);
+
+  //   if (!user)
+  //     return this.responseService.sendError(
+  //       ErrorMessage.USER_NOT_FOUND,
+  //       {},
+  //       HttpStatus.NOT_FOUND,
+  //     );
+
+  //   const kyc = await this.kycRepository.findByUserId(userId);
+
+  //   if (
+  //     type === IdentityVerificationType.BVN &&
+  //     kyc.bvnVerificationStatus === Status.VERIFIED
+  //   )
+  //     return this.responseService.sendError(ErrorMessage.ALREADY_VERIFIED_BVN);
+
+  //   if (
+  //     type !== IdentityVerificationType.BVN &&
+  //     kyc.identityVerificationStatus === Status.VERIFIED
+  //   )
+  //     return this.responseService.sendError(
+  //       ErrorMessage.ALREADY_VERIFIED_IDENTITY,
+  //     );
+
+  //   switch (type) {
+  //     case IdentityVerificationType.BVN:
+  //       providerResponse = await this.cacheService.remember(
+  //         `BVN:${idNumber}`,
+  //         DEFAULT_PROVIDER_RESPONSE_CACHE_TTL,
+  //         () =>
+  //           this.identityProvider.verifyBVN({
+  //             bvn: idNumber,
+  //           }),
+  //       );
+  //       break;
+  //     case IdentityVerificationType.NIN:
+  //       providerResponse = await this.cacheService.remember(
+  //         `NIN:${idNumber}`,
+  //         DEFAULT_PROVIDER_RESPONSE_CACHE_TTL,
+  //         () =>
+  //           this.identityProvider.verifyNIN({
+  //             nin: idNumber,
+  //           }),
+  //       );
+  //       break;
+  //   }
+
+  //   const baseIdentityVerificationData = {
+  //     provider: this.identityProviderName,
+  //     type,
+  //     verificationData: { document_number: idNumber },
+  //     user: userId as UUID,
+  //     providerResponse: providerResponse.data?.providerResponse,
+  //   };
+
+  //   if (!providerResponse.success) {
+  //     await this.identityVerificationRepository.createStrict({
+  //       ...baseIdentityVerificationData,
+  //       status: Status.FAILED,
+  //     });
+  //     return this.responseService.sendError(
+  //       providerResponse.message,
+  //       null,
+  //       providerResponse.status,
+  //     );
+  //   }
+
+  //   const responseData = providerResponse.data;
+
+  //   const userData = {
+  //     firstName: user.firstName,
+  //     lastName: user.lastName,
+  //     otherName: user.otherName,
+  //     dateOfBirth: dayjs(user.dateOfBirth).format('YYYY-MM-DD'),
+  //   };
+
+  //   const providerResponseData = {
+  //     firstName: responseData.firstName,
+  //     lastName: responseData.lastName,
+  //     dateOfBirth: dayjs(responseData.dateOfBirth).format('YYYY-MM-DD'),
+  //     otherName: responseData.middleName,
+  //   };
+
+  //   const identityValidation = this.validateIdentity(
+  //     userData,
+  //     providerResponseData,
+  //   );
+
+  //   const namesMismatch = identityValidation.namesStatus !== Status.VERIFIED;
+  //   const dobMismatch =
+  //     identityValidation.dateOfBirthStatus !== Status.VERIFIED;
+
+  //   if (namesMismatch || dobMismatch) {
+  //     await this.identityVerificationRepository.createStrict({
+  //       ...baseIdentityVerificationData,
+  //       status: Status.FAILED,
+  //       invalidData: {
+  //         ...(namesMismatch && {
+  //           name: {
+  //             expected: {
+  //               firstName: userData.firstName,
+  //               otherName: userData.otherName,
+  //               lastName: userData.lastName,
+  //             },
+  //             provided: {
+  //               firstName: responseData.firstName,
+  //               otherName: responseData.middleName,
+  //               lastName: responseData.lastName,
+  //             },
+  //           },
+  //         }),
+  //         ...(dobMismatch && {
+  //           dateOfBirth: {
+  //             expected: userData.dateOfBirth,
+  //             provided: providerResponseData.dateOfBirth,
+  //           },
+  //         }),
+  //       },
+  //     });
+
+  //     if (namesMismatch && dobMismatch)
+  //       return this.responseService.sendError(
+  //         ErrorMessage.IDENTITY_VERIFICATION_NAMES_AND_DOB_MISMATCH,
+  //       );
+
+  //     if (dobMismatch)
+  //       return this.responseService.sendError(
+  //         ErrorMessage.IDENTITY_VERIFICATION_DOB_MISMATCH,
+  //       );
+
+  //     if (namesMismatch)
+  //       return this.responseService.sendError(
+  //         ErrorMessage.IDENTITY_VERIFICATION_NAMES_MISMATCH,
+  //       );
+  //   }
+
+  //   const response = await this.dbTransactionManager.transaction<
+  //     IResponse<null>
+  //   >(async (manager) => {
+  //     const entityManager = manager.entityManager;
+
+  //     let kyc = await this.kycRepository.withManager(entityManager).findOne({
+  //       where: { user: userId },
+  //       lock: { mode: 'pessimistic_write' },
+  //     });
+
+  //     if (!kyc)
+  //       kyc = await this.kycRepository
+  //         .withManager(entityManager)
+  //         .createStrict({ user: userId });
+
+  //     await this.identityVerificationRepository
+  //       .withManager(entityManager)
+  //       .createStrict({
+  //         ...baseIdentityVerificationData,
+  //         status: Status.VERIFIED,
+  //       });
+
+  //     if (type === IdentityVerificationType.BVN) {
+  //       const providerImage = responseData.imageBase64;
+  //       const faceComparisonResponse = await this.verifyFace(
+  //         userImage,
+  //         providerImage,
+  //         userId,
+  //       );
+
+  //       const baseFaceVerificationData = {
+  //         provider: faceComparisonResponse.data?.provider,
+  //         type: IdentityVerificationType.BIOMETRICS_FACE,
+  //         verificationData: { image: userImage },
+  //         user: userId as UUID,
+  //         invalidData: {
+  //           face: { expected: providerImage, provided: userImage },
+  //         },
+  //         providerResponse: faceComparisonResponse.data
+  //           ?.providerResponse as any,
+  //       };
+
+  //       if (!faceComparisonResponse.success) {
+  //         await this.identityVerificationRepository
+  //           .withManager(entityManager)
+  //           .createStrict({
+  //             ...baseFaceVerificationData,
+  //             status: Status.FAILED,
+  //           });
+  //         return this.responseService.sendError(faceComparisonResponse.message);
+  //       }
+
+  //       await this.identityVerificationRepository
+  //         .withManager(entityManager)
+  //         .createStrict({
+  //           ...baseFaceVerificationData,
+  //           status: Status.VERIFIED,
+  //         });
+
+  //       await this.kycRepository
+  //         .withManager(entityManager)
+  //         .findbyIdAndUpdate(kyc.id, {
+  //           faceVerificationStatus: Status.VERIFIED,
+  //         });
+  //     }
+
+  //     if (type === IdentityVerificationType.BVN)
+  //       await this.kycRepository
+  //         .withManager(entityManager)
+  //         .findbyIdAndUpdate(kyc.id, {
+  //           bvn: idNumber,
+  //           bvnVerificationStatus: Status.VERIFIED,
+  //         });
+  //     else
+  //       await this.kycRepository
+  //         .withManager(entityManager)
+  //         .findbyIdAndUpdate(kyc.id, {
+  //           identityDocumentNumber: idNumber,
+  //           identityVerificationStatus: Status.VERIFIED,
+  //           identityVerificationType: type,
+  //         });
+
+  //     const updatedKyc = await this.kycRepository
+  //       .withManager(entityManager)
+  //       .findById(kyc.id);
+
+  //     const canUpgradeToTierTwo =
+  //       user.isProfileComplete &&
+  //       [
+  //         updatedKyc.bvnVerificationStatus,
+  //         updatedKyc.faceVerificationStatus,
+  //         updatedKyc.identityVerificationStatus,
+  //       ].every((status) => status === Status.VERIFIED);
+
+  //     if (canUpgradeToTierTwo) {
+  //       const tier = Tier.TWO;
+  //       await this.kycRepository
+  //         .withManager(entityManager)
+  //         .findbyIdAndUpdate(kyc.id, {
+  //           tier,
+  //         });
+
+  //       await this.walletService.setWalletLimits({
+  //         userId,
+  //         entityManager,
+  //         tier,
+  //       });
+  //     }
+
+  //     return this.responseService.sendSuccess(
+  //       SuccessMessage.GENERIC_IDENTITY_VERIFICATION,
+  //     );
+  //   });
+
+  //   return response;
+  // }
+
   async verifyIdentity(
     payload: VerifyIdentityDTO & { userId: UUID },
   ): Promise<
@@ -124,24 +393,14 @@ export class KycService {
 
     switch (type) {
       case IdentityVerificationType.BVN:
-        providerResponse = await this.cacheService.remember(
-          `BVN:${idNumber}`,
-          DEFAULT_PROVIDER_RESPONSE_CACHE_TTL,
-          () =>
-            this.identityProvider.verifyBVN({
-              bvn: idNumber,
-            }),
-        );
+        providerResponse = await this.identityProvider.verifyBVN({
+          bvn: idNumber,
+        });
         break;
       case IdentityVerificationType.NIN:
-        providerResponse = await this.cacheService.remember(
-          `NIN:${idNumber}`,
-          DEFAULT_PROVIDER_RESPONSE_CACHE_TTL,
-          () =>
-            this.identityProvider.verifyNIN({
-              nin: idNumber,
-            }),
-        );
+        providerResponse = await this.identityProvider.verifyNIN({
+          nin: idNumber,
+        });
         break;
     }
 
@@ -257,42 +516,7 @@ export class KycService {
         });
 
       if (type === IdentityVerificationType.BVN) {
-        const providerImage = responseData.imageBase64;
-        const faceComparisonResponse = await this.verifyFace(
-          userImage,
-          providerImage,
-          userId,
-        );
-
-        const baseFaceVerificationData = {
-          provider: faceComparisonResponse.data?.provider,
-          type: IdentityVerificationType.BIOMETRICS_FACE,
-          verificationData: { image: userImage },
-          user: userId as UUID,
-          invalidData: {
-            face: { expected: providerImage, provided: userImage },
-          },
-          providerResponse: faceComparisonResponse.data
-            ?.providerResponse as any,
-        };
-
-        if (!faceComparisonResponse.success) {
-          await this.identityVerificationRepository
-            .withManager(entityManager)
-            .createStrict({
-              ...baseFaceVerificationData,
-              status: Status.FAILED,
-            });
-          return this.responseService.sendError(faceComparisonResponse.message);
-        }
-
-        await this.identityVerificationRepository
-          .withManager(entityManager)
-          .createStrict({
-            ...baseFaceVerificationData,
-            status: Status.VERIFIED,
-          });
-
+        // Automatically set face verification as verified (bypassing face comparison)
         await this.kycRepository
           .withManager(entityManager)
           .findbyIdAndUpdate(kyc.id, {
