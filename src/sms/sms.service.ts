@@ -92,4 +92,32 @@ export class SmsService {
       throw new HttpException(errMessage, statusCode);
     }
   }
+  async verifyOtp(phoneNumber: string, otp: string) {
+  const key = `otp:${phoneNumber}`;
+  
+  const storedOtp = await this.cacheService.get(key);
+
+  if (!storedOtp) {
+    throw new HttpException(
+      'OTP expired or not found',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  if (storedOtp !== otp) {
+    throw new HttpException(
+      'Invalid OTP',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  // OTP is correct → delete from cache
+  await this.cacheService.del(key);
+
+  return {
+    success: true,
+    message: 'OTP verified successfully',
+  };
+}
+
 }
