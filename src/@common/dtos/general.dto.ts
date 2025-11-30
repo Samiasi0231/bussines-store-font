@@ -5,3 +5,9 @@ export class GetByIdParamDTO {
   @IsNotEmpty()
   id: string;
 }
+
+export class GetBySlugParamDTO {
+  @IsString()
+  @IsNotEmpty()
+  slug: string;
+}

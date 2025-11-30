@@ -41,19 +41,6 @@ export class StorefrontService {
     storeId: UUID,
     payload: CreateStorefrontDTO,
   ): Promise<IResponse<FormattedStorefront>> {
-    const {
-      logo,
-      banner,
-      aboutUs,
-      refundPolicy,
-      termsOfUse,
-      email,
-      phone,
-      socialHandles,
-    } = payload;
-
-    let { slug } = payload;
-
     const store = isUUID(storeId)
       ? await this.storeRepository.findById(storeId)
       : null;
@@ -66,7 +53,7 @@ export class StorefrontService {
       );
 
     const hasStoreFront = await this.storefrontRepository.findOne({
-      where: { store: storeId },
+      where: { store: { id: storeId } },
     });
 
     if (hasStoreFront)
@@ -76,7 +63,7 @@ export class StorefrontService {
         HttpStatus.CONFLICT,
       );
 
-    slug = this.normalizeSlug(slug || store.name);
+    let slug = this.normalizeSlug(payload.slug || store.name);
 
     const existing = await this.storefrontRepository.count({
       where: { slug },
@@ -84,20 +71,40 @@ export class StorefrontService {
 
     if (existing) slug = this.normalizeSlug(slug + ` ${existing}`);
 
-    const storefront = await this.storefrontRepository.createStrict({
-      store: storeId,
+    // Sanitize payload before saving
+    const sanitizedData = this.storefrontSanitizer.sanitizeForStorage({
       slug,
-      logo,
-      banner,
-      aboutUs,
-      refundPolicy,
-      termsOfUse,
-      email,
-      phone,
-      socialHandles,
+      logo: payload.logo,
+      banner: payload.banner,
+      aboutUs: payload.aboutUs,
+      refundPolicy: payload.refundPolicy,
+      termsOfUse: payload.termsOfUse,
+      email: payload.email,
+      phone: payload.phone,
+      socialHandles: payload.socialHandles,
+      headerConfig: payload.headerConfig,
+      heroConfig: payload.heroConfig,
+      collectionsConfig: payload.collectionsConfig,
+      productsConfig: payload.productsConfig,
+      footerConfig: payload.footerConfig,
     });
 
-    const data = this.storefrontSanitizer.formatStoreFront(storefront);
+    // Add store relation separately (not through sanitizer)
+    const dataToSave = {
+      ...sanitizedData,
+      store: store,
+    };
+
+    const storefront = await this.storefrontRepository.createStrict(
+      dataToSave as any,
+    );
+
+    // Refetch without relations to avoid circular reference
+    const createdStorefront = await this.storefrontRepository.findOne({
+      where: { id: storefront.id },
+    });
+
+    const data = this.storefrontSanitizer.formatStoreFront(createdStorefront);
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
@@ -106,10 +113,36 @@ export class StorefrontService {
     );
   }
 
-  async getStorefront(id: UUID) {
+  async getStorefront(id: UUID): Promise<IResponse<FormattedStorefront>> {
     const storefront = isUUID(id)
-      ? await this.storefrontRepository.findById(id)
+      ? await this.storefrontRepository.findOne({
+          where: { id },
+        })
       : null;
+
+    if (!storefront)
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Storefront'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+
+    const data = this.storefrontSanitizer.formatStoreFront(storefront);
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      data,
+    );
+  }
+
+  async getStorefrontBySlug(
+    slug: string,
+  ): Promise<IResponse<FormattedStorefront>> {
+    const normalizedSlug = this.normalizeSlug(slug);
+
+    const storefront = await this.storefrontRepository.findOne({
+      where: { slug: normalizedSlug },
+    });
 
     if (!storefront)
       return this.responseService.sendError(
@@ -130,8 +163,11 @@ export class StorefrontService {
     id: UUID,
     update: EditStorefrontDTO,
   ): Promise<IResponse<FormattedStorefront>> {
+    // Sanitize update data before saving
+    const sanitizedUpdate = this.storefrontSanitizer.sanitizeForStorage(update);
+
     const storefront = isUUID(id)
-      ? await this.storefrontRepository.findbyIdAndUpdate(id, update)
+      ? await this.storefrontRepository.findbyIdAndUpdate(id, sanitizedUpdate)
       : null;
 
     if (!storefront)
@@ -141,7 +177,12 @@ export class StorefrontService {
         HttpStatus.NOT_FOUND,
       );
 
-    const data = this.storefrontSanitizer.formatStoreFront(storefront);
+    // Refetch without relations to avoid circular reference
+    const updatedStorefront = await this.storefrontRepository.findOne({
+      where: { id },
+    });
+
+    const data = this.storefrontSanitizer.formatStoreFront(updatedStorefront);
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
@@ -167,7 +208,11 @@ export class StorefrontService {
     }
 
     if (slugs?.length > 0) {
-      query.andWhere('storefront.slug IN (:...slugs)', { slugs });
+      // Normalize slugs before querying
+      const normalizedSlugs = slugs.map((s) => this.normalizeSlug(s));
+      query.andWhere('storefront.slug IN (:...slugs)', {
+        slugs: normalizedSlugs,
+      });
     }
 
     if (businesses?.length > 0) {
@@ -183,9 +228,7 @@ export class StorefrontService {
         pagination: { page, limit },
       });
 
-    const results = storefronts.map((storefront) =>
-      this.storefrontSanitizer.formatStoreFront(storefront),
-    );
+    const results = this.storefrontSanitizer.formatMany(storefronts);
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,

@@ -15,16 +15,25 @@ import {
   GetStorefrontsDTO,
   EditStorefrontDTO,
 } from './dtos/storefront.dto';
-import { GetByIdParamDTO } from '../@common/dtos/general.dto';
+import {
+  GetByIdParamDTO,
+  GetBySlugParamDTO,
+} from '../@common/dtos/general.dto';
 import { UUID } from 'crypto';
 
 @Controller()
 export class StorefrontController {
   constructor(private readonly storefrontService: StorefrontService) {}
 
+  // Public endpoints (no auth required)
   @Get('storefronts')
   async getStorefronts(@Query() query: GetStorefrontsDTO) {
     return this.storefrontService.getStorefronts(query);
+  }
+
+  @Get('storefronts/slug/:slug')
+  async getStoreFrontBySlug(@Param() param: GetBySlugParamDTO) {
+    return await this.storefrontService.getStorefrontBySlug(param.slug);
   }
 
   @Get('storefronts/:id')
@@ -32,6 +41,7 @@ export class StorefrontController {
     return this.storefrontService.getStorefront(param.id as UUID);
   }
 
+  // Protected endpoints (auth required)
   @UseGuards(JwtAuthGuard)
   @Post('stores/:id/storefronts')
   async createStorefront(
