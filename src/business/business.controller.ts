@@ -37,7 +37,16 @@ export class BusinessController {
 
   @Post()
   async addBusiness(@User() user: UserProfile, @Body() body: AddBusinessesDTO) {
-    return this.businessService.addBusiness(body, user.id);
+    try {
+      return await this.businessService.addBusiness(body, user.id);
+    } catch (error) {
+      // Always return serializable JSON, avoids circular structure errors
+      return {
+        status: error.status || 500,
+        message: error.message || 'Internal server error',
+        data: {},
+      };
+    }
   }
 
   @Post(':id/activation')

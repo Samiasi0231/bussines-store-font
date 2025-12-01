@@ -179,12 +179,16 @@ export class BusinessService {
         const finalAddress =
           address ?? cacProfile?.address ?? firstPrev?.addresses?.[0] ?? null;
 
-        if (businessType === BusinessType.NGO) {
-          if (!finalTrustees?.trustees || finalTrustees.trustees.length < 2)
-            return this.responseService.sendError(
-              'NGO must have at least two trustees.',
-            );
-        }
+      const trusteesArray = Array.isArray(finalTrustees)
+  ? finalTrustees.flatMap(t => t.trustees ?? [])
+  : finalTrustees?.trustees ?? [];
+
+if (businessType === BusinessType.NGO && trusteesArray.length < 2) {
+  return this.responseService.sendError(
+    'NGO must have at least two trustees.',
+  );
+}
+
 
         if (businessType === BusinessType.LIMITED_LIABILITY) {
           if (!finalDirectors?.length || !finalShareholders?.length)
@@ -287,16 +291,26 @@ export class BusinessService {
               .update(uId, { cacProfile: mergedProfile });
           }
         } catch {}
+const plainBusiness = {
+  id: business.id,
+  name: business.name,
+   user: business.user, 
+  description: business.description,
+  logo: business.logo,
+  cacNumber: business.cacNumber,
+  proposedName1: business.proposedName1,
+  proposedName2: business.proposedName2,
+  businessType: business.businessType,
+  status: business.status,
+  extraData: business.extraData,
+  addresses: addressData ? [addressData] : [],
+};
 
-        const data = this.businessSanitizer.formatBusinessData({
-          ...business,
-          addresses: addressData ? [addressData] : [],
-        });
+const data = this.businessSanitizer.formatBusinessData(plainBusiness);
 
-        return this.responseService.sendSuccess(
-          SuccessMessage.ADD_BUSINESS,
-          data,
-        );
+return this.responseService.sendSuccess(SuccessMessage.ADD_BUSINESS, data);
+
+      
       },
     );
 
