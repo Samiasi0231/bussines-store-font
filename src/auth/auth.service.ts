@@ -68,34 +68,42 @@ export class AuthService {
       signUpDate: new Date(),
     };
 
-    const user = await this.dbTransactionManager.transaction<User>(
-      async (manager) => {
-        const entityManager = manager.entityManager;
-        let user: User;
+ const user = await this.dbTransactionManager.transaction<User>(
+  async (manager) => {
+    const entityManager = manager.entityManager;
+    let user: User;
 
-        if (existingUser && existingUser.isGuest)
-          user = await this.userRepository
-            .withManager(entityManager)
-            .findbyIdAndUpdate(existingUser.id, {
-              ...userData,
-              isGuest: false,
-            });
+    if (existingUser && existingUser.isGuest) {
+      // Update the guest user
+      user = await this.userRepository
+        .withManager(entityManager)
+        .findbyIdAndUpdate(existingUser.id, {
+          ...userData,
+          isGuest: false,
+          isProfileComplete: true,
+        });
+    } else {
+      // Create a new user only if no guest exists
+      user = await this.userRepository
+        .withManager(entityManager)
+        .createStrict({
+          ...userData,
+          isProfileComplete: true,
+        });
+    }
 
-        user = await this.userRepository
-          .withManager(entityManager)
-          .createStrict(userData);
+    await this.kycRepository
+      .withManager(entityManager)
+      .createStrict({ user: user.id });
 
-        await this.kycRepository
-          .withManager(entityManager)
-          .createStrict({ user: user.id });
+    await this.walletRepository
+      .withManager(entityManager)
+      .createStrict({ user: user.id });
 
-        await this.walletRepository
-          .withManager(entityManager)
-          .createStrict({ user: user.id });
+    return user;
+  },
+);
 
-        return user;
-      },
-    );
 
     return this.responseService.sendSuccess(
       SuccessMessage.USER_REGISTERED,
