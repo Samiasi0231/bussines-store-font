@@ -33,19 +33,28 @@ export class SmsService {
     }
     return otp;
   }
-  async sendOtp(recipients: string[]) {
-    if (!recipients || recipients.length === 0) {
-      throw new HttpException('Recipients cannot be empty', HttpStatus.BAD_REQUEST);
+
+  async sendOtp(recipient: string, purpose: string) {
+    if (!recipient) {
+      throw new HttpException('recipient cannot be empty', HttpStatus.BAD_REQUEST);
+    }
+
+    if (!purpose) {
+      throw new HttpException('purpose is required', HttpStatus.BAD_REQUEST);
     }
 
     const otp = this.generateOtp();
 
-    await this.cacheService.set(`otp:${recipients[0]}`, otp, this.otpTtl);
+    await this.cacheService.set(
+      `otp:${recipient}:${purpose}`,
+      otp,
+      this.otpTtl,
+    );
 
-    const messageText = `Your Bizvantage OTP is ${otp}. It expires in ${this.otpTtl / 60} minutes.`;
+    const messageText = `Your OTP for ${purpose} is ${otp}. It expires in ${this.otpTtl / 60} minutes.`;
 
     const payload = {
-      recipients,
+      recipients: [recipient],  // provider requires array
       userId: this.userId,
       recipientInputMode: 'manual_input',
       message: messageText,
@@ -69,55 +78,39 @@ export class SmsService {
         success: true,
         message: 'OTP sent successfully',
         otp,
+        purpose,
         response: response.data,
       };
     } catch (error: any) {
       console.error('SMS sending error:', error.response ?? error);
-
-      const statusCode = Number(error.response?.status) || HttpStatus.INTERNAL_SERVER_ERROR;
-
-      let errMessage = 'Failed to send SMS';
-      if (error.response?.data) {
-        if (typeof error.response.data === 'string') {
-          errMessage = error.response.data;
-        } else if (error.response.data.message) {
-          errMessage = error.response.data.message;
-        } else {
-          errMessage = JSON.stringify(error.response.data);
-        }
-      } else if (error.message) {
-        errMessage = error.message;
-      }
-
-      throw new HttpException(errMessage, statusCode);
+      throw new HttpException(
+        error.response?.data?.message || 'Failed to send SMS',
+        error.response?.status || 500,
+      );
     }
   }
-  async verifyOtp(phoneNumber: string, otp: string) {
-  const key = `otp:${phoneNumber}`;
-  
-  const storedOtp = await this.cacheService.get(key);
 
-  if (!storedOtp) {
-    throw new HttpException(
-      'OTP expired or not found',
-      HttpStatus.BAD_REQUEST,
-    );
+  async verifyOtp(phoneNumber: string, otp: string, purpose: string) {
+    const key = `otp:${phoneNumber}:${purpose}`;
+
+    const storedOtp = await this.cacheService.get(key);
+
+    if (!storedOtp) {
+      throw new HttpException(
+        'OTP expired or not found',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (storedOtp !== otp) {
+      throw new HttpException('Invalid OTP', HttpStatus.BAD_REQUEST);
+    }
+
+    await this.cacheService.del(key);
+
+    return {
+      success: true,
+      message: `${purpose} OTP verified successfully`,
+    };
   }
-
-  if (storedOtp !== otp) {
-    throw new HttpException(
-      'Invalid OTP',
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-
-  // OTP is correct → delete from cache
-  await this.cacheService.del(key);
-
-  return {
-    success: true,
-    message: 'OTP verified successfully',
-  };
-}
-
 }
