@@ -74,21 +74,19 @@ export class AuthService {
     let user: User;
 
     if (existingUser && existingUser.isGuest) {
-      // Update the guest user
       user = await this.userRepository
         .withManager(entityManager)
         .findbyIdAndUpdate(existingUser.id, {
           ...userData,
           isGuest: false,
-          isProfileComplete: true,
+          isProfileComplete: false, 
         });
     } else {
-      // Create a new user only if no guest exists
       user = await this.userRepository
         .withManager(entityManager)
         .createStrict({
           ...userData,
-          isProfileComplete: true,
+          isProfileComplete: false,
         });
     }
 
@@ -103,6 +101,7 @@ export class AuthService {
     return user;
   },
 );
+
 
 
     return this.responseService.sendSuccess(
@@ -135,7 +134,7 @@ export class AuthService {
     const { accessToken, hashedAccessToken } =
       await this.tokenService.generateJWTToken(userId);
 
-    // Get JWT expiration in seconds to match cache TTL with token expiration
+    
     const jwtExpirationSeconds = this.tokenService.getJwtExpirationInSeconds();
 
     await this.userService.cacheUserData(
@@ -144,7 +143,7 @@ export class AuthService {
         hashedAccessToken,
       } as any,
       kyc,
-      jwtExpirationSeconds, // Cache TTL matches JWT expiration
+      jwtExpirationSeconds, 
     );
 
     const data = {
