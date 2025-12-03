@@ -1,25 +1,41 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+// entities/file.entity.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
-@Entity({ name: 'files' })
+@Entity('files')
 export class FileEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ name: 'original_name' })
   originalName: string;
 
-  @Column()
+  @Column({ name: 'mime_type' })
   mimeType: string;
 
-  @Column()
+  @Column({ type: 'bigint' })
   size: number;
 
-  @Column()
+  @Column({ name: 'url' }) // For public: stores full URL, For presigned: stores S3 key
   url: string;
 
-  @Column({ default: 'uploads' })
+  @Column()
   folder: string;
 
-  @CreateDateColumn()
+  @Column({ name: 'user_id', nullable: true }) // Track who uploaded (for presigned)
+  userId?: string;
+
+  @Column({ name: 'last_accessed', type: 'timestamp', nullable: true })
+  lastAccessed?: Date;
+
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }
