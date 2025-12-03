@@ -14,7 +14,7 @@ export class UploadService {
 
   async uploadSingleFile(
     file: Express.MulterFile,
-    folder: string = 'uploads'
+    folder: string = 'uploads',
   ): Promise<FileEntity> {
     const url = await this.s3Service.uploadFile(file, folder);
 
@@ -31,7 +31,7 @@ export class UploadService {
 
   async uploadMultipleFiles(
     files: Express.MulterFile[],
-    folder: string = 'uploads'
+    folder: string = 'uploads',
   ): Promise<FileEntity[]> {
     const urls = await this.s3Service.uploadFiles(files, folder);
 
@@ -42,10 +42,9 @@ export class UploadService {
         size: file.size,
         url: urls[i],
         folder,
-      })
+      }),
     );
 
     return this.fileRepo.save(savedFiles);
   }
 }
-

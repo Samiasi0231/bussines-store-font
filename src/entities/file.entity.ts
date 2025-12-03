@@ -1,6 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
-@Entity({ name: 'files' })
+@Entity('files')
 export class FileEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -20,6 +26,15 @@ export class FileEntity {
   @Column({ default: 'uploads' })
   folder: string;
 
+  @Column({ nullable: true })
+  userId?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastAccessed?: Date;
+
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt?: Date;
+
+  @UpdateDateColumn()
+  updatedAt?: Date;
 }
