@@ -7,14 +7,17 @@ describe('SmsController', () => {
   let service: SmsService;
 
   beforeEach(async () => {
+    const mockSmsService = {
+      sendOtp: jest.fn().mockResolvedValue({ success: true }),
+      verifyOtp: jest.fn().mockResolvedValue({ success: true }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SmsController],
       providers: [
         {
           provide: SmsService,
-          useValue: {
-            sendOtp: jest.fn().mockResolvedValue({ success: true }),
-          },
+          useValue: mockSmsService,
         },
       ],
     }).compile();
@@ -28,8 +31,31 @@ describe('SmsController', () => {
   });
 
   it('should send OTP', async () => {
-    const result = await controller.sendOtp({ recipients: ['+2349095609847'] });
+    const dto = { recipient: '+2349095609847', purpose: 'registration' };
+
+    const result = await controller.sendOtp(dto);
+
     expect(result).toEqual({ success: true });
-    expect(service.sendOtp).toHaveBeenCalledWith(['+2349095609847']);
+    expect(service.sendOtp).toHaveBeenCalledWith(
+      dto.recipient,
+      dto.purpose,
+    );
+  });
+
+  it('should verify OTP', async () => {
+    const dto = {
+      phoneNumber: '+2349095609847',
+      otp: '1234',
+      purpose: 'wallet',
+    };
+
+    const result = await controller.verifyOtp(dto);
+
+    expect(result).toEqual({ success: true });
+    expect(service.verifyOtp).toHaveBeenCalledWith(
+      dto.phoneNumber,
+      dto.otp,
+      dto.purpose,
+    );
   });
 });

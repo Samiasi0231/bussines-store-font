@@ -1,10 +1,11 @@
-
-import { IsArray, IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class SendOtpDto {
   @IsNotEmpty()
-  @IsArray()
-  @IsString({ each: true })
-  recipients: string[];
-}
+  @IsString()
+  recipient: string;
 
+  @IsNotEmpty()
+  @IsString()
+  purpose: string; 
+}
