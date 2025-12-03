@@ -8,4 +8,8 @@ export class VerifyOtpDto {
   @IsNotEmpty()
   @IsString()
   otp: string;
+
+  @IsNotEmpty()
+  @IsString()
+  purpose: string;
 }
