@@ -14,6 +14,7 @@ import { RmqDeserializer } from './@common/microservices/rmq-queue-pattern.deser
 import { RmqQueue } from './@common/constants/queues.constant';
 import { AmqpClient } from './@common/rmq/amqp-client';
 import { SwaggerConfig } from './@common/swagger/swagger.config';
+import { MulterExceptionFilter } from './@common/filter/multer-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -46,7 +47,7 @@ async function bootstrap() {
   });
 
   app.useGlobalInterceptors(new HttpInterceptor());
-
+ app.useGlobalFilters(new MulterExceptionFilter());
   app.useGlobalPipes(new TrimPipe());
   app.useGlobalPipes(
     new ValidationPipe({

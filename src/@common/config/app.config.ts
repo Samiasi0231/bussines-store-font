@@ -8,8 +8,8 @@ export default () => ({
     connectionLimit: process.env.DB_CONNECTION_LIMIT,
     connectionString: `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
     retryAttempts: parseInt(process.env.DB_RETRY_ATTEMPTS || '5', 10),
-    retryDelay: parseInt(process.env.DB_RETRY_DELAY || '3000', 10), // milliseconds
-    synchronize: process.env.DB_SYNCHRONIZE === 'true', // Only for development - NEVER in production
+    retryDelay: parseInt(process.env.DB_RETRY_DELAY || '3000', 10), 
+    synchronize: process.env.DB_SYNCHRONIZE === 'true', 
   },
   jwt: {
     secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key',
@@ -63,7 +63,7 @@ export default () => ({
     length: Number(process.env.OTP_LENGTH || 6),
   },
   cache: {
-    type: process.env.CACHE_TYPE || 'memory', // 'memory' or 'redis'
+    type: process.env.CACHE_TYPE || 'memory', 
     redis: {
       enabled: process.env.REDIS_ENABLED === 'true',
       host: process.env.REDIS_HOST || 'localhost',
@@ -71,7 +71,7 @@ export default () => ({
     },
   },
   queue: {
-    type: process.env.QUEUE_TYPE || 'memory', // 'memory' or 'rabbitmq'
+    type: process.env.QUEUE_TYPE || 'memory', 
     rabbitmq: {
       enabled: process.env.RABBITMQ_ENABLED === 'true',
     },

@@ -1,50 +1,43 @@
 import { Injectable } from '@nestjs/common';
-import { AwsS3Service } from '../@common/services/aws-s3.service';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { AwsS3Service, FileVisibility } from '../@common/services/aws-s3.service';
 import { FileEntity } from '../entities/file.entity';
 
 @Injectable()
 export class UploadService {
-  constructor(
-    private readonly s3Service: AwsS3Service,
-    @InjectRepository(FileEntity)
-    private readonly fileRepo: Repository<FileEntity>,
-  ) {}
+  constructor(private readonly awsS3Service: AwsS3Service) {}
 
   async uploadSingleFile(
     file: Express.MulterFile,
     folder: string = 'uploads',
+    visibility: FileVisibility = 'public',
   ): Promise<FileEntity> {
-    const url = await this.s3Service.uploadFile(file, folder);
-
-    const saved = this.fileRepo.create({
-      originalName: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
-      url,
-      folder,
-    });
-
-    return this.fileRepo.save(saved);
+    const url = await this.awsS3Service.uploadFile(file, folder, visibility);
+    const fileEntity = new FileEntity();
+    fileEntity.originalName = file.originalname;
+    fileEntity.mimeType = file.mimetype;
+    fileEntity.size = file.size;
+    fileEntity.url = url;
+    fileEntity.folder = folder;
+    fileEntity.visibility = visibility;
+    return fileEntity;
   }
 
   async uploadMultipleFiles(
     files: Express.MulterFile[],
     folder: string = 'uploads',
+    visibility: FileVisibility = 'public',
   ): Promise<FileEntity[]> {
-    const urls = await this.s3Service.uploadFiles(files, folder);
+    const urls = await this.awsS3Service.uploadFiles(files, folder, visibility);
 
-    const savedFiles = files.map((file, i) =>
-      this.fileRepo.create({
-        originalName: file.originalname,
-        mimeType: file.mimetype,
-        size: file.size,
-        url: urls[i],
-        folder,
-      }),
-    );
-
-    return this.fileRepo.save(savedFiles);
+    return files.map((file, index) => {
+      const entity = new FileEntity();
+      entity.originalName = file.originalname;
+      entity.mimeType = file.mimetype;
+      entity.size = file.size;
+      entity.url = urls[index];
+      entity.folder = folder;
+      entity.visibility = visibility;
+      return entity;
+    });
   }
 }

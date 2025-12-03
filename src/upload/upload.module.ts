@@ -1,31 +1,28 @@
 import { Module } from '@nestjs/common';
-import { UploadService } from './upload.service';
-import { UploadController } from './upload.controller';
-import { AwsS3Service } from '../@common/services/aws-s3.service';
-import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { FileEntity } from '../entities/file.entity';
-import { UploadPresignedService, UploadPublicService } from './services';
-import { AwsS3PresignedService } from './utils/upload.private.aws-s3.service';
+import { UploadPublicService } from './services/upload.public.service';
+import { UploadPresignedService } from './services/upload.private.service';
 import { AwsS3PublicService } from './utils/upload.public.aws-s3.service';
-import {
-  UploadPresignedController,
-  UploadPublicController,
-} from './controllers';
+import { AwsS3PresignedService } from './utils/upload.private.aws-s3.service';
+import { UploadPublicController } from './controllers/upload.public.controller';
+import { UploadPresignedController } from './controllers/upload.private.controller';
+import { UploadController } from './upload.controller';
+import { UploadService } from './upload.service';
+import { AwsS3Service } from '../@common/services/aws-s3.service';
+
 @Module({
   imports: [ConfigModule, TypeOrmModule.forFeature([FileEntity])],
   providers: [
-    UploadService,
     AwsS3Service,
-    UploadPresignedService,
-    UploadPublicService,
-    AwsS3PresignedService,
-    AwsS3PublicService,
-  ],
-  controllers: [
+    UploadService,
     UploadController,
-    UploadPresignedController,
-    UploadPublicController,
+    UploadPublicService,
+    UploadPresignedService,
+    AwsS3PublicService,
+    AwsS3PresignedService,
   ],
+  controllers: [UploadController, UploadPublicController, UploadPresignedController],
 })
 export class UploadModule {}
