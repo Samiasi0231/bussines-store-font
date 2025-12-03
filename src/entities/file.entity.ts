@@ -1,10 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
 
 @Entity('files')
 export class FileEntity {
@@ -12,29 +6,26 @@ export class FileEntity {
   id: string;
 
   @Column()
-  originalName: string;
+  originalName: string; // file.originalname
 
   @Column()
-  mimeType: string;
+  mimeType: string; // file.mimetype
 
   @Column()
-  size: number;
+  size: number; // file.size
 
   @Column()
-  url: string;
+  url: string; // uploaded URL
 
-  @Column({ default: 'uploads' })
-  folder: string;
+  @Column()
+  folder: string; // folder name
+
+  @Column({ type: 'enum', enum: ['public', 'private'], default: 'public' })
+  visibility: 'public' | 'private'; // public or private
 
   @Column({ nullable: true })
-  userId?: string;
-
-  @Column({ type: 'timestamp', nullable: true })
-  lastAccessed?: Date;
+  userId?: string; // optional user association
 
   @CreateDateColumn()
-  createdAt?: Date;
-
-  @UpdateDateColumn()
-  updatedAt?: Date;
+  createdAt: Date;
 }
