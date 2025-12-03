@@ -22,6 +22,10 @@ import {
     AwsS3PresignedService,
     AwsS3PublicService,
   ],
-  controllers: [UploadPresignedController, UploadPublicController],
+  controllers: [
+    UploadController,
+    UploadPresignedController,
+    UploadPublicController,
+  ],
 })
 export class UploadModule {}
