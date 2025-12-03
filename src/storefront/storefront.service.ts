@@ -19,8 +19,11 @@ import {
   FormattedStorefront,
   StorefrontSanitizer,
 } from './sanitizers/storefront.sanitizer';
-import { SelectQueryBuilder } from 'typeorm';
+import { In, SelectQueryBuilder } from 'typeorm';
 import { isUUID } from 'class-validator';
+import { ProductRepository } from '../repositories/product.repository';
+import { ProductSanitizer } from '../product/sanitizers/product.sanitizer';
+import { ProductImageRepository } from '../repositories/product-image.repository';
 
 @Injectable()
 export class StorefrontService {
@@ -31,6 +34,9 @@ export class StorefrontService {
     private storeRepository: StoreRepository,
     private storefrontSanitizer: StorefrontSanitizer,
     private readonly responseService: ResponseService,
+    private readonly productRepository: ProductRepository,
+    private readonly productSanitizer: ProductSanitizer,
+    private readonly productImageRepository: ProductImageRepository,
   ) {}
 
   private normalizeSlug(input: string): string {
@@ -135,9 +141,7 @@ export class StorefrontService {
     );
   }
 
-  async getStorefrontBySlug(
-    slug: string,
-  ): Promise<IResponse<FormattedStorefront>> {
+  async getStorefrontBySlug(slug: string) {
     const normalizedSlug = this.normalizeSlug(slug);
 
     const storefront = await this.storefrontRepository.findOne({
@@ -151,11 +155,46 @@ export class StorefrontService {
         HttpStatus.NOT_FOUND,
       );
 
-    const data = this.storefrontSanitizer.formatStoreFront(storefront);
+    const storeId = storefront.store;
+
+    const products = await this.productRepository.find({
+      where: {
+        store: storeId,
+        deletedAt: null,
+      },
+      order: { createdAt: 'DESC' },
+      take: 100,
+    });
+
+    const productIds = products.map((p) => p.id);
+
+    const productImages = await this.productImageRepository.find({
+      where: {
+        product: In(productIds),
+      },
+    });
+
+    const productsWithImages = products.map((product) => {
+      const images = productImages.filter((img) => {
+        const imgProductId =
+          typeof img.product === 'object' ? img.product.id : img.product;
+        return imgProductId === product.id;
+      });
+
+      return {
+        ...product,
+        images,
+      };
+    });
+
+    const payload = {
+      storefront,
+      products: productsWithImages,
+    };
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
-      data,
+      payload,
     );
   }
 
