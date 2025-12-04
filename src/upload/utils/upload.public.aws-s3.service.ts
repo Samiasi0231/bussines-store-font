@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import { randomBytes } from 'crypto';
 import { extname } from 'path';
 
@@ -18,12 +22,17 @@ export class AwsS3PublicService {
       region: this.region,
       credentials: {
         accessKeyId: this.configService.get<string>('AWS_ACCESS_KEY_ID'),
-        secretAccessKey: this.configService.get<string>('AWS_SECRET_ACCESS_KEY'),
+        secretAccessKey: this.configService.get<string>(
+          'AWS_SECRET_ACCESS_KEY',
+        ),
       },
     });
   }
 
-  async uploadFile(file: Express.MulterFile, folder: string = 'uploads'): Promise<string> {
+  async uploadFile(
+    file: Express.MulterFile,
+    folder: string = 'uploads',
+  ): Promise<string> {
     const key = this.generateFileKey(file.originalname, folder);
 
     const uploadParams = {
@@ -31,7 +40,7 @@ export class AwsS3PublicService {
       Key: key,
       Body: file.buffer,
       ContentType: file.mimetype,
-      ACL: 'public-read' as const,
+      // ACL: 'public-read' as const,
       CacheControl: 'max-age=31536000',
     };
 
@@ -39,12 +48,17 @@ export class AwsS3PublicService {
     return this.getPublicUrl(key);
   }
 
-  async uploadFiles(files: Express.MulterFile[], folder: string = 'uploads'): Promise<string[]> {
-    return Promise.all(files.map(file => this.uploadFile(file, folder)));
+  async uploadFiles(
+    files: Express.MulterFile[],
+    folder: string = 'uploads',
+  ): Promise<string[]> {
+    return Promise.all(files.map((file) => this.uploadFile(file, folder)));
   }
 
   async deleteFile(key: string) {
-    await this.s3Client.send(new DeleteObjectCommand({ Bucket: this.bucketName, Key: key }));
+    await this.s3Client.send(
+      new DeleteObjectCommand({ Bucket: this.bucketName, Key: key }),
+    );
   }
 
   private generateFileKey(originalName: string, folder: string): string {
