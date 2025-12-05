@@ -10,11 +10,12 @@ import {
 } from 'typeorm';
 import { uuidv7 } from 'uuidv7';
 import { ProductSubCategory } from './product-sub-category.entity';
-import { IsNotEmpty } from 'class-validator';
 import { Store } from './store.entity';
 import { ProductVariant } from './product-variant.entity';
-import { BaseEntity } from './base.entity';
+import { ProductImage } from './product-image.entity';
 import { ProductCollectionProduct } from './product-collection-product.entity';
+import { BaseEntity } from './base.entity';
+import { IsNotEmpty } from 'class-validator';
 
 @Entity('products')
 export class Product extends BaseEntity {
@@ -51,18 +52,20 @@ export class Product extends BaseEntity {
 
   @Index()
   @IsNotEmpty()
-  @Column({ name: 'sub_category_id' })
-  @ManyToOne(() => ProductSubCategory, {
-    nullable: false,
-    onDelete: 'RESTRICT',
-  })
+  @ManyToOne(() => ProductSubCategory, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'sub_category_id' })
+  @Column({ name: 'sub_category_id' })
   subCategory: ProductSubCategory | UUID;
 
   @OneToMany(() => ProductVariant, (variant) => variant.product, {
     cascade: true,
   })
   variants?: ProductVariant[];
+
+  @OneToMany(() => ProductImage, (image) => image.product, {
+    cascade: true,
+  })
+  images?: ProductImage[];
 
   @OneToMany(
     () => ProductCollectionProduct,
