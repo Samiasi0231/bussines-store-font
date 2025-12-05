@@ -5,78 +5,97 @@ import { ProductCollection } from '../../entities/product-collection.entity';
 import { Util } from '../../@common/utilities/helpers.utility';
 
 type FormattedProductVariant = {
-  id: string;
-  price: number;
-  options: Record<string, unknown>;
+id: string;
+price: number;
+options: Record<string, unknown>;
 };
 
 export type FormattedProduct = {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  quantity: number;
-  variants: FormattedProductVariant[];
-  options: { name: string; values: string[] }[];
+id: string;
+name: string;
+price: number;
+description: string;
+quantity: number;
+variants: FormattedProductVariant[];
+options: { name: string; values: string[] }[];
+images: { url: string; isPrimary: boolean }[];
 };
 
 export type FormattedProductForList = {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  quantity: number;
+id: string;
+name: string;
+price: number;
+description: string;
+quantity: number;
+images: { url: string; isPrimary: boolean }[];
 };
 
 export type FormattedProductCollection = {
-  id: string;
-  name: string;
-  description?: string;
+id: string;
+name: string;
+description?: string;
 };
+
 @Injectable()
 export class ProductSanitizer {
-  constructor() {}
+constructor() {}
 
-  private formatVariant(data: ProductVariant): FormattedProductVariant {
-    const options: Record<string, string> = {};
+private formatVariant(data: ProductVariant): FormattedProductVariant {
+const options: Record<string, unknown> = {};
 
-    data.attributes?.forEach((attr) => {
-      options[attr.name] = attr.value;
-    });
+data.attributes?.forEach((attr) => {
+  options[attr.name] = attr.value;
+});
 
-    return { id: data.id, price: Util.toNaira(data.sellingPrice), options };
-  }
+return {
+  id: data.id,
+  price: Util.toNaira(data.sellingPrice),
+  options,
+};
 
-  formatProduct(
-    data: Product,
-    options: { name: string; values: string[] }[],
-  ): FormattedProduct {
-    return {
-      id: data.id,
-      name: data.name,
-      price: Util.toNaira(data.sellingPrice),
-      description: data.description,
-      quantity: data.quantity,
-      variants: data.variants?.map((variant) => this.formatVariant(variant)),
-      options,
-    };
-  }
 
-  formatProductForList(data: Product): FormattedProductForList {
-    return {
-      id: data.id,
-      name: data.name,
-      price: Util.toNaira(data.sellingPrice),
-      description: data.description,
-      quantity: data.quantity,
-    };
-  }
+}
 
-  formatProductCollection(data: ProductCollection): FormattedProductCollection {
-    return {
-      id: data.id,
-      name: data.name,
-      description: data.description,
-    };
-  }
+formatProduct(
+data: Product,
+options: { name: string; values: string[] }[],
+): FormattedProduct {
+return {
+id: data.id,
+name: data.name,
+price: Util.toNaira(data.sellingPrice),
+description: data.description,
+quantity: data.quantity,
+variants: data.variants?.map((variant) => this.formatVariant(variant)) || [],
+options,
+images: data.images?.map((img) => ({
+url: img.url,
+isPrimary: img.isPrimary,
+})) || [],
+};
+}
+
+formatProductForList(data: Product): FormattedProductForList {
+return {
+id: data.id,
+name: data.name,
+price: Util.toNaira(data.sellingPrice),
+description: data.description,
+quantity: data.quantity,
+images: data.images?.map((img) => ({
+url: img.url,
+isPrimary: img.isPrimary,
+})) || [],
+};
+}
+
+formatProductCollection(
+data: ProductCollection,
+): FormattedProductCollection {
+return {
+id: data.id,
+name: data.name,
+description: data.description,
+};
+}
 }

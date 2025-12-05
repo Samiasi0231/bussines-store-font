@@ -382,7 +382,7 @@ export class ProductService {
 
   async getProduct(id: UUID): Promise<IResponse<FormattedProduct>> {
     const product = await this.productRepository.findById(id, {
-      relations: ['variants', 'variants.attributes'],
+      relations: [ 'images','variants', 'variants.attributes'],
     });
 
     const productOptions =
@@ -417,9 +417,13 @@ export class ProductService {
 
     if (subCategoryId) filter.subCategory = subCategoryId;
 
-    let query: SelectQueryBuilder<Product> = this.productRepository
-      .createQueryBuilder('product')
-      .where('product.deletedAt IS NULL');
+   let query = this.productRepository
+  .createQueryBuilder('product')
+  .leftJoinAndSelect('product.images', 'images')
+  .leftJoinAndSelect('product.variants', 'variants')
+  .leftJoinAndSelect('variants.attributes', 'attributes')
+  .where('product.deletedAt IS NULL');
+
 
     if (name) {
       query.andWhere('LOWER(product.name) LIKE LOWER(:name)', {
