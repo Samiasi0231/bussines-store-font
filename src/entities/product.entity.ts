@@ -9,6 +9,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { uuidv7 } from 'uuidv7';
+import { Storefront } from './storefront.entity';
 import { ProductSubCategory } from './product-sub-category.entity';
 import { Store } from './store.entity';
 import { ProductVariant } from './product-variant.entity';
@@ -56,6 +57,17 @@ export class Product extends BaseEntity {
   @JoinColumn({ name: 'sub_category_id' })
   @Column({ name: 'sub_category_id' })
   subCategory: ProductSubCategory | UUID;
+
+  // ✅ Correctly place Storefront relation inside the class
+  @ManyToOne(() => Storefront, (storefront) => storefront.products, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'storefront_id' })
+  storefront?: Storefront;
+
+  @Column({ name: 'storefront_id', type: 'uuid', nullable: true })
+  storefrontId?: UUID;
 
   @OneToMany(() => ProductVariant, (variant) => variant.product, {
     cascade: true,
