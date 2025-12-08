@@ -6,6 +6,9 @@ import {
   CollectionsConfig,
   ProductsConfig,
   FooterConfig,
+  NavLink,
+  TextStyles,
+  FooterLink,
 } from '../../entities/storefront.entity';
 import { UUID } from 'crypto';
 
@@ -82,7 +85,7 @@ export class StorefrontSanitizer {
 
     if (data.socialHandles !== undefined) {
       sanitized.socialHandles = data.socialHandles
-        ?.filter((handle) => handle.trim())
+        ?.filter((handle) => handle?.trim())
         .map((handle) => handle.trim());
     }
 
@@ -98,9 +101,9 @@ export class StorefrontSanitizer {
       sanitized.collectionsConfig = {
         enabled: Boolean(data.collectionsConfig?.enabled),
         selectedCollectionIds:
-          data.collectionsConfig?.selectedCollectionIds?.filter((id) =>
-            id.trim(),
-          ) || [],
+          data.collectionsConfig?.selectedCollectionIds
+            ?.filter((id) => id?.trim())
+            .map((id) => id.trim()) || [],
       };
     }
 
@@ -118,57 +121,189 @@ export class StorefrontSanitizer {
   }
 
   private sanitizeHeaderConfig(config: HeaderConfig): HeaderConfig {
-    return {
-      logoUrl: config.logoUrl?.trim() || undefined,
-      navLinks: config.navLinks?.map((link) => ({
-        text: link.text.trim(),
-        url: link.url.trim(),
-      })),
-      navLinkStyles: config.navLinkStyles,
-      cartText: config.cartText?.trim() || undefined,
-      backgroundColor: config.backgroundColor?.trim() || undefined,
-    };
+    const sanitized: HeaderConfig = {};
+
+    if (config.logoUrl !== undefined) {
+      sanitized.logoUrl = config.logoUrl?.trim() || undefined;
+    }
+
+    if (config.navLinks !== undefined) {
+      sanitized.navLinks = config.navLinks?.map((link) => ({
+        text: link.text?.trim() || '',
+        url: link.url ? link.url.trim() : undefined,
+      }));
+    }
+
+    if (config.navLinkStyles !== undefined) {
+      sanitized.navLinkStyles = config.navLinkStyles?.map((style) =>
+        this.sanitizeTextStyles(style),
+      );
+    }
+
+    if (config.cartText !== undefined) {
+      sanitized.cartText = config.cartText?.trim() || undefined;
+    }
+
+    if (config.backgroundColor !== undefined) {
+      sanitized.backgroundColor = config.backgroundColor?.trim() || undefined;
+    }
+
+    if (config.padding !== undefined) {
+      sanitized.padding = config.padding;
+    }
+
+    return sanitized;
   }
 
   private sanitizeHeroConfig(config: HeroConfig): HeroConfig {
-    return {
-      headerText: config.headerText?.trim() || undefined,
-      description: config.description?.trim() || undefined,
-      ctaText: config.ctaText?.trim() || undefined,
-      heroImageUrl: config.heroImageUrl?.trim() || undefined,
-      heroImageScale: config.heroImageScale,
-      headerTextAlign: config.headerTextAlign,
-      descriptionTextAlign: config.descriptionTextAlign,
-      ctaTextAlign: config.ctaTextAlign,
-      headerStyles: config.headerStyles,
-      descriptionStyles: config.descriptionStyles,
-      ctaStyles: config.ctaStyles,
-    };
+    const sanitized: HeroConfig = {};
+
+    if (config.headerText !== undefined) {
+      sanitized.headerText = config.headerText?.trim() || undefined;
+    }
+
+    if (config.description !== undefined) {
+      sanitized.description = config.description?.trim() || undefined;
+    }
+
+    if (config.ctaText !== undefined) {
+      sanitized.ctaText = config.ctaText?.trim() || undefined;
+    }
+
+    if (config.heroImageUrl !== undefined) {
+      sanitized.heroImageUrl = config.heroImageUrl?.trim() || undefined;
+    }
+
+    if (config.heroImageScale !== undefined) {
+      sanitized.heroImageScale = config.heroImageScale;
+    }
+
+    if (config.headerTextAlign !== undefined) {
+      sanitized.headerTextAlign = config.headerTextAlign;
+    }
+
+    if (config.descriptionTextAlign !== undefined) {
+      sanitized.descriptionTextAlign = config.descriptionTextAlign;
+    }
+
+    if (config.ctaTextAlign !== undefined) {
+      sanitized.ctaTextAlign = config.ctaTextAlign;
+    }
+
+    if (config.headerStyles !== undefined) {
+      sanitized.headerStyles = this.sanitizeTextStyles(config.headerStyles);
+    }
+
+    if (config.descriptionStyles !== undefined) {
+      sanitized.descriptionStyles = this.sanitizeTextStyles(
+        config.descriptionStyles,
+      );
+    }
+
+    if (config.ctaStyles !== undefined) {
+      sanitized.ctaStyles = this.sanitizeTextStyles(config.ctaStyles);
+    }
+
+    return sanitized;
   }
 
   private sanitizeFooterConfig(config: FooterConfig): FooterConfig {
-    return {
-      logoUrl: config.logoUrl?.trim() || undefined,
-      storeName: config.storeName?.trim() || undefined,
-      copyrightText: config.copyrightText?.trim() || undefined,
-      contactAddress: config.contactAddress?.trim() || undefined,
-      phoneNumber: config.phoneNumber?.trim() || undefined,
-      productLinks: config.productLinks?.map((link) => ({
-        text: link.text.trim(),
-        url: link.url?.trim() || null,
-      })),
-      companyLinks: config.companyLinks?.map((link) => ({
-        text: link.text.trim(),
-        url: link.url?.trim() || null,
-      })),
-      socialLinks: config.socialLinks?.map((link) => ({
-        text: link.text.trim(),
-        url: link.url?.trim() || null,
-      })),
-      copyrightStyles: config.copyrightStyles,
-      addressStyles: config.addressStyles,
-      phoneStyles: config.phoneStyles,
-      backgroundColor: config.backgroundColor?.trim() || undefined,
-    };
+    const sanitized: FooterConfig = {};
+
+    if (config.logoUrl !== undefined) {
+      sanitized.logoUrl = config.logoUrl?.trim() || undefined;
+    }
+
+    if (config.storeName !== undefined) {
+      sanitized.storeName = config.storeName?.trim() || undefined;
+    }
+
+    if (config.copyrightText !== undefined) {
+      sanitized.copyrightText = config.copyrightText?.trim() || undefined;
+    }
+
+    if (config.contactAddress !== undefined) {
+      sanitized.contactAddress = config.contactAddress?.trim() || undefined;
+    }
+
+    if (config.phoneNumber !== undefined) {
+      sanitized.phoneNumber = config.phoneNumber?.trim() || undefined;
+    }
+
+    if (config.backgroundColor !== undefined) {
+      sanitized.backgroundColor = config.backgroundColor?.trim() || undefined;
+    }
+
+    if (config.padding !== undefined) {
+      sanitized.padding = config.padding;
+    }
+
+    // Helper function to sanitize footer links
+    const sanitizeFooterLinks = (links: FooterLink[] = []) =>
+      links.map((link) => ({
+        text: link.text?.trim() || '',
+        url: link.url ? link.url.trim() : undefined,
+        padding: link.padding,
+      }));
+
+    if (config.productLinks !== undefined) {
+      sanitized.productLinks = sanitizeFooterLinks(config.productLinks);
+    }
+
+    if (config.companyLinks !== undefined) {
+      sanitized.companyLinks = sanitizeFooterLinks(config.companyLinks);
+    }
+
+    if (config.socialLinks !== undefined) {
+      sanitized.socialLinks = sanitizeFooterLinks(config.socialLinks);
+    }
+
+    if (config.copyrightStyles !== undefined) {
+      sanitized.copyrightStyles = this.sanitizeTextStyles(
+        config.copyrightStyles,
+      );
+    }
+
+    if (config.addressStyles !== undefined) {
+      sanitized.addressStyles = this.sanitizeTextStyles(config.addressStyles);
+    }
+
+    if (config.phoneStyles !== undefined) {
+      sanitized.phoneStyles = this.sanitizeTextStyles(config.phoneStyles);
+    }
+
+    return sanitized;
+  }
+
+  private sanitizeTextStyles(styles: TextStyles): TextStyles {
+    if (!styles) return styles;
+
+    const sanitized: TextStyles = { ...styles };
+
+    // Sanitize required fields
+    sanitized.fontFamily = styles.fontFamily?.trim() || '';
+    sanitized.weight = styles.weight?.trim() || '';
+    sanitized.size = styles.size?.trim() || '';
+    sanitized.color = styles.color?.trim() || '';
+    sanitized.opacity = styles.opacity || 100;
+
+    // Sanitize optional fields
+    if (styles.textAlign !== undefined) {
+      sanitized.textAlign = styles.textAlign?.trim() || undefined;
+    }
+
+    if (styles.backgroundColor !== undefined) {
+      sanitized.backgroundColor = styles.backgroundColor?.trim() || undefined;
+    }
+
+    if (styles.borderColor !== undefined) {
+      sanitized.borderColor = styles.borderColor?.trim() || undefined;
+    }
+
+    if (styles.cornerRadius !== undefined) {
+      sanitized.cornerRadius = styles.cornerRadius;
+    }
+
+    return sanitized;
   }
 }

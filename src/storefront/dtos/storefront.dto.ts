@@ -58,8 +58,9 @@ export class NavLinkDTO {
   @IsString()
   text: string;
 
+  @IsOptional()
   @IsString()
-  url: string;
+  url?: string;
 }
 
 export class HeaderConfigDTO {
@@ -86,6 +87,10 @@ export class HeaderConfigDTO {
   @IsOptional()
   @IsString()
   backgroundColor?: string;
+
+  @IsOptional()
+  @IsNumber()
+  padding?: number;
 }
 
 export class HeroConfigDTO {
@@ -157,7 +162,12 @@ export class FooterLinkDTO {
   text: string;
 
   @IsOptional()
-  url: string | null;
+  @IsString()
+  url?: string;
+
+  @IsOptional()
+  @IsNumber()
+  padding?: number;
 }
 
 export class FooterConfigDTO {
@@ -217,6 +227,10 @@ export class FooterConfigDTO {
   @IsOptional()
   @IsString()
   backgroundColor?: string;
+
+  @IsOptional()
+  @IsNumber()
+  padding?: number;
 }
 
 export class CreateStorefrontDTO {

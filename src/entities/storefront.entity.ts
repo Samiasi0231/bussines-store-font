@@ -16,7 +16,7 @@ import { IsNotEmpty } from 'class-validator';
 // Type definitions for the configuration objects
 export interface NavLink {
   text: string;
-  url: string;
+  url?: string;
 }
 
 export interface TextStyles {
@@ -37,6 +37,7 @@ export interface HeaderConfig {
   navLinkStyles?: TextStyles[];
   cartText?: string;
   backgroundColor?: string;
+  padding?: number;
 }
 
 export interface HeroConfig {
@@ -64,7 +65,8 @@ export interface ProductsConfig {
 
 export interface FooterLink {
   text: string;
-  url: string | null;
+  url?: string;
+  padding?: number;
 }
 
 export interface FooterConfig {
@@ -80,6 +82,7 @@ export interface FooterConfig {
   addressStyles?: TextStyles;
   phoneStyles?: TextStyles;
   backgroundColor?: string;
+  padding?: number;
 }
 
 @Entity('storefronts')

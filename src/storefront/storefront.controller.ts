@@ -20,6 +20,7 @@ import {
   GetBySlugParamDTO,
 } from '../@common/dtos/general.dto';
 import { UUID } from 'crypto';
+import { validate } from 'class-validator';
 
 @Controller()
 export class StorefrontController {
@@ -57,6 +58,22 @@ export class StorefrontController {
     @Param() param: GetByIdParamDTO,
     @Body() body: EditStorefrontDTO,
   ) {
+    console.log('Received body:', JSON.stringify(body, null, 2));
+
+    // Add validation pipe for better error messages
+    const validationErrors = await this.validateDto(body);
+    if (validationErrors.length > 0) {
+      console.log('Validation errors:', validationErrors);
+    }
+
     return this.storefrontService.editStorefront(param.id as UUID, body);
+  }
+
+  private async validateDto(dto: any): Promise<string[]> {
+    const errors = await validate(dto);
+    return errors.map(
+      (error) =>
+        `${error.property}: ${Object.values(error.constraints || {}).join(', ')}`,
+    );
   }
 }
