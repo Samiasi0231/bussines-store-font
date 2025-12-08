@@ -4,6 +4,7 @@ import {
   Entity,
   Column,
   ManyToOne,
+  OneToMany,
   JoinColumn,
   Index,
   PrimaryColumn,
@@ -12,6 +13,7 @@ import { uuidv7 } from 'uuidv7';
 import { BaseEntity } from './base.entity';
 import { Store } from './store.entity';
 import { IsNotEmpty } from 'class-validator';
+import { Product } from './product.entity';
 
 // Type definitions for the configuration objects
 export interface NavLink {
@@ -90,6 +92,11 @@ export class Storefront extends BaseEntity {
   @PrimaryColumn({ type: 'uuid' })
   id = uuidv7() as UUID;
 
+  
+  @OneToMany(() => Product, (product) => product.storefront)
+products?: Product[];
+
+
   @Index()
   @ManyToOne(() => Store, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'store_id' })
@@ -98,7 +105,7 @@ export class Storefront extends BaseEntity {
 
   @Column({ type: 'varchar', length: 100, unique: true })
   slug: string;
-
+  
   @Column({ type: 'varchar', length: 255, nullable: true, name: 'logo' })
   logo?: string;
 

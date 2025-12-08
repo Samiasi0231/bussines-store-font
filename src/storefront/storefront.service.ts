@@ -146,6 +146,7 @@ export class StorefrontService {
 
     const storefront = await this.storefrontRepository.findOne({
       where: { slug: normalizedSlug },
+       relations: ['store', 'products'],
     });
 
     if (!storefront)
