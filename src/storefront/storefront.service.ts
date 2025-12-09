@@ -37,7 +37,7 @@ export class StorefrontService {
     private readonly productRepository: ProductRepository,
     private readonly productSanitizer: ProductSanitizer,
     private readonly productImageRepository: ProductImageRepository,
-  ) {}
+  ) { }
 
   private normalizeSlug(input: string): string {
     return slugify(input, { lower: true, strict: true });
@@ -122,8 +122,8 @@ export class StorefrontService {
   async getStorefront(id: UUID): Promise<IResponse<FormattedStorefront>> {
     const storefront = isUUID(id)
       ? await this.storefrontRepository.findOne({
-          where: { id },
-        })
+        where: { id },
+      })
       : null;
 
     if (!storefront)
@@ -146,7 +146,7 @@ export class StorefrontService {
 
     const storefront = await this.storefrontRepository.findOne({
       where: { slug: normalizedSlug },
-       relations: ['store', 'products'],
+      // Remove relations entirely - we don't need them
     });
 
     if (!storefront)
@@ -188,9 +188,15 @@ export class StorefrontService {
       };
     });
 
+    const formattedProducts = productsWithImages.map((product) =>
+      this.productSanitizer.formatProductForList(product),
+    );
+
+    const data = this.storefrontSanitizer.formatStoreFront(storefront);
+
     const payload = {
-      storefront,
-      products: productsWithImages,
+      ...data,
+      products: formattedProducts,
     };
 
     return this.responseService.sendSuccess(

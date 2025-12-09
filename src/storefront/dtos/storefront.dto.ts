@@ -234,8 +234,9 @@ export class FooterConfigDTO {
 }
 
 export class CreateStorefrontDTO {
+  @IsOptional()
   @IsString()
-  slug: string;
+  slug?: string;
 
   @IsOptional()
   @IsUrl()
