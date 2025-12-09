@@ -32,26 +32,39 @@ export type FormattedStorefront = {
 export class StorefrontSanitizer {
   constructor() {}
 
-  formatStoreFront(data: Storefront): FormattedStorefront {
-    return {
-      id: data.id,
-      store: data.store as UUID,
-      slug: data.slug,
-      logo: data.logo,
-      banner: data.banner,
-      aboutUs: data.aboutUs,
-      refundPolicy: data.refundPolicy,
-      termsOfUse: data.termsOfUse,
-      email: data.email,
-      phone: data.phone,
-      socialHandles: data.socialHandles,
-      headerConfig: data.headerConfig,
-      heroConfig: data.heroConfig,
-      collectionsConfig: data.collectionsConfig || { enabled: true },
-      productsConfig: data.productsConfig || { enabled: false },
-      footerConfig: data.footerConfig,
-    };
-  }
+formatStoreFront(data:  Storefront) {
+  return {
+    id: data.id,
+    store: typeof data.store === 'object'
+      ? data.store.id 
+      : data.store,    
+
+    slug: data.slug,
+    logo: data.logo,
+    banner: data.banner,
+    aboutUs: data.aboutUs,
+    refundPolicy: data.refundPolicy,
+    termsOfUse: data.termsOfUse,
+    email: data.email,
+    phone: data.phone,
+    socialHandles: data.socialHandles,
+    products: Array.isArray(data.products)
+      ? data.products.map((product) => ({
+          id: product.id,
+          name: product.name ?? null,
+          description: product.description ?? null,
+          images: product.images ?? [],
+        }))
+      : [],
+
+    headerConfig: data.headerConfig,
+    heroConfig: data.heroConfig,
+    collectionsConfig: data.collectionsConfig || { enabled: true },
+    productsConfig: data.productsConfig || { enabled: false },
+    footerConfig: data.footerConfig,
+  };
+}
+
 
   formatForPublic(data: Storefront): Omit<FormattedStorefront, 'store'> {
     const formatted = this.formatStoreFront(data);

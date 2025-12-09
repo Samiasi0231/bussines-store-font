@@ -66,8 +66,6 @@ export class Product extends BaseEntity {
   @JoinColumn({ name: 'storefront_id' })
   storefront?: Storefront;
 
-  @Column({ name: 'storefront_id', type: 'uuid', nullable: true })
-  storefrontId?: UUID;
 
   @OneToMany(() => ProductVariant, (variant) => variant.product, {
     cascade: true,

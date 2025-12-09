@@ -7,6 +7,7 @@ import {
   UseGuards,
   Query,
   Patch,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { StorefrontService } from './storefront.service';
@@ -32,8 +33,15 @@ export class StorefrontController {
   }
 
   @Get('storefronts/slug/:slug')
-  async getStoreFrontBySlug(@Param() param: GetBySlugParamDTO) {
-    return await this.storefrontService.getStorefrontBySlug(param.slug);
+  async getStoreFrontBySlug(@Param('slug') slug: string) {
+    // Use service instead of repository directly
+    const result = await this.storefrontService.getStorefrontBySlug(slug);
+
+    if (!result.data) {
+      throw new NotFoundException('Storefront not found');
+    }
+
+    return result;
   }
 
   @Get('storefronts/:id')
