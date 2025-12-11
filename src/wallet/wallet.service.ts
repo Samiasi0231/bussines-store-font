@@ -2,7 +2,6 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { WalletRepository } from '../repositories/wallet.repository';
 import { GetWalletsQueryDTO, SetTransactionPinDTO } from './dtos/wallet.dto';
 import { VerificationService } from '../verification/verification.service';
-import { VerificationIntent } from '../@common/constants/verification.constant';
 import { UUID } from 'crypto';
 import { IResponse, ResponseService } from '../@common/response';
 import {
@@ -63,42 +62,6 @@ export class WalletService {
     { id: walletId },
   );
 }
-
-
-  // async setTransactionPin(
-  //   data: SetTransactionPinDTO & { walletId: string },
-  // ): Promise<IResponse<{ id: string } | unknown>> {
-  //   const { walletId, pin, otp } = data;
-  //   const wallet = await this.walletRepository.findById(walletId as UUID);
-
-  //   if (!wallet)
-  //     return this.responseService.sendError(
-  //       ErrorMessage.WALLET_NOT_FOUND,
-  //       null,
-  //       HttpStatus.NOT_FOUND,
-  //     );
-
-  //   const verificationResponse =
-  //     await this.verificationService.verifyVerification({
-  //       intent: VerificationIntent.TRANSACTION_PIN,
-  //       entityId: walletId,
-  //       verificationData: otp,
-  //     });
-
-  //   if (!verificationResponse.success) return verificationResponse;
-
-  //   const hashedPin = await Util.hash(pin);
-
-  //   await this.walletRepository.findbyIdAndUpdate(walletId as UUID, {
-  //     transactionPin: hashedPin,
-  //   });
-
-  //   return this.responseService.sendSuccess(
-  //     SuccessMessage.OPERATION_SUCCESSFUL,
-  //     { id: walletId },
-  //   );
-  // }
-
   async getWallet(
     id: UUID,
     userId: UUID,

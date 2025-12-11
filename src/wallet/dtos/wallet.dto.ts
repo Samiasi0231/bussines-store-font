@@ -6,10 +6,6 @@ export class SetTransactionPinDTO {
   @IsString()
   @IsNotEmpty()
   pin: string;
-
-  // @IsString()
-  // @IsNotEmpty()
-  // otp: string;
 }
 
 export class GetWalletsQueryDTO extends PaginationDTO {
