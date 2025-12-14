@@ -239,7 +239,10 @@ export class DojahService implements IIdentityService {
   //   );
   // }
 
-  async lookupCAC(regNumber: string): Promise<IResponse<CACLookupData>> {
+  async lookupCAC(
+    regNumber: string,
+    companyType?: string,
+  ): Promise<IResponse<CACLookupData>> {
     console.log('=== CAC Lookup Debug Start ===');
     console.log('Input regNumber:', regNumber);
     console.log('Is Production:', Util.isProduction());
@@ -258,11 +261,17 @@ export class DojahService implements IIdentityService {
         ? regNumber
         : VALID_TEST_REG_NUMBER;
 
+    console.log(Util.isProduction());
+
     console.log('RC Number to use:', rcNumber);
     console.log('Base URL:', this.baseURL);
     console.log('Service URL:', this.getServiceUrl('cac'));
 
-    const fullUrl = `${this.baseURL}${this.getServiceUrl('cac')}${rcNumber}`;
+    const defaultCompanyType = 'BUSINESS_NAME';
+    const companyTypeToUse = companyType || defaultCompanyType;
+
+    const fullUrl = `${this.baseURL}${this.getServiceUrl('cac')}?rc_number=${regNumber}&company_type=${companyTypeToUse}`;
+
     console.log('Full URL:', fullUrl);
     console.log('Headers:', this.headers);
 

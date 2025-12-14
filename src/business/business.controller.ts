@@ -32,7 +32,10 @@ export class BusinessController {
 
   @Get('cac/lookup')
   async lookupCACDetails(@Query() query: CACLookupQueryDTO) {
-    return this.businessService.lookupCACDetails(query.regNumber);
+    return this.businessService.lookupCACDetails(
+      query.regNumber,
+      query.companyType,
+    );
   }
 
   @Post()

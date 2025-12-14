@@ -16,5 +16,8 @@ export abstract class IIdentityService {
     payload: VerifyNINRequest,
   ): Promise<IResponse<VerifyNINResponseData>>;
 
-  abstract lookupCAC(regNumber: string): Promise<IResponse<CACLookupData>>;
+  abstract lookupCAC(
+    regNumber: string,
+    companyType?: string,
+  ): Promise<IResponse<CACLookupData>>;
 }
