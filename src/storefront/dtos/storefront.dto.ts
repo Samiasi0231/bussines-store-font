@@ -12,6 +12,7 @@ import {
   IsNumber,
   Min,
   Max,
+  IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { TransformToArray } from '../../@common/decorators/array-transformer.decorator';
@@ -20,110 +21,115 @@ import { PaginationDTO } from '../../@common/dtos/pagination.dto';
 
 // Nested DTOs for configuration objects
 export class TextStylesDTO {
-  @IsString()
+  @IsString({ message: 'Font family must be a string' })
+  @IsNotEmpty({ message: 'Font family is required' })
   fontFamily: string;
 
-  @IsString()
+  @IsString({ message: 'Weight must be a string' })
+  @IsNotEmpty({ message: 'Weight is required' })
   weight: string;
 
-  @IsString()
+  @IsString({ message: 'Size must be a string' })
+  @IsNotEmpty({ message: 'Size is required' })
   size: string;
 
-  @IsString()
+  @IsString({ message: 'Color must be a string' })
+  @IsNotEmpty({ message: 'Color is required' })
   color: string;
 
-  @IsNumber()
-  @Min(0)
-  @Max(100)
+  @IsNumber({}, { message: 'Opacity must be a number' })
+  @Min(0, { message: 'Opacity must be at least 0' })
+  @Max(100, { message: 'Opacity cannot exceed 100' })
   opacity: number;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Text align must be a string' })
   textAlign?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Background color must be a string' })
   backgroundColor?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Border color must be a string' })
   borderColor?: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsNumber({}, { message: 'Corner radius must be a number' })
   cornerRadius?: number;
 }
 
 export class NavLinkDTO {
-  @IsString()
+  @IsString({ message: 'Nav link text must be a string' })
+  @IsNotEmpty({ message: 'Nav link text is required' })
   text: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Nav link URL must be a string' })
   url?: string;
 }
 
 export class HeaderConfigDTO {
   @IsOptional()
-  @IsUrl()
+  @IsUrl({}, { message: 'Logo URL must be a valid URL' })
   logoUrl?: string;
 
   @IsOptional()
-  @IsArray()
+  @IsArray({ message: 'Nav links must be an array' })
   @ValidateNested({ each: true })
   @Type(() => NavLinkDTO)
   navLinks?: NavLinkDTO[];
 
   @IsOptional()
-  @IsArray()
+  @IsArray({ message: 'Nav link styles must be an array' })
   @ValidateNested({ each: true })
   @Type(() => TextStylesDTO)
   navLinkStyles?: TextStylesDTO[];
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Cart text must be a string' })
   cartText?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Background color must be a string' })
   backgroundColor?: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsNumber({}, { message: 'Padding must be a number' })
   padding?: number;
 }
 
 export class HeroConfigDTO {
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Header text must be a string' })
   headerText?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Description must be a string' })
   description?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'CTA text must be a string' })
   ctaText?: string;
 
   @IsOptional()
-  @IsUrl()
+  @IsUrl({}, { message: 'Hero image URL must be a valid URL' })
   heroImageUrl?: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsNumber({}, { message: 'Hero image scale must be a number' })
   heroImageScale?: number;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Header text align must be a string' })
   headerTextAlign?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Description text align must be a string' })
   descriptionTextAlign?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'CTA text align must be a string' })
   ctaTextAlign?: string;
 
   @IsOptional()
@@ -143,68 +149,69 @@ export class HeroConfigDTO {
 }
 
 export class CollectionsConfigDTO {
-  @IsBoolean()
+  @IsBoolean({ message: 'Collections enabled must be a boolean' })
   enabled: boolean;
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
+  @IsArray({ message: 'Selected collection IDs must be an array' })
+  @IsString({ each: true, message: 'Each selected collection ID must be a string' })
   selectedCollectionIds?: string[];
 }
 
 export class ProductsConfigDTO {
-  @IsBoolean()
+  @IsBoolean({ message: 'Products enabled must be a boolean' })
   enabled: boolean;
 }
 
 export class FooterLinkDTO {
-  @IsString()
+  @IsString({ message: 'Footer link text must be a string' })
+  @IsNotEmpty({ message: 'Footer link text is required' })
   text: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Footer link URL must be a string' })
   url?: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsNumber({}, { message: 'Footer link padding must be a number' })
   padding?: number;
 }
 
 export class FooterConfigDTO {
   @IsOptional()
-  @IsUrl()
+  @IsUrl({}, { message: 'Logo URL must be a valid URL' })
   logoUrl?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Store name must be a string' })
   storeName?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Copyright text must be a string' })
   copyrightText?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Contact address must be a string' })
   contactAddress?: string;
 
   @IsOptional()
-  @IsPhoneNumber()
+  @IsPhoneNumber(null, { message: 'Phone number must be valid' })
   phoneNumber?: string;
 
   @IsOptional()
-  @IsArray()
+  @IsArray({ message: 'Product links must be an array' })
   @ValidateNested({ each: true })
   @Type(() => FooterLinkDTO)
   productLinks?: FooterLinkDTO[];
 
   @IsOptional()
-  @IsArray()
+  @IsArray({ message: 'Company links must be an array' })
   @ValidateNested({ each: true })
   @Type(() => FooterLinkDTO)
   companyLinks?: FooterLinkDTO[];
 
   @IsOptional()
-  @IsArray()
+  @IsArray({ message: 'Social links must be an array' })
   @ValidateNested({ each: true })
   @Type(() => FooterLinkDTO)
   socialLinks?: FooterLinkDTO[];
@@ -225,53 +232,52 @@ export class FooterConfigDTO {
   phoneStyles?: TextStylesDTO;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Background color must be a string' })
   backgroundColor?: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsNumber({}, { message: 'Padding must be a number' })
   padding?: number;
 }
 
 export class CreateStorefrontDTO {
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Slug must be a string' })
   slug?: string;
 
   @IsOptional()
-  @IsUrl()
+  @IsUrl({}, { message: 'Logo URL must be valid' })
   logo?: string;
 
   @IsOptional()
-  @IsUrl()
+  @IsUrl({}, { message: 'Banner URL must be valid' })
   banner?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'About Us must be a string' })
   aboutUs?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Refund Policy must be a string' })
   refundPolicy?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'Terms of Use must be a string' })
   termsOfUse?: string;
 
   @IsOptional()
-  @IsEmail()
+  @IsEmail({}, { message: 'Email must be valid' })
   email?: string;
 
   @IsOptional()
-  @IsPhoneNumber()
+  @IsPhoneNumber(null, { message: 'Phone must be valid' })
   phone?: string;
 
   @IsOptional()
-  @IsArray()
-  @IsUrl({}, { each: true })
+  @IsArray({ message: 'Social handles must be an array' })
+  @IsUrl({}, { each: true, message: 'Each social handle must be a valid URL' })
   socialHandles?: string[];
 
-  // New configuration fields
   @IsOptional()
   @IsObject()
   @ValidateNested()
@@ -303,93 +309,31 @@ export class CreateStorefrontDTO {
   footerConfig?: FooterConfigDTO;
 }
 
+// Pagination DTOs with validation
 export class GetStorefrontsDTO extends PaginationDTO {
   @TransformToArray()
   @IsOptional()
-  @IsArray()
-  @IsUUID(null, { each: true })
+  @IsArray({ message: 'Store IDs must be an array' })
+  @IsUUID(null, { each: true, message: 'Each store ID must be a valid UUID' })
   store?: UUID[];
 
   @IsOptional()
   @TransformToArray()
-  @IsArray()
-  @IsUUID(null, { each: true })
+  @IsArray({ message: 'Business IDs must be an array' })
+  @IsUUID(null, { each: true, message: 'Each business ID must be a valid UUID' })
   business?: UUID[];
 
   @IsOptional()
   @TransformToArray()
-  @IsArray()
-  @IsString({ each: true })
+  @IsArray({ message: 'Slugs must be an array' })
+  @IsString({ each: true, message: 'Each slug must be a string' })
   slug?: string[];
 }
 
-export class EditStorefrontDTO {
-  @IsOptional()
-  @IsUrl()
-  logo?: string;
-
-  @IsOptional()
-  @IsUrl()
-  banner?: string;
-
-  @IsOptional()
-  @IsString()
-  aboutUs?: string;
-
-  @IsOptional()
-  @IsString()
-  refundPolicy?: string;
-
-  @IsOptional()
-  @IsString()
-  termsOfUse?: string;
-
-  @IsOptional()
-  @IsEmail()
-  email?: string;
-
-  @IsOptional()
-  @IsPhoneNumber()
-  phone?: string;
-
-  @IsOptional()
-  @IsArray()
-  @IsUrl({}, { each: true })
-  socialHandles?: string[];
-
-  // New configuration fields
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => HeaderConfigDTO)
-  headerConfig?: HeaderConfigDTO;
-
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => HeroConfigDTO)
-  heroConfig?: HeroConfigDTO;
-
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => CollectionsConfigDTO)
-  collectionsConfig?: CollectionsConfigDTO;
-
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => ProductsConfigDTO)
-  productsConfig?: ProductsConfigDTO;
-
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => FooterConfigDTO)
-  footerConfig?: FooterConfigDTO;
-}
+export class EditStorefrontDTO extends CreateStorefrontDTO {}
 
 export class GetStorefrontBySlugDTO {
-  @IsString()
+  @IsString({ message: 'Slug must be a string' })
+  @IsNotEmpty({ message: 'Slug is required' })
   slug: string;
 }
