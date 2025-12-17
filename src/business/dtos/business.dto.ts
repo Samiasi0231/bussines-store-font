@@ -89,6 +89,14 @@ export class AddBusinessesDTO {
   @IsUrl()
   logo?: string;
 
+   @IsOptional()
+  @IsUrl()
+  cacCertificateUrl?: string; 
+
+  @IsOptional()
+  @IsUrl()
+  statusReportUrl?: string;
+
   @ValidateIf((o) => !!o.address)
   @ValidateNested()
   @Type(() => AddressDTO)
