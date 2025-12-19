@@ -45,6 +45,7 @@ export default () => ({
   appEmail: {
     name: process.env.SENDER_EMAIL_NAME,
     address: process.env.SENDER_EMAIL_ADDRESS,
+     logoUrl: process.env.EMAIL_LOGO_URL,
   },
   resend: {
     apiKey: process.env.RESEND_API_KEY,

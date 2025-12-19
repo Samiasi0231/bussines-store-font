@@ -86,10 +86,14 @@ export class EmailService {
       return this.responseService.sendError(ErrorMessage.AN_ERROR_OCCURRED);
     }
 
-    const content = await this.getTemplateContent(
-      template.email?.path as EmailTemplate,
-      context,
-    );
+   const content = await this.getTemplateContent(
+  template.email?.path as EmailTemplate,
+  {
+    ...context, 
+    logoUrl: this.configService.get('appEmail').logoUrl,
+  },
+);
+
 
     const mailOptions: SendEmailDTO = {
       recipients: [email],

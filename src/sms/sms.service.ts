@@ -54,7 +54,7 @@ export class SmsService {
     const messageText = `Your OTP for ${purpose} is ${otp}. It expires in ${this.otpTtl / 60} minutes.`;
 
     const payload = {
-      recipients: [recipient],  // provider requires array
+      recipients: [recipient], 
       userId: this.userId,
       recipientInputMode: 'manual_input',
       message: messageText,
