@@ -9,6 +9,10 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { TokenService } from './token/token.service';
 import { UserModule } from '../user/user.module';
 import { VerificationModule } from '../verification/verification.module';
+import { KycModule } from '../kyc/kyc.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Address } from '../entities/address.entity';
+import { AddressRepository } from '../repositories/address.repository';
 
 @Module({
   imports: [
@@ -25,9 +29,11 @@ import { VerificationModule } from '../verification/verification.module';
     }),
     UserModule,
     VerificationModule,
+    KycModule,
+    TypeOrmModule.forFeature([Address]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy, TokenService],
+  providers: [AuthService, JwtStrategy, LocalStrategy, TokenService, AddressRepository],
   exports: [AuthService],
 })
 export class AuthModule {}

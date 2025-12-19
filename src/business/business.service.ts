@@ -142,6 +142,8 @@ export class BusinessService {
       trusteesTenure,
       ngoPhone,
       ngoEmail,
+      utilityBill,
+      utilityBillType,
     } = payload as any;
 
     let cacLookup: IResponse<CACLookupData> | null = null;
@@ -318,6 +320,20 @@ export class BusinessService {
         );
       },
     );
+
+    if (response.success && utilityBill && utilityBillType && address) {
+      await this.kycService.submitAddress({
+        userId: uId,
+        state: address.state,
+        country: address.country || 'Nigeria',
+        city: address.city,
+        lga: address.lga,
+        street: address.street,
+        buildingNumber: address.buildingNumber,
+        utilityBill,
+        utilityBillType,
+      });
+    }
 
     return response;
   }

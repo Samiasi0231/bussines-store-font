@@ -8,6 +8,7 @@ import { User } from '../@common/decorators/user.decorator';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UserProfile } from '../user/interfaces/user.interface';
+import { CompareAddressDTO } from './dto/compare-address.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -42,5 +43,14 @@ export class AuthController {
   @Post('logout')
   async logout(@User() user: UserProfile) {
     return await this.authService.logout(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('address/compare')
+  async compareAddress(
+    @User() user: UserProfile,
+    @Body() body: CompareAddressDTO,
+  ) {
+    return await this.authService.compareAddress(user.id, body);
   }
 }

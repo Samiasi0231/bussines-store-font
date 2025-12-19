@@ -148,4 +148,16 @@ export class AddBusinessesDTO {
   @IsOptional()
   @IsEmail()
   ngoEmail?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  useCacAddress?: boolean;
+
+  @IsOptional()
+  @IsUrl()
+  utilityBill?: string;
+
+  @IsOptional()
+  @IsString()
+  utilityBillType?: string;
 }
