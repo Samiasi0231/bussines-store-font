@@ -21,6 +21,12 @@ import { VerificationIntent } from '../@common/constants/verification.constant';
 import { DbTransactionManager } from '../@common/database/database-transaction.manager';
 import { User } from '../entities/user.entity';
 import { WalletRepository } from '../repositories/wallet.repository';
+import { AddressRepository } from '../repositories/address.repository';
+import { KycService } from '../kyc/services/kyc.service';
+import {
+  CompareAddressDTO,
+  AddressComparisonResult,
+} from './dto/compare-address.dto';
 
 @Injectable()
 export class AuthService {
@@ -34,6 +40,8 @@ export class AuthService {
     private readonly verificationService: VerificationService,
     private readonly dbTransactionManager: DbTransactionManager,
     private readonly walletRepository: WalletRepository,
+    private readonly addressRepository: AddressRepository,
+    private readonly kycService: KycService,
   ) {}
 
   async register(payload: SignupDTO): Promise<any> {
@@ -245,5 +253,86 @@ export class AuthService {
     if (user && passwordsMatch) return user;
 
     return null;
+  }
+
+  async compareAddress(
+    userId: UUID,
+    payload: CompareAddressDTO,
+  ) {
+    const { cacNumber, companyType } = payload;
+
+    // Look up CAC details
+    const cacResponse = await this.kycService.identityProvider.lookupCAC(
+      cacNumber,
+      companyType,
+    );
+
+    if (!cacResponse.success) {
+      return this.responseService.sendError(
+        cacResponse.message,
+        null,
+        cacResponse.status,
+      );
+    }
+
+    const cacData = cacResponse.data;
+
+    // Get user's submitted address from KYC
+    const kyc = await this.kycRepository.findByUserId(userId);
+
+    if (!kyc) {
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('KYC record'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Get the user's address linked to KYC
+    const userAddress = await this.addressRepository.findOne({
+      where: { kycId: kyc.id },
+      order: { createdAt: 'DESC' },
+    });
+
+    // Compare addresses
+    const normalizeString = (str: string | null | undefined): string =>
+      (str || '').toLowerCase().trim();
+
+    const stateMatches =
+      normalizeString(cacData.state) === normalizeString(userAddress?.state);
+    const cityMatches =
+      normalizeString(cacData.city) === normalizeString(userAddress?.city);
+    const lgaMatches =
+      normalizeString(cacData.lga) === normalizeString(userAddress?.lga);
+
+    const comparisonResult: AddressComparisonResult = {
+      cacAddress: {
+        state: cacData.state,
+        city: cacData.city,
+        lga: cacData.lga,
+        address: cacData.address,
+      },
+      userAddress: userAddress
+        ? {
+            state: userAddress.state,
+            city: userAddress.city,
+            lga: userAddress.lga,
+            street: userAddress.street,
+            buildingNumber: userAddress.buildingNumber,
+            country: userAddress.country,
+          }
+        : null,
+      matches: {
+        state: stateMatches,
+        city: cityMatches,
+        lga: lgaMatches,
+        overall: stateMatches && cityMatches && lgaMatches,
+      },
+    };
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      comparisonResult,
+    );
   }
 }
