@@ -54,6 +54,7 @@ export class VerificationService {
     const { intent, entityId, channel } = payload;
 
     const verificationCode = this.generateOTPCode();
+    console.log('Generated Verification Code:', verificationCode);
     const hashedVerificationCode = await Util.hash(verificationCode);
 
     const durationInSeconds = this.DEFAULT_VERIFICATION_EXPIRATION_TIME;
