@@ -2,6 +2,7 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import axios from 'axios';
 import config from '../@common/config/app.config';
 import { CacheService } from '../@common/cache/cache.service';
+import { OTP_LENGTH, OTP_TTL_SECONDS } from '../@common/constants/sms-otp.constant';
 
 @Injectable()
 export class SmsService {
@@ -9,8 +10,9 @@ export class SmsService {
   private readonly authToken: string;
   private readonly senderId: string;
   private readonly userId: string;
-  private readonly otpTtl: number;
-  private readonly otpLength: number;
+
+  private readonly otpTtl = OTP_TTL_SECONDS;
+  private readonly otpLength = OTP_LENGTH;
 
   constructor(private cacheService: CacheService) {
     const appConfig = config();
@@ -20,9 +22,6 @@ export class SmsService {
     this.authToken = vasBb.authToken;
     this.senderId = vasBb.senderId;
     this.userId = vasBb.userId;
-
-    this.otpTtl = appConfig.otp.ttlSeconds;
-    this.otpLength = appConfig.otp.length;
   }
 
   private generateOtp(length = this.otpLength) {
@@ -51,10 +50,12 @@ export class SmsService {
       this.otpTtl,
     );
 
-    const messageText = `Your OTP for ${purpose} is ${otp}. It expires in ${this.otpTtl / 60} minutes.`;
+    const messageText = `Your OTP for ${purpose} is ${otp}. It expires in ${
+      this.otpTtl / 60
+    } minutes.`;
 
     const payload = {
-      recipients: [recipient], 
+      recipients: [recipient],
       userId: this.userId,
       recipientInputMode: 'manual_input',
       message: messageText,
@@ -77,12 +78,9 @@ export class SmsService {
       return {
         success: true,
         message: 'OTP sent successfully',
-        otp,
         purpose,
-        response: response.data,
       };
     } catch (error: any) {
-      console.error('SMS sending error:', error.response ?? error);
       throw new HttpException(
         error.response?.data?.message || 'Failed to send SMS',
         error.response?.status || 500,
