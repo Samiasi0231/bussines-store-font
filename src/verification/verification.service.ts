@@ -183,10 +183,6 @@ export class VerificationService {
   }
 
   private generateOTPCode(length = 6): string {
-    if (!Util.isProduction()) {
-      return '000000';
-    }
-
     return generate({
       length,
       charset: 'numeric',
