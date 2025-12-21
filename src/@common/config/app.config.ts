@@ -59,10 +59,6 @@ export default () => ({
   rmq: {
     url: process.env.RMQ_URL,
   },
-  otp: {
-    ttlSeconds: Number(process.env.OTP_TTL_SECONDS || 300),
-    length: Number(process.env.OTP_LENGTH || 6),
-  },
   cache: {
     type: process.env.CACHE_TYPE || 'memory',
     redis: {
