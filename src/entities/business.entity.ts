@@ -16,6 +16,7 @@ import { IsNotEmpty } from 'class-validator';
 import { User } from './user.entity';
 import { Store } from './store.entity';
 import { BusinessType } from '../@common/constants/business-type.contant';
+import { BusinessCategory } from './business-category.entity';
 
 @Entity('businesses')
 export class Business extends BaseEntity {
@@ -39,10 +40,20 @@ export class Business extends BaseEntity {
   name: string;
 
   // Proposed names (for CAC name reservation)
-  @Column({ name: 'proposed_name_1', type: 'varchar', length: 255, nullable: true })
+  @Column({
+    name: 'proposed_name_1',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
   proposedName1?: string;
 
-  @Column({ name: 'proposed_name_2', type: 'varchar', length: 255, nullable: true })
+  @Column({
+    name: 'proposed_name_2',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
   proposedName2?: string;
 
   @Column({ type: 'text', nullable: true })
@@ -66,6 +77,39 @@ export class Business extends BaseEntity {
   })
   businessType?: BusinessType;
 
+  @Index()
+  @ManyToOne(() => BusinessCategory, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'category_id' })
+  @Column({ name: 'category_id', nullable: true })
+  category?: BusinessCategory | UUID;
+
+  @Index()
+  @ManyToOne(() => BusinessCategory, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'sub_category_id' })
+  @Column({ name: 'sub_category_id', nullable: true })
+  subCategory?: BusinessCategory | UUID;
+
+  @Column({
+    name: 'cac_certificate_url',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  cacCertificateUrl?: string;
+
+  @Column({
+    name: 'status_report_url',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  statusReportUrl?: string;
   // type-specific data stored as jsonb for flexibility (directors, trustees, shareholders, objects...)
   @Column({ name: 'extra_data', type: 'jsonb', nullable: true })
   extraData?: any;
