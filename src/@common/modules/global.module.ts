@@ -63,6 +63,8 @@ import { StorefrontRepository } from '../../repositories/storefront.repository';
 import { CheckoutPayment } from '../../entities/checkout-payment.entity';
 import { CheckoutPaymentRepository } from '../../repositories/checkout-payment.repository';
 import { RmqModule } from '../rmq/rmq.module';
+import { BusinessCategoryRepository } from '../../repositories/business-category.repository';
+import { BusinessCategory } from '../../entities/business-category.entity';
 
 const repositories = [
   IdentityVerificationRepository,
@@ -93,6 +95,7 @@ const repositories = [
   InvoiceItemRepository,
   StorefrontRepository,
   CheckoutPaymentRepository,
+  BusinessCategoryRepository
 ];
 
 const providers = [...repositories, ResponseService];
@@ -126,6 +129,7 @@ const DATABASE_ENTITIES = [
   InvoiceItem,
   Storefront,
   CheckoutPayment,
+  BusinessCategory
 ];
 
 @Global()

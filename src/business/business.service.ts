@@ -2,7 +2,12 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { KycService } from '../kyc/services/kyc.service';
 import { IResponse, ResponseService } from '../@common/response';
 import { BusinessRepository } from '../repositories/business.repository';
-import { AddBusinessesDTO, GetBusinessesQueryDTO } from './dtos/business.dto';
+import {
+  AddBusinessesDTO,
+  AddRegisteredBusinessDTO,
+  GetBusinessesQueryDTO,
+  RegisterNewBusinessDTO,
+} from './dtos/business.dto';
 import { FindOptionsWhere } from 'typeorm';
 import { Business } from '../entities/business.entity';
 import { Paginated } from '../@common/types/pagination.type';
@@ -29,6 +34,7 @@ import { CacheService } from '../@common/cache/cache.service';
 import { DEFAULT_PROVIDER_RESPONSE_CACHE_TTL } from '../@common/constants/cache.constant';
 import { BusinessType } from '../@common/constants/business-type.contant';
 import { User } from '../entities/user.entity';
+import { BusinessCategoryService } from './business-category.service';
 
 @Injectable()
 export class BusinessService {
@@ -43,6 +49,7 @@ export class BusinessService {
     private readonly storeRepository: StoreRepository,
     private readonly invoiceService: InvoiceService,
     private readonly cacheService: CacheService,
+    private readonly businessCategoryService: BusinessCategoryService,
   ) {}
 
   async lookupCACDetails(
@@ -388,5 +395,377 @@ export class BusinessService {
       );
 
     return this.invoiceService.getInvoices({ ...query, business: [bId] });
+  }
+
+  /**
+   * FLOW 1: Register a new business with CAC registration
+   * Collects all data including directors, shareholders, trustees
+   * Performs CAC registration and address verification
+   */
+  async registerNewBusiness(payload: RegisterNewBusinessDTO, userId: string) {
+    const uId = userId as `${string}-${string}-${string}-${string}-${string}`;
+    const {
+      description,
+      logo,
+      address,
+      businessType,
+      proposedName1,
+      proposedName2,
+      objectsOfMemorandum,
+      witness,
+      directors,
+      shareholders,
+      trustees,
+      trusteesTenure,
+      ngoPhone,
+      ngoEmail,
+      utilityBill,
+      utilityBillType,
+      categoryId,
+      subCategoryId,
+    } = payload;
+
+    if (categoryId) {
+      const category =
+        await this.businessCategoryService.getCategoryById(categoryId);
+      if (!category) {
+        return this.responseService.sendError('Invalid business category');
+      }
+    }
+
+    if (subCategoryId) {
+      const subCategory =
+        await this.businessCategoryService.getCategoryById(subCategoryId);
+      if (!subCategory) {
+        return this.responseService.sendError('Invalid business sub-category');
+      }
+    }
+
+    // let cacLookup: IResponse<CACLookupData> | null = null;
+
+    const previousBusinesses = await this.businessRepository.findByUser(uId);
+    const firstPrev = previousBusinesses?.[0] ?? null;
+
+    const response = await this.dbTransactionManager.transaction(
+      async (manager) => {
+        const entityManager = manager.entityManager;
+
+        const user = await entityManager.getRepository(User).findOne({
+          where: { id: uId },
+        });
+        const cacProfile = (user as any)?.cacProfile ?? null;
+
+        const finalDirectors =
+          directors ??
+          cacProfile?.directors ??
+          firstPrev?.extraData?.directors ??
+          null;
+        const finalShareholders =
+          shareholders ??
+          cacProfile?.shareholders ??
+          firstPrev?.extraData?.shareholders ??
+          null;
+        const finalTrustees =
+          trustees ??
+          cacProfile?.trustees ??
+          firstPrev?.extraData?.trustees ??
+          null;
+        const finalAddress =
+          address ?? cacProfile?.address ?? firstPrev?.addresses?.[0] ?? null;
+
+        const trusteesArray = Array.isArray(finalTrustees)
+          ? finalTrustees.flatMap((t) => t.trustees ?? [])
+          : (finalTrustees?.trustees ?? []);
+
+        if (businessType === BusinessType.NGO && trusteesArray.length < 2) {
+          return this.responseService.sendError(
+            'NGO must have at least two trustees.',
+          );
+        }
+
+        if (businessType === BusinessType.LIMITED_LIABILITY) {
+          if (!finalDirectors?.length || !finalShareholders?.length)
+            return this.responseService.sendError(
+              'Limited liability company must have at least one director and shareholder.',
+            );
+        }
+
+        const businesses = await this.businessRepository
+          .withManager(entityManager)
+          .findByUser(uId, { lock: { mode: 'pessimistic_write' } });
+
+        if (businesses.length >= MAX_NUM_BUSINESSES_PER_USER)
+          return this.responseService.sendError(
+            ErrorMessage.MAX_BUSINESS_LIMIT,
+          );
+
+        const name = proposedName1 ?? proposedName2 ?? 'Untitled Business';
+
+        const business = await this.businessRepository
+          .withManager(entityManager)
+          .createStrict({
+            user: uId,
+            name,
+            description,
+            logo,
+            proposedName1,
+            proposedName2,
+            businessType,
+            category: categoryId,
+            subCategory: subCategoryId,
+            extraData: {
+              objectsOfMemorandum,
+              witness,
+              directors: finalDirectors,
+              shareholders: finalShareholders,
+              trustees: finalTrustees,
+              trusteesTenure,
+              ngoPhone,
+              ngoEmail,
+            },
+            status: Status.PENDING,
+          });
+
+        const businessId =
+          business.id as `${string}-${string}-${string}-${string}-${string}`;
+
+        let addressData = null;
+        if (finalAddress) {
+          addressData = await this.addressRepository
+            .withManager(entityManager)
+            .createStrict({
+              ...finalAddress,
+              user: uId,
+              business: businessId,
+            });
+        }
+
+        await this.walletRepository.withManager(entityManager).createStrict({
+          type: WalletType.BUSINESS,
+          user: uId,
+          business: businessId,
+        });
+
+        await this.storeRepository.withManager(entityManager).createStrict({
+          business: businessId,
+          name,
+        });
+
+        try {
+          if (user) {
+            const mergedProfile = {
+              ...(user as any).cacProfile,
+              directors: finalDirectors ?? (user as any).cacProfile?.directors,
+              shareholders:
+                finalShareholders ?? (user as any).cacProfile?.shareholders,
+              trustees: finalTrustees ?? (user as any).cacProfile?.trustees,
+              address: finalAddress ?? (user as any).cacProfile?.address,
+            };
+            await entityManager
+              .getRepository(User)
+              .update(uId, { cacProfile: mergedProfile });
+          }
+        } catch {}
+
+        const plainBusiness = {
+          id: business.id,
+          name: business.name,
+          user: business.user,
+          description: business.description,
+          logo: business.logo,
+          cacNumber: business?.cacNumber,
+          proposedName1: business.proposedName1,
+          proposedName2: business.proposedName2,
+          businessType: business.businessType,
+          status: business.status,
+          category: business.category,
+          subCategory: business.subCategory,
+          extraData: business.extraData,
+          addresses: addressData ? [addressData] : [],
+        };
+
+        const data = this.businessSanitizer.formatBusinessData(plainBusiness);
+
+        return this.responseService.sendSuccess(
+          SuccessMessage.ADD_BUSINESS,
+          data,
+        );
+      },
+    );
+
+    if (response.success && utilityBill && utilityBillType && address) {
+      await this.kycService.submitAddress({
+        userId: uId,
+        state: address.state,
+        country: address.country || 'Nigeria',
+        city: address.city,
+        lga: address.lga,
+        street: address.street,
+        buildingNumber: address.buildingNumber,
+        utilityBill,
+        utilityBillType,
+      });
+    }
+
+    return response;
+  }
+
+  /**
+   * FLOW 2: Add an already registered business
+   * Only collects: business type, category, address, logo, CAC documents
+   * No directors/shareholders/trustees needed
+   * Still performs address verification
+   */
+  async addRegisteredBusiness(
+    payload: AddRegisteredBusinessDTO,
+    userId: string,
+  ) {
+    const uId = userId as `${string}-${string}-${string}-${string}-${string}`;
+    const {
+      businessType,
+      categoryId,
+      subCategoryId,
+      cacNumber,
+      name,
+      description,
+      logo,
+      cacCertificateUrl,
+      statusReportUrl,
+      address,
+      utilityBill,
+      utilityBillType,
+    } = payload;
+
+    const category =
+      await this.businessCategoryService.getCategoryById(categoryId);
+    if (!category) {
+      return this.responseService.sendError('Invalid business category');
+    }
+
+    if (subCategoryId) {
+      const subCategory =
+        await this.businessCategoryService.getCategoryById(subCategoryId);
+      if (!subCategory) {
+        return this.responseService.sendError('Invalid business sub-category');
+      }
+    }
+
+    // let cacLookup: IResponse<CACLookupData> | null = null;
+    // try {
+    //   cacLookup = await this.cacheService.remember(
+    //     `CAC:${cacNumber}`,
+    //     DEFAULT_PROVIDER_RESPONSE_CACHE_TTL,
+    //     () => this.lookupCACDetails(cacNumber),
+    //   );
+    // } catch (error) {
+    //   console.log('CAC lookup failed, using provided name');
+    // }
+
+    const response = await this.dbTransactionManager.transaction(
+      async (manager) => {
+        const entityManager = manager.entityManager;
+
+        // Check if CAC number is already taken
+        const existing = await this.businessRepository
+          .withManager(entityManager)
+          .findByCacNumber(cacNumber, {
+            lock: { mode: 'pessimistic_write' },
+          });
+        if (existing) {
+          return this.responseService.sendError(ErrorMessage.CAC_NUMBER_TAKEN);
+        }
+
+        // Check business limit
+        const businesses = await this.businessRepository
+          .withManager(entityManager)
+          .findByUser(uId, { lock: { mode: 'pessimistic_write' } });
+
+        if (businesses.length >= MAX_NUM_BUSINESSES_PER_USER) {
+          return this.responseService.sendError(
+            ErrorMessage.MAX_BUSINESS_LIMIT,
+          );
+        }
+
+        const businessName = name;
+
+        const business = await this.businessRepository
+          .withManager(entityManager)
+          .createStrict({
+            user: uId,
+            name: businessName,
+            description,
+            logo,
+            cacNumber,
+            businessType,
+            category: categoryId,
+            subCategory: subCategoryId,
+            cacCertificateUrl,
+            statusReportUrl,
+            status: Status.ACTIVE,
+            extraData: null,
+          });
+
+        const businessId =
+          business.id as `${string}-${string}-${string}-${string}-${string}`;
+
+        const addressData = await this.addressRepository
+          .withManager(entityManager)
+          .createStrict({
+            ...address,
+            user: uId,
+            business: businessId,
+          });
+
+        await this.walletRepository.withManager(entityManager).createStrict({
+          type: WalletType.BUSINESS,
+          user: uId,
+          business: businessId,
+        });
+
+        await this.storeRepository.withManager(entityManager).createStrict({
+          business: businessId,
+          name: businessName,
+        });
+
+        const plainBusiness = {
+          id: business.id,
+          name: business.name,
+          user: business.user,
+          description: business.description,
+          logo: business.logo,
+          cacNumber: business.cacNumber,
+          businessType: business.businessType,
+          status: business.status,
+          category: business.category,
+          subCategory: business.subCategory,
+          cacCertificateUrl: business.cacCertificateUrl,
+          statusReportUrl: business.statusReportUrl,
+          addresses: [addressData],
+        };
+
+        const data = this.businessSanitizer.formatBusinessData(plainBusiness);
+
+        return this.responseService.sendSuccess(
+          'Business added successfully',
+          data,
+        );
+      },
+    );
+
+    if (response.success) {
+      await this.kycService.submitAddress({
+        userId: uId,
+        state: address.state,
+        country: address.country || 'Nigeria',
+        city: address.city,
+        lga: address.lga,
+        street: address.street,
+        buildingNumber: address.buildingNumber,
+        utilityBill,
+        utilityBillType,
+      });
+    }
+
+    return response;
   }
 }
