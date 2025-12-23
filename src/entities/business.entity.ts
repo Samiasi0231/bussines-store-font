@@ -15,8 +15,8 @@ import { UUID } from 'crypto';
 import { IsNotEmpty } from 'class-validator';
 import { User } from './user.entity';
 import { Store } from './store.entity';
-import { BusinessType } from '../@common/constants/business-type.contant';
 import { BusinessCategory } from './business-category.entity';
+import { BusinessType } from './business-type.entity';
 
 @Entity('businesses')
 export class Business extends BaseEntity {
@@ -69,13 +69,22 @@ export class Business extends BaseEntity {
   })
   status?: Status;
 
-  @Column({
-    type: 'enum',
-    enum: BusinessType,
+  // @Column({
+  //   type: 'enum',
+  //   enum: BusinessType,
+  //   nullable: true,
+  //   default: BusinessType.CAC_VERIFIED,
+  // })
+  // businessType?: BusinessType;
+
+  @Index()
+  @ManyToOne(() => BusinessType, {
     nullable: true,
-    default: BusinessType.CAC_VERIFIED,
+    onDelete: 'SET NULL',
   })
-  businessType?: BusinessType;
+  @JoinColumn({ name: 'business_type_id' })
+  @Column({ name: 'business_type_id', nullable: true })
+  businessType?: BusinessType | UUID;
 
   @Index()
   @ManyToOne(() => BusinessCategory, {

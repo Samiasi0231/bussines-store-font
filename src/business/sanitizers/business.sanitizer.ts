@@ -5,8 +5,9 @@ import { KycSanitizer } from '../../kyc/sanitizers/kyc.sanitizer';
 import { Status } from '../../@common/constants/status.constant';
 import { Store } from '../../entities/store.entity';
 import { User } from '../../entities/user.entity';
-import { BusinessType } from '../../@common/constants/business-type.contant';
+// import { BusinessType } from '../../@common/constants/business-type.contant';
 import { BusinessCategory } from '../../entities/business-category.entity';
+import { BusinessType } from '../../entities/business-type.entity';
 
 export type BusinessData = {
   id: string;
@@ -20,7 +21,13 @@ export type BusinessData = {
   addresses: Partial<Address>[];
   status: Status;
   stores?: Partial<Store>[];
-  businessType: BusinessType;
+  businessType?: {
+    id: string;
+    name: string;
+    code: string;
+    description?: string;
+    requirements?: any;
+  };
   extraData?: any;
   category?: {
     id: string;
@@ -43,9 +50,10 @@ export class BusinessSanitizer {
   formatBusinessData(business: Business): BusinessData {
     return {
       id: business.id,
-      userId: typeof business.user === 'string'
-        ? business.user
-        : (business.user as User)?.id || '',
+      userId:
+        typeof business.user === 'string'
+          ? business.user
+          : (business.user as User)?.id || '',
 
       cacNumber: business.cacNumber,
       logo: business.logo,
@@ -55,21 +63,25 @@ export class BusinessSanitizer {
       proposedName2: (business as any).proposedName2,
       status: business.status,
 
-      addresses: business.addresses?.map((address) => ({
-        id: address.id,
-        street: address.street,
-        city: address.city,
-        state: address.state,
-        country: address.country,
-        postalCode: (address as any).postalCode,
-      })) ?? [],
+      addresses:
+        business.addresses?.map((address) => ({
+          id: address.id,
+          street: address.street,
+          city: address.city,
+          state: address.state,
+          country: address.country,
+          postalCode: (address as any).postalCode,
+        })) ?? [],
 
-      stores: business.stores?.map((store) => ({
-        id: store.id,
-        name: store.name,
-      })) ?? [],
+      stores:
+        business.stores?.map((store) => ({
+          id: store.id,
+          name: store.name,
+        })) ?? [],
 
-      businessType: business.businessType,
+      businessType: business.businessType
+        ? this.formatBusinessType(business.businessType)
+        : undefined,
 
       category: business.category
         ? this.formatCategory(business.category)
@@ -82,22 +94,25 @@ export class BusinessSanitizer {
       cacCertificateUrl: business.cacCertificateUrl,
       statusReportUrl: business.statusReportUrl,
 
-      extraData: business.extraData ? JSON.parse(JSON.stringify(business.extraData)) : undefined,
+      extraData: business.extraData
+        ? JSON.parse(JSON.stringify(business.extraData))
+        : undefined,
     };
   }
 
-  private formatCategory(category: BusinessCategory | string): {
-    id: string;
-    name: string;
-    description?: string;
-  } | undefined {
+  private formatCategory(category: BusinessCategory | string):
+    | {
+        id: string;
+        name: string;
+        description?: string;
+      }
+    | undefined {
     if (!category) return undefined;
-
 
     if (typeof category === 'string') {
       return {
         id: category,
-        name: 'Unknown', 
+        name: 'Unknown',
       };
     }
 
@@ -114,7 +129,6 @@ export class BusinessSanitizer {
    */
   formatBusinessDataWithCategories(business: Business): BusinessData {
     const baseData = this.formatBusinessData(business);
-
 
     if (business.category && typeof business.category !== 'string') {
       baseData.category = {
@@ -135,6 +149,35 @@ export class BusinessSanitizer {
     return baseData;
   }
 
+  private formatBusinessType(businessType: BusinessType | string):
+    | {
+        id: string;
+        name: string;
+        code: string;
+        description?: string;
+        requirements?: any;
+      }
+    | undefined {
+    if (!businessType) return undefined;
+
+    // If businessType is a UUID string
+    if (typeof businessType === 'string') {
+      return {
+        id: businessType,
+        name: 'Unknown',
+        code: 'UNKNOWN',
+      };
+    }
+
+    return {
+      id: businessType.id,
+      name: businessType.name,
+      code: businessType.code,
+      description: businessType.description,
+      requirements: businessType.requirements,
+    };
+  }
+
   /**
    * Format minimal business data (for lists)
    */
@@ -143,7 +186,9 @@ export class BusinessSanitizer {
       id: business.id,
       name: business.name,
       logo: business.logo,
-      businessType: business.businessType,
+      businessType: business.businessType
+        ? this.formatBusinessType(business.businessType)
+        : undefined,
       status: business.status,
       category: business.category
         ? this.formatCategory(business.category)

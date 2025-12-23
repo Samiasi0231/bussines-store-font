@@ -32,9 +32,11 @@ import { isUUID } from 'class-validator';
 import { CACLookupData } from '../kyc/dtos/cac.dto';
 import { CacheService } from '../@common/cache/cache.service';
 import { DEFAULT_PROVIDER_RESPONSE_CACHE_TTL } from '../@common/constants/cache.constant';
-import { BusinessType } from '../@common/constants/business-type.contant';
+// import { BusinessType } from '../@common/constants/business-type.contant';
 import { User } from '../entities/user.entity';
 import { BusinessCategoryService } from './business-category.service';
+import { BusinessType } from '../entities/business-type.entity';
+import { UUID } from 'crypto';
 
 @Injectable()
 export class BusinessService {
@@ -54,21 +56,38 @@ export class BusinessService {
 
   async lookupCACDetails(
     regNumber: string,
-    companyType?: string,
+    businessTypeId?: UUID,
     country?: string,
   ): Promise<IResponse<CACLookupData>> {
+    let companyType: string | undefined;
+
+    if (businessTypeId) {
+      await this.dbTransactionManager.transaction(async (manager) => {
+        const businessType = await manager.entityManager
+          .getRepository(BusinessType)
+          .findOne({
+            where: { id: businessTypeId },
+          });
+
+        if (businessType) {
+          companyType = businessType.code;
+        }
+      });
+    }
+
     const response = await this.kycService.identityProvider.lookupCAC(
       regNumber,
       companyType,
       country,
     );
 
-    if (!response.success)
+    if (!response.success) {
       return this.responseService.sendError(
         response.message,
         null,
         response.status,
       );
+    }
 
     return response;
   }
@@ -199,18 +218,18 @@ export class BusinessService {
           ? finalTrustees.flatMap((t) => t.trustees ?? [])
           : (finalTrustees?.trustees ?? []);
 
-        if (businessType === BusinessType.NGO && trusteesArray.length < 2) {
-          return this.responseService.sendError(
-            'NGO must have at least two trustees.',
-          );
-        }
+        // if (businessType === BusinessType.NGO && trusteesArray.length < 2) {
+        //   return this.responseService.sendError(
+        //     'NGO must have at least two trustees.',
+        //   );
+        // }
 
-        if (businessType === BusinessType.LIMITED_LIABILITY) {
-          if (!finalDirectors?.length || !finalShareholders?.length)
-            return this.responseService.sendError(
-              'Limited liability company must have at least one director and shareholder.',
-            );
-        }
+        // if (businessType === BusinessType.LIMITED_LIABILITY) {
+        //   if (!finalDirectors?.length || !finalShareholders?.length)
+        //     return this.responseService.sendError(
+        //       'Limited liability company must have at least one director and shareholder.',
+        //     );
+        // }
 
         if (cacNumber) {
           const existing = await this.businessRepository
@@ -479,17 +498,47 @@ export class BusinessService {
           ? finalTrustees.flatMap((t) => t.trustees ?? [])
           : (finalTrustees?.trustees ?? []);
 
-        if (businessType === BusinessType.NGO && trusteesArray.length < 2) {
+        const businessTypes = await entityManager
+          .getRepository(BusinessType)
+          .findOne({
+            where: { id: businessType },
+          });
+
+        if (!businessTypes) {
+          return this.responseService.sendError('Business type not found');
+        }
+
+        const requirements = businessTypes.requirements;
+
+        if (requirements?.needsTrustees) {
+          const minTrustees = requirements.minTrustees || 2;
+          if (trusteesArray.length < minTrustees) {
+            return this.responseService.sendError(
+              `${businessTypes.name} must have at least ${minTrustees} trustees.`,
+            );
+          }
+        }
+
+        if (requirements?.needsDirectors && !finalDirectors?.length) {
           return this.responseService.sendError(
-            'NGO must have at least two trustees.',
+            `${businessTypes.name} must have at least one director.`,
           );
         }
 
-        if (businessType === BusinessType.LIMITED_LIABILITY) {
-          if (!finalDirectors?.length || !finalShareholders?.length)
-            return this.responseService.sendError(
-              'Limited liability company must have at least one director and shareholder.',
-            );
+        if (requirements?.needsShareholders && !finalShareholders?.length) {
+          return this.responseService.sendError(
+            `${businessTypes.name} must have at least one shareholder.`,
+          );
+        }
+
+        if (
+          requirements?.needsDirectors &&
+          requirements?.needsShareholders &&
+          (!finalDirectors?.length || !finalShareholders?.length)
+        ) {
+          return this.responseService.sendError(
+            `${businessTypes.name} must have at least one director and shareholder.`,
+          );
         }
 
         const businesses = await this.businessRepository
