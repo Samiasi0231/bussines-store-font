@@ -8,4 +8,8 @@ export class CACLookupQueryDTO {
   @IsOptional()
   @IsString()
   companyType: string;
+
+  @IsOptional()
+  @IsString()
+  country: string;
 }
