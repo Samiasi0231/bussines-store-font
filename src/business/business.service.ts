@@ -55,10 +55,12 @@ export class BusinessService {
   async lookupCACDetails(
     regNumber: string,
     companyType?: string,
+    country?: string,
   ): Promise<IResponse<CACLookupData>> {
     const response = await this.kycService.identityProvider.lookupCAC(
       regNumber,
       companyType,
+      country,
     );
 
     if (!response.success)

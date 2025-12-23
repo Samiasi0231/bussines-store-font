@@ -210,6 +210,7 @@ export class DojahService implements IIdentityService {
   async lookupCAC(
     regNumber: string,
     companyType?: string,
+    country?: string,
   ): Promise<IResponse<CACLookupData>> {
     if (!Util.isProduction()) {
       if (regNumber.includes('111')) {
