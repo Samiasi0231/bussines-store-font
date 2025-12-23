@@ -40,6 +40,7 @@ export class BusinessController {
     return this.businessService.lookupCACDetails(
       query.regNumber,
       query.companyType,
+      query.country
     );
   }
 

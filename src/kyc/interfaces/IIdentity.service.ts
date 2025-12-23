@@ -19,5 +19,6 @@ export abstract class IIdentityService {
   abstract lookupCAC(
     regNumber: string,
     companyType?: string,
+    country?: string,
   ): Promise<IResponse<CACLookupData>>;
 }
