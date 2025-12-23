@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { UUID } from 'crypto';
 
 export class CACLookupQueryDTO {
   @IsNotEmpty()
@@ -6,8 +7,8 @@ export class CACLookupQueryDTO {
   regNumber: string;
 
   @IsOptional()
-  @IsString()
-  companyType: string;
+  @IsUUID()
+  companyType: UUID;
 
   @IsOptional()
   @IsString()

@@ -91,9 +91,9 @@ export class AddBusinessesDTO {
   @IsUrl()
   logo?: string;
 
-   @IsOptional()
+  @IsOptional()
   @IsUrl()
-  cacCertificateUrl?: string; 
+  cacCertificateUrl?: string;
 
   @IsOptional()
   @IsUrl()
@@ -165,13 +165,17 @@ export class AddBusinessesDTO {
 }
 
 export class RegisterNewBusinessDTO {
-  @IsNotEmpty()
-  @IsEnum(BusinessType)
-  businessType: BusinessType;
+  // @IsNotEmpty()
+  // @IsEnum(BusinessType)
+  // businessType: BusinessType;
 
   @IsNotEmpty()
   @IsUUID()
   categoryId: UUID;
+
+  @IsNotEmpty()
+  @IsUUID()
+  businessType: UUID;
 
   @IsOptional()
   @IsUUID()
@@ -263,9 +267,13 @@ export class RegisterNewBusinessDTO {
 }
 
 export class AddRegisteredBusinessDTO {
+  // @IsNotEmpty()
+  // @IsEnum(BusinessType)
+  // businessType: BusinessType;
+
   @IsNotEmpty()
-  @IsEnum(BusinessType)
-  businessType: BusinessType;
+  @IsUUID()
+  businessType: UUID;
 
   @IsNotEmpty()
   @IsUUID()
