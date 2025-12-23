@@ -138,7 +138,7 @@ export class DojahService implements IIdentityService {
 
     const fullUrl = `${this.baseURL}${this.getServiceUrl('nin')}?nin=${payload.nin}`;
     console.log('Full URL:', fullUrl);
-    console.log('Headers:', this.headers);
+
 
     let httpResponse;
     try {
@@ -198,8 +198,6 @@ export class DojahService implements IIdentityService {
       providerResponse: response as any,
     };
 
-    console.log('Mapped NIN Data:', data);
-    console.log('=== NIN Verification Debug End ===');
 
     return this.response.sendSuccess(
       SuccessMessage.IDENTITY_VERIFICATION(verificationType.toUpperCase()),

@@ -23,7 +23,7 @@ export default () => ({
     },
     urls: {
       nin: '/v1/kyc/nin',
-      bvn: '/v1/kyc/bvn',
+      bvn: '/v1/kyc/bvn/full',
       cac: '/v1/kyc/cac/basic',
     },
   },

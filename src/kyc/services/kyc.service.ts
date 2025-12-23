@@ -82,6 +82,8 @@ export class KycService {
     return this._identityProviderName;
   }
 
+
+
   // async verifyIdentity(
   //   payload: VerifyIdentityDTO & { userId: UUID },
   // ): Promise<
@@ -186,52 +188,105 @@ export class KycService {
   //     providerResponseData,
   //   );
 
-  //   const namesMismatch = identityValidation.namesStatus !== Status.VERIFIED;
-  //   const dobMismatch =
-  //     identityValidation.dateOfBirthStatus !== Status.VERIFIED;
+  //   // Calculate verification score with weights
+  //   const VERIFICATION_WEIGHTS = {
+  //     firstName: 30,
+  //     lastName: 35,
+  //     middleName: 10,
+  //     dateOfBirth: 25,
+  //   };
 
-  //   if (namesMismatch || dobMismatch) {
+  //   const MINIMUM_VERIFICATION_SCORE = 85;
+
+  //   let verificationScore = 0;
+  //   const scoreBreakdown: Record<string, { matched: boolean; weight: number }> = {};
+
+  //   // First name check (20%)
+  //   const firstNameMatch = identityValidation.namesStatus === Status.VERIFIED;
+  //   if (firstNameMatch) {
+  //     verificationScore += VERIFICATION_WEIGHTS.firstName;
+  //   }
+  //   scoreBreakdown.firstName = {
+  //     matched: firstNameMatch,
+  //     weight: VERIFICATION_WEIGHTS.firstName
+  //   };
+
+  //   // Last name check (20%)
+  //   const lastNameMatch =
+  //     userData.lastName?.toLowerCase().trim() ===
+  //     providerResponseData.lastName?.toLowerCase().trim();
+  //   if (lastNameMatch) {
+  //     verificationScore += VERIFICATION_WEIGHTS.lastName;
+  //   }
+  //   scoreBreakdown.lastName = {
+  //     matched: lastNameMatch,
+  //     weight: VERIFICATION_WEIGHTS.lastName
+  //   };
+
+  //   // Middle name check (10%)
+  //   const middleNameMatch =
+  //     userData.otherName?.toLowerCase().trim() ===
+  //     providerResponseData.otherName?.toLowerCase().trim();
+  //   if (middleNameMatch) {
+  //     verificationScore += VERIFICATION_WEIGHTS.middleName;
+  //   }
+  //   scoreBreakdown.middleName = {
+  //     matched: middleNameMatch,
+  //     weight: VERIFICATION_WEIGHTS.middleName
+  //   };
+
+  //   // Date of birth check (50%)
+  //   const dobMatch = identityValidation.dateOfBirthStatus === Status.VERIFIED;
+  //   if (dobMatch) {
+  //     verificationScore += VERIFICATION_WEIGHTS.dateOfBirth;
+  //   }
+  //   scoreBreakdown.dateOfBirth = {
+  //     matched: dobMatch,
+  //     weight: VERIFICATION_WEIGHTS.dateOfBirth
+  //   };
+
+  //   console.log('Verification Score Breakdown:', scoreBreakdown);
+  //   console.log('Total Verification Score:', verificationScore);
+  //   console.log('Minimum Required Score:', MINIMUM_VERIFICATION_SCORE);
+
+  //   // Check if verification score meets minimum threshold
+  //   if (verificationScore < MINIMUM_VERIFICATION_SCORE) {
+  //     const failedFields: string[] = [];
+
+  //     if (!firstNameMatch) failedFields.push('First Name');
+  //     if (!lastNameMatch) failedFields.push('Last Name');
+  //     if (!middleNameMatch) failedFields.push('Middle Name');
+  //     if (!dobMatch) failedFields.push('Date of Birth');
+
   //     await this.identityVerificationRepository.createStrict({
   //       ...baseIdentityVerificationData,
   //       status: Status.FAILED,
   //       invalidData: {
-  //         ...(namesMismatch && {
-  //           name: {
-  //             expected: {
-  //               firstName: userData.firstName,
-  //               otherName: userData.otherName,
-  //               lastName: userData.lastName,
-  //             },
-  //             provided: {
-  //               firstName: responseData.firstName,
-  //               otherName: responseData.middleName,
-  //               lastName: responseData.lastName,
-  //             },
+
+  //         name: {
+  //           expected: {
+  //             firstName: userData.firstName,
+  //             otherName: userData.otherName,
+  //             lastName: userData.lastName,
   //           },
-  //         }),
-  //         ...(dobMismatch && {
-  //           dateOfBirth: {
-  //             expected: userData.dateOfBirth,
-  //             provided: providerResponseData.dateOfBirth,
+  //           provided: {
+  //             firstName: responseData.firstName,
+  //             otherName: responseData.middleName,
+  //             lastName: responseData.lastName,
   //           },
-  //         }),
+  //         },
+  //         dateOfBirth: {
+  //           expected: userData.dateOfBirth,
+  //           provided: providerResponseData.dateOfBirth,
+  //         },
   //       },
   //     });
 
-  //     if (namesMismatch && dobMismatch)
-  //       return this.responseService.sendError(
-  //         ErrorMessage.IDENTITY_VERIFICATION_NAMES_AND_DOB_MISMATCH,
-  //       );
-
-  //     if (dobMismatch)
-  //       return this.responseService.sendError(
-  //         ErrorMessage.IDENTITY_VERIFICATION_DOB_MISMATCH,
-  //       );
-
-  //     if (namesMismatch)
-  //       return this.responseService.sendError(
-  //         ErrorMessage.IDENTITY_VERIFICATION_NAMES_MISMATCH,
-  //       );
+  //     return this.responseService.sendError(
+  //       `Identity verification failed. Verification score: ${verificationScore}% (minimum required: ${MINIMUM_VERIFICATION_SCORE}%). Failed fields: ${failedFields.join(', ')}`,
+  //       null,
+  //       HttpStatus.BAD_REQUEST,
+  //     );
   //   }
 
   //   const response = await this.dbTransactionManager.transaction<
@@ -256,8 +311,20 @@ export class KycService {
   //         status: Status.VERIFIED,
   //       });
 
+  //     // ============================================
+  //     // FACE VERIFICATION SECTION - POSSIBLE TIMEOUT
+  //     // ============================================
+  //     // TODO: This section might be timing out. Consider:
+  //     // 1. Adding timeout handling
+  //     // 2. Making it async/background job
+  //     // 3. Implementing retry logic
+  //     // 4. Adding progress updates
+  //     // ============================================
   //     if (type === IdentityVerificationType.BVN) {
   //       const providerImage = responseData.imageBase64;
+
+  //       // ⚠️ POTENTIAL TIMEOUT: Face verification can take time
+  //       // Consider adding timeout wrapper: Promise.race([faceVerification, timeoutPromise])
   //       const faceComparisonResponse = await this.verifyFace(
   //         userImage,
   //         providerImage,
@@ -299,6 +366,7 @@ export class KycService {
   //           faceVerificationStatus: Status.VERIFIED,
   //         });
   //     }
+  //     // ============================================
 
   //     if (type === IdentityVerificationType.BVN)
   //       await this.kycRepository
@@ -351,6 +419,7 @@ export class KycService {
   //   return response;
   // }
 
+
   async verifyIdentity(
     payload: VerifyIdentityDTO & { userId: UUID },
   ): Promise<
@@ -364,7 +433,7 @@ export class KycService {
     let providerResponse: IResponse<
       VerifyBvnResponseData | VerifyNINResponseData
     >;
-    const { type, userId, idNumber, image: userImage } = payload;
+    const { type, userId, idNumber } = payload; // Removed image parameter
 
     const user = await this.userRepository.findById(userId);
 
@@ -393,14 +462,24 @@ export class KycService {
 
     switch (type) {
       case IdentityVerificationType.BVN:
-        providerResponse = await this.identityProvider.verifyBVN({
-          bvn: idNumber,
-        });
+        providerResponse = await this.cacheService.remember(
+          `BVN:${idNumber}`,
+          DEFAULT_PROVIDER_RESPONSE_CACHE_TTL,
+          () =>
+            this.identityProvider.verifyBVN({
+              bvn: idNumber,
+            }),
+        );
         break;
       case IdentityVerificationType.NIN:
-        providerResponse = await this.identityProvider.verifyNIN({
-          nin: idNumber,
-        });
+        providerResponse = await this.cacheService.remember(
+          `NIN:${idNumber}`,
+          DEFAULT_PROVIDER_RESPONSE_CACHE_TTL,
+          () =>
+            this.identityProvider.verifyNIN({
+              nin: idNumber,
+            }),
+        );
         break;
     }
 
@@ -445,52 +524,104 @@ export class KycService {
       providerResponseData,
     );
 
-    const namesMismatch = identityValidation.namesStatus !== Status.VERIFIED;
-    const dobMismatch =
-      identityValidation.dateOfBirthStatus !== Status.VERIFIED;
+    // Calculate verification score with weights
+    const VERIFICATION_WEIGHTS = {
+      firstName: 30,
+      lastName: 35,
+      middleName: 10,
+      dateOfBirth: 25,
+    };
 
-    if (namesMismatch || dobMismatch) {
+    const MINIMUM_VERIFICATION_SCORE = 85;
+
+    let verificationScore = 0;
+    const scoreBreakdown: Record<string, { matched: boolean; weight: number }> = {};
+
+    // First name check (20%)
+    const firstNameMatch = identityValidation.namesStatus === Status.VERIFIED;
+    if (firstNameMatch) {
+      verificationScore += VERIFICATION_WEIGHTS.firstName;
+    }
+    scoreBreakdown.firstName = {
+      matched: firstNameMatch,
+      weight: VERIFICATION_WEIGHTS.firstName
+    };
+
+    // Last name check (20%)
+    const lastNameMatch =
+      userData.lastName?.toLowerCase().trim() ===
+      providerResponseData.lastName?.toLowerCase().trim();
+    if (lastNameMatch) {
+      verificationScore += VERIFICATION_WEIGHTS.lastName;
+    }
+    scoreBreakdown.lastName = {
+      matched: lastNameMatch,
+      weight: VERIFICATION_WEIGHTS.lastName
+    };
+
+    // Middle name check (10%)
+    const middleNameMatch =
+      userData.otherName?.toLowerCase().trim() ===
+      providerResponseData.otherName?.toLowerCase().trim();
+    if (middleNameMatch) {
+      verificationScore += VERIFICATION_WEIGHTS.middleName;
+    }
+    scoreBreakdown.middleName = {
+      matched: middleNameMatch,
+      weight: VERIFICATION_WEIGHTS.middleName
+    };
+
+    // Date of birth check (50%)
+    const dobMatch = identityValidation.dateOfBirthStatus === Status.VERIFIED;
+    if (dobMatch) {
+      verificationScore += VERIFICATION_WEIGHTS.dateOfBirth;
+    }
+    scoreBreakdown.dateOfBirth = {
+      matched: dobMatch,
+      weight: VERIFICATION_WEIGHTS.dateOfBirth
+    };
+
+    console.log('Verification Score Breakdown:', scoreBreakdown);
+    console.log('Total Verification Score:', verificationScore);
+    console.log('Minimum Required Score:', MINIMUM_VERIFICATION_SCORE);
+
+    // Check if verification score meets minimum threshold
+    if (verificationScore < MINIMUM_VERIFICATION_SCORE) {
+      const failedFields: string[] = [];
+
+      if (!firstNameMatch) failedFields.push('First Name');
+      if (!lastNameMatch) failedFields.push('Last Name');
+      if (!middleNameMatch) failedFields.push('Middle Name');
+      if (!dobMatch) failedFields.push('Date of Birth');
+
       await this.identityVerificationRepository.createStrict({
         ...baseIdentityVerificationData,
         status: Status.FAILED,
         invalidData: {
-          ...(namesMismatch && {
-            name: {
-              expected: {
-                firstName: userData.firstName,
-                otherName: userData.otherName,
-                lastName: userData.lastName,
-              },
-              provided: {
-                firstName: responseData.firstName,
-                otherName: responseData.middleName,
-                lastName: responseData.lastName,
-              },
+          name: {
+            expected: {
+              firstName: userData.firstName,
+              otherName: userData.otherName,
+              lastName: userData.lastName,
             },
-          }),
-          ...(dobMismatch && {
-            dateOfBirth: {
-              expected: userData.dateOfBirth,
-              provided: providerResponseData.dateOfBirth,
+            provided: {
+              firstName: responseData.firstName,
+              otherName: responseData.middleName,
+              lastName: responseData.lastName,
             },
-          }),
+          },
+          dateOfBirth: {
+            expected: userData.dateOfBirth,
+            provided: providerResponseData.dateOfBirth,
+          },
         },
       });
 
-      if (namesMismatch && dobMismatch)
-        return this.responseService.sendError(
-          ErrorMessage.IDENTITY_VERIFICATION_NAMES_AND_DOB_MISMATCH,
-        );
-
-      if (dobMismatch)
-        return this.responseService.sendError(
-          ErrorMessage.IDENTITY_VERIFICATION_DOB_MISMATCH,
-        );
-
-      if (namesMismatch)
-        return this.responseService.sendError(
-          ErrorMessage.IDENTITY_VERIFICATION_NAMES_MISMATCH,
-        );
+      return this.responseService.sendError(
+        `Identity verification failed. Verification score: ${verificationScore}% (minimum required: ${MINIMUM_VERIFICATION_SCORE}%). Failed fields: ${failedFields.join(', ')}`,
+        null,
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const response = await this.dbTransactionManager.transaction<
@@ -515,23 +646,16 @@ export class KycService {
           status: Status.VERIFIED,
         });
 
+      // BVN verification logic (without face verification)
       if (type === IdentityVerificationType.BVN) {
-        // Automatically set face verification as verified (bypassing face comparison)
-        await this.kycRepository
-          .withManager(entityManager)
-          .findbyIdAndUpdate(kyc.id, {
-            faceVerificationStatus: Status.VERIFIED,
-          });
-      }
-
-      if (type === IdentityVerificationType.BVN)
         await this.kycRepository
           .withManager(entityManager)
           .findbyIdAndUpdate(kyc.id, {
             bvn: idNumber,
             bvnVerificationStatus: Status.VERIFIED,
           });
-      else
+      } else {
+        // NIN or other identity verification
         await this.kycRepository
           .withManager(entityManager)
           .findbyIdAndUpdate(kyc.id, {
@@ -539,16 +663,17 @@ export class KycService {
             identityVerificationStatus: Status.VERIFIED,
             identityVerificationType: type,
           });
+      }
 
       const updatedKyc = await this.kycRepository
         .withManager(entityManager)
         .findById(kyc.id);
 
+      // Updated tier upgrade logic (removed faceVerificationStatus check)
       const canUpgradeToTierTwo =
         user.isProfileComplete &&
         [
           updatedKyc.bvnVerificationStatus,
-          updatedKyc.faceVerificationStatus,
           updatedKyc.identityVerificationStatus,
         ].every((status) => status === Status.VERIFIED);
 
