@@ -13,11 +13,7 @@ import { Environment } from '../src/@common/constants/environment.constant';
  * ⚠️  SAFETY: This script will NOT run in production environment.
  * 
  * Usage:
- *   npm run build
- *   node dist/scripts/clear-db.js
- * 
- * Or add to package.json:
- *   "db:clear": "ts-node scripts/clear-db.ts"
+ *   npm run db:clear
  */
 
 function promptConfirmation(question: string): Promise<boolean> {
