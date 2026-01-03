@@ -2,9 +2,9 @@ import { UUID } from 'crypto';
 import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 import { uuidv7 } from 'uuidv7';
 import { Status } from '../@common/constants/status.constant';
-import { PaymentIntent } from '../@common/constants/transaction.constant';
 import { BaseEntity } from './base.entity';
 import { IsNotEmpty } from 'class-validator';
+import { PaymentIntent } from '../@common/constants/payment-intent.constant';
 
 const CheckoutPaymentStatus = [
   Status.PENDING,
@@ -64,4 +64,7 @@ export class CheckoutPayment extends BaseEntity {
 
   @Column({ type: 'jsonb', nullable: true, name: 'service_response' })
   serviceResponse?: Record<string, unknown>;
+
+  @Column({ nullable: true, name: 'provider_reference', type: 'varchar' })
+  providerReference?: string;
 }

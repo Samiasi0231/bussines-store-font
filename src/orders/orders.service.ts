@@ -2,6 +2,7 @@ import {
   BadRequestException,
   HttpStatus,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateOrderDTO, GetOrdersDTO } from './dtos/order.dto';
@@ -45,9 +46,12 @@ import {
 import { CreditBusinessWalletDTO } from '../transaction/dtos/transaction.dto';
 import { RmqProducerService } from '../@common/rmq/rmq.producer.service';
 import { RmqQueue } from '../@common/constants/queues.constant';
+import { SystemProcess } from '../@common/constants/system-process.constant';
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly userRepository: UserRepository,
     private readonly userService: UserService,
@@ -65,7 +69,7 @@ export class OrdersService {
     private readonly rmqProducerService: RmqProducerService,
   ) {}
 
-  async createOrder(payload: CreateOrderDTO) {
+  async createOrderDeprecated(payload: CreateOrderDTO) {
     const {
       items,
       inStoreOrderData,
@@ -158,10 +162,7 @@ export class OrdersService {
       order.discountAmount = totalDiscountAmount;
       order.totalAmount = subtotal; //will eventually include tax, etc
       order.payableAmount = order.totalAmount - order.discountAmount;
-      const paymentStatus = await this.checkPaymentStatus(
-        paymentMethod,
-        paymentReference,
-      );
+      const paymentStatus = Status.PENDING;
       order.paymentStatus = paymentStatus;
       order.paymentReference = paymentReference;
       // Link cart to order if provided
@@ -289,6 +290,247 @@ export class OrdersService {
           orderId: order.id,
         });
       });
+
+      const data = this.orderSanitizer.formatOrderForList(order);
+
+      return this.responseService.sendSuccess(
+        SuccessMessage.OPERATION_SUCCESSFUL,
+        data,
+        HttpStatus.CREATED,
+      );
+    });
+
+    return response;
+  }
+
+  async createOrder(payload: CreateOrderDTO) {
+    const {
+      items,
+      inStoreOrderData,
+      couponId,
+      paymentData: { method: paymentMethod, reference: paymentReference },
+      email,
+      note,
+      shippingAddress,
+      inStoreOrder = false,
+    } = payload;
+    let { userId } = payload;
+
+    const response = await this.dbTransactionManager.transaction<
+      IResponse<FormattedOrderForList>
+    >(async (manager) => {
+      const entityManager = manager.entityManager;
+
+      const isDuplicatePaymentReference = await this.orderRepository
+        .withManager(entityManager)
+        .findOne({
+          where: { paymentReference },
+          lock: { mode: 'pessimistic_write' },
+        });
+
+      if (isDuplicatePaymentReference)
+        return this.responseService.sendError(
+          ErrorMessage.DUPLICATE_PAYMENT,
+          null,
+          HttpStatus.CONFLICT,
+        );
+
+      if (email) {
+        const createGuestUserRes =
+          await this.userService.createOrFetchGuestUser(email, entityManager);
+
+        if (!createGuestUserRes.success) return createGuestUserRes;
+
+        userId = createGuestUserRes.data.id;
+      }
+
+      if (userId) {
+        const user = await this.userRepository
+          .withManager(entityManager)
+          .findById(userId);
+
+        if (!user)
+          return this.responseService.sendError(
+            ErrorMessage.USER_NOT_FOUND,
+            null,
+            HttpStatus.NOT_FOUND,
+          );
+      }
+
+      let shippingAddressId: UUID;
+
+      if (shippingAddress && shippingAddress.addressId) {
+        const address = await this.addressRepository
+          .withManager(entityManager)
+          .findById(shippingAddress.addressId);
+
+        shippingAddressId = address.id;
+      } else if (shippingAddress && shippingAddress.address) {
+        const addressData = shippingAddress.address;
+        const address = await this.addressRepository
+          .withManager(entityManager)
+          .createStrict({
+            lga: addressData.lga,
+            buildingNumber: addressData.buildingNumber,
+            city: addressData.city,
+            state: addressData.state,
+            street: addressData.street,
+            country: addressData.country,
+            user: userId,
+          });
+
+        shippingAddressId = address.id;
+      }
+
+      let subtotal = 0;
+      let totalDiscountAmount = 0;
+
+      const order = new Order();
+      order.inStoreOrder = inStoreOrder;
+      order.inStoreOrderData = inStoreOrder ? inStoreOrderData : null;
+      order.shippingAddress = shippingAddressId;
+      order.user = userId;
+      order.paymentMethod = paymentMethod;
+      order.note = note;
+      order.subtotal = subtotal;
+      order.discountAmount = totalDiscountAmount;
+      order.totalAmount = subtotal; 
+      order.payableAmount = order.totalAmount - order.discountAmount;
+
+      
+      const paymentStatus =
+        paymentMethod === PaymentMethod.CASH && inStoreOrder
+          ? Status.SUCCESSFUL
+          : Status.PENDING;
+
+      order.paymentStatus = paymentStatus;
+      order.paymentReference = paymentReference;
+
+      if (payload.cartId) {
+        order.cart = payload.cartId as any;
+      }
+
+      await entityManager.save(order);
+
+      let generalDiscountAmount = 0;
+
+      if (couponId) {
+        const coupon = await this.couponRepository
+          .withManager(entityManager)
+          .findById(couponId, { lock: { mode: 'pessimistic_write' } });
+
+        if (coupon.status !== Status.ACTIVE)
+          throw new BadRequestException(
+            ErrorMessage.INVALID_COUPON_CODE(coupon.code || ''),
+          );
+
+        //TODO(future): check usage limit per user
+        const discountAmount = this.couponRepository.getDiscountAmount({
+          coupon,
+          amount: subtotal,
+        });
+
+        generalDiscountAmount = discountAmount;
+
+        totalDiscountAmount += discountAmount;
+      }
+
+      const generalDiscountPerItem = Math.floor(
+        totalDiscountAmount / items.length,
+      );
+
+      for (let index = 0; index < items.length; index++) {
+        const item = items[index];
+
+        const { productId, quantity, couponId } = item;
+
+        const product = await this.productRepository
+          .withManager(entityManager)
+          .findById(productId, {
+            lock: { mode: 'pessimistic_write' },
+          });
+
+        if (!product)
+          throw new NotFoundException(ErrorMessage.NOT_FOUND('Product'));
+
+        const {
+          costPrice,
+          sellingPrice: price,
+          quantity: availableQuantity,
+        } = product;
+
+        if (availableQuantity < quantity && product.trackInventory)
+          throw new BadRequestException(ErrorMessage.AT_LEAST_ONE_OUT_OF_STOCK);
+
+        await this.productRepository
+          .withManager(entityManager)
+          .decreaseQuantity(productId, quantity);
+
+        let discountAmount =
+          index !== items.length - 1
+            ? generalDiscountPerItem
+            : generalDiscountAmount -
+              (generalDiscountAmount - index * generalDiscountPerItem);
+
+        const totalItemPrice = quantity * price;
+        subtotal += totalItemPrice;
+
+        if (couponId) {
+          const coupon = await this.couponRepository
+            .withManager(entityManager)
+            .findById(couponId, { lock: { mode: 'pessimistic_write' } });
+
+          if (coupon.status !== Status.ACTIVE)
+            throw new BadRequestException(
+              ErrorMessage.INVALID_COUPON_CODE(coupon.code || ''),
+            );
+
+          //TODO: check usage limit per user
+
+          discountAmount = this.couponRepository.getDiscountAmount({
+            coupon,
+            amount: totalItemPrice,
+          });
+        }
+
+        totalDiscountAmount += discountAmount;
+        //TODO: add support for product variant
+        const orderItem = await this.orderItemRepository
+          .withManager(entityManager)
+          .createStrict({
+            order: order.id,
+            product: productId,
+            quantity,
+            unitCostPrice: costPrice,
+            unitPrice: price,
+            discountAmount,
+            subtotal: totalItemPrice,
+            store: product.store,
+          });
+
+        if (discountAmount > 0) {
+          await this.orderCouponRepository
+            .withManager(entityManager)
+            .createStrict({
+              order: order.id,
+              orderItem: orderItem.id,
+              coupon: couponId,
+            });
+        }
+      }
+
+      order.subtotal = subtotal;
+      order.discountAmount = totalDiscountAmount;
+      order.totalAmount = subtotal; //will eventually include tax, etc
+      order.payableAmount = order.totalAmount - order.discountAmount;
+      await entityManager.save(order);
+
+      // Only process payment immediately for CASH in-store orders
+      if (paymentMethod === PaymentMethod.CASH && inStoreOrder) {
+        manager.on('committed', () => {
+          this.processOrderPayment({ orderId: order.id });
+        });
+      }
 
       const data = this.orderSanitizer.formatOrderForList(order);
 
@@ -684,32 +926,180 @@ export class OrdersService {
     );
   }
 
-  async processOrderPayment(payload: { orderId: string }) {
-    const { orderId } = payload;
+  /**
+   * Verify payment and process order after successful payment
+   * @param payload Payment verification data
+   * @returns Processing result
+   */
+  async verifyAndProcessPayment(payload: {
+    paymentReference: string;
+    orderId?: string;
+  }) {
+    const { paymentReference, orderId } = payload;
 
     const order = await this.orderRepository.findOne({
-      where: { id: orderId as UUID },
+      where: orderId ? { id: orderId as UUID } : { paymentReference },
+      relations: [
+        'orderItems',
+        'orderItems.product',
+        'orderItems.product.store',
+      ],
     });
 
-    if (!order)
+    if (!order) {
       return this.responseService.sendError(
         ErrorMessage.NOT_FOUND('Order'),
         null,
         HttpStatus.NOT_FOUND,
       );
+    }
+
+    if (
+      order.paymentStatus === Status.SUCCESSFUL ||
+      order.paymentStatus === Status.PAID
+    ) {
+      this.logger.warn({
+        process: 'VERIFY_AND_PROCESS_PAYMENT',
+        message: 'Payment already processed',
+        orderId: order.id,
+        paymentReference,
+      });
+
+      return this.responseService.sendSuccess('Payment already processed', {
+        orderId: order.id,
+        paymentStatus: order.paymentStatus,
+      });
+    }
+
+    const paymentMethod = order.paymentMethod;
+
+    if (paymentMethod === PaymentMethod.CHECKOUT) {
+      const paymentStatus =
+        await this.transactionService.checkCheckoutPaymentStatus(
+          order.paymentReference,
+        );
+
+      if (paymentStatus !== order.paymentStatus) {
+        await this.orderRepository.update(order.id, {
+          paymentStatus,
+        });
+
+
+        this.logger.log({
+          process: 'VERIFY_AND_PROCESS_PAYMENT',
+          message: 'Order payment status updated',
+          orderId: order.id,
+          oldStatus: order.paymentStatus,
+          newStatus: paymentStatus,
+        });
+      }
+
+      if (paymentStatus !== Status.SUCCESSFUL) {
+        this.logger.warn({
+          process: 'VERIFY_AND_PROCESS_PAYMENT',
+          message: 'Payment not successful',
+          orderId: order.id,
+          paymentStatus,
+        });
+
+        return this.responseService.sendError(
+          'Payment verification failed',
+          {
+            orderId: order.id,
+            paymentStatus,
+            message: 'Payment has not been completed successfully',
+          },
+          HttpStatus.PAYMENT_REQUIRED,
+        );
+      }
+
+      return this.processOrderPayment({ orderId: order.id });
+    }
+
+    if (paymentMethod === PaymentMethod.CASH) {
+      await this.orderRepository.update(order.id, {
+        paymentStatus: Status.SUCCESSFUL,
+      });
+
+      return this.processOrderPayment({ orderId: order.id });
+    }
+
+    return this.responseService.sendError(
+      'Unsupported payment method',
+      { paymentMethod },
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  /**
+   * Process order payment and credit business wallets
+   * This is called after payment verification is successful
+   * @param payload Order processing data
+   * @returns Processing result
+   */
+  async processOrderPayment(payload: { orderId: string }) {
+    const { orderId } = payload;
+
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId as UUID },
+      relations: [
+        'orderItems',
+        'orderItems.product',
+        'orderItems.product.store',
+      ],
+    });
+
+    if (!order) {
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Order'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    if (order.paymentStatus !== Status.SUCCESSFUL) {
+      this.logger.error({
+        process: SystemProcess.PROCESS_ORDER_PAYMENT,
+        message: 'Attempted to process unpaid order',
+        orderId: order.id,
+        paymentStatus: order.paymentStatus,
+      });
+
+      return this.responseService.sendError(
+        'Order payment not completed',
+        { paymentStatus: order.paymentStatus },
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+    }
 
     const paymentReference = order.paymentReference;
+    const orderItems = order.orderItems || [];
 
-    const orderItems = await this.orderItemRepository.find({
-      where: { order: order.id },
-      relations: ['product.store'],
-    });
+    if (orderItems.length === 0) {
+      return this.responseService.sendError(
+        'No order items found',
+        null,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const results = [];
 
     for (const orderItem of orderItems) {
       const payableAmount = orderItem.subtotal - orderItem.discountAmount;
 
       const businessId = ((orderItem.product as Product)?.store as Store)
         ?.business;
+
+      if (!businessId) {
+        this.logger.error({
+          process: SystemProcess.PROCESS_ORDER_PAYMENT,
+          message: 'Business ID not found for order item',
+          orderId: order.id,
+          orderItemId: orderItem.id,
+        });
+        continue;
+      }
 
       const isDuplicatePayment =
         await this.transactionService.isDuplicateOrderPayment(
@@ -718,12 +1108,16 @@ export class OrdersService {
           orderItem.id,
         );
 
-      if (isDuplicatePayment)
-        return this.responseService.sendError(
-          ErrorMessage.DUPLICATE_PAYMENT,
-          null,
-          HttpStatus.CONFLICT,
-        );
+      if (isDuplicatePayment) {
+        this.logger.warn({
+          process: SystemProcess.PROCESS_ORDER_PAYMENT,
+          message: 'Duplicate payment detected, skipping',
+          orderId: order.id,
+          orderItemId: orderItem.id,
+          paymentReference,
+        });
+        continue;
+      }
 
       const creditPayload: CreditBusinessWalletDTO = {
         amount: payableAmount,
@@ -733,7 +1127,7 @@ export class OrdersService {
         narration: GeneralMessage.ORDER_PAYMENT_CREDIT_NARRATION(
           order.id,
           orderItem.id,
-        ), //narration can be improved to be more meaningful to the user
+        ),
         metadata: {
           orderId: order.id,
           orderItemId: orderItem.id,
@@ -741,10 +1135,111 @@ export class OrdersService {
         },
       };
 
-      return this.transactionService.creditBusinessWallet({
-        businessId: businessId as UUID,
-        ...creditPayload,
+      const creditResult =
+        await this.transactionService.creditBusinessWallet(creditPayload);
+
+      if (!creditResult.success) {
+        this.logger.error({
+          process: SystemProcess.PROCESS_ORDER_PAYMENT,
+          message: 'Failed to credit business wallet',
+          orderId: order.id,
+          orderItemId: orderItem.id,
+          error: creditResult,
+        });
+        results.push({
+          orderItemId: orderItem.id,
+          success: false,
+          error: creditResult.message,
+        });
+      } else {
+        this.logger.log({
+          process: SystemProcess.PROCESS_ORDER_PAYMENT,
+          message: 'Business wallet credited successfully',
+          orderId: order.id,
+          orderItemId: orderItem.id,
+          amount: payableAmount,
+        });
+        results.push({
+          orderItemId: orderItem.id,
+          success: true,
+          amount: payableAmount,
+        });
+      }
+    }
+
+    await this.orderRepository.update(order.id, {
+      status: Status.COMPLETED,
+    });
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        orderId: order.id,
+        itemsProcessed: results.length,
+        results,
+      },
+    );
+  }
+
+  /**
+   * Manually requery and update order payment status
+   * @param orderId Order ID to check
+   * @returns Updated order status
+   */
+  async requeryOrderPaymentStatus(orderId: UUID) {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Order'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const paymentReference = order.paymentReference;
+    const paymentMethod = order.paymentMethod;
+
+    if (paymentMethod !== PaymentMethod.CHECKOUT) {
+      return this.responseService.sendSuccess(
+        'Payment method does not support requery',
+        {
+          orderId: order.id,
+          paymentStatus: order.paymentStatus,
+          paymentMethod,
+        },
+      );
+    }
+
+    const paymentStatus =
+      await this.transactionService.checkCheckoutPaymentStatus(
+        paymentReference,
+      );
+
+
+    if (paymentStatus !== order.paymentStatus) {
+      await this.orderRepository.update(order.id, {
+        paymentStatus,
+      });
+
+      this.logger.log({
+        process: 'REQUERY_ORDER_PAYMENT_STATUS',
+        message: 'Order payment status updated',
+        orderId: order.id,
+        oldStatus: order.paymentStatus,
+        newStatus: paymentStatus,
       });
     }
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        orderId: order.id,
+        paymentStatus,
+        updated: paymentStatus !== order.paymentStatus,
+      },
+    );
   }
 }

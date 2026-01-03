@@ -12,6 +12,7 @@ import {
   CreateOrderDTO,
   GetOrdersDTO,
   updateOrderStatusDTO,
+  VerifyPaymentDTO,
 } from './dtos/order.dto';
 import { GetByIdParamDTO } from '../@common/dtos/general.dto';
 import { UUID } from 'crypto';
@@ -54,6 +55,27 @@ export class OrdersController {
   @Get(':id')
   getOrder(@Param() param: GetByIdParamDTO) {
     return this.ordersService.getOrder(param.id as UUID);
+  }
+
+  /**
+   * Verify payment and process order
+   * @param body Payment verification data
+   * @returns Order payment processing result
+   */
+  @Post('verify-payment')
+  verifyPayment(@Body() body: VerifyPaymentDTO) {
+    return this.ordersService.verifyAndProcessPayment(body);
+  }
+
+  /**
+   * Requery order payment status
+   * Manually check payment status with provider
+   * @param orderId Order ID
+   * @returns Updated payment status
+   */
+  @Get(':orderId/payment-status')
+  requeryPaymentStatus(@Param('orderId') orderId: UUID) {
+    return this.ordersService.requeryOrderPaymentStatus(orderId);
   }
 
   @Public()

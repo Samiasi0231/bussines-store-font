@@ -198,3 +198,13 @@ export class GetOrdersDTO extends PaginationDTO {
   @IsBoolean()
   inStoreOrder: boolean;
 }
+
+export class VerifyPaymentDTO {
+  @IsString()
+  @IsNotEmpty()
+  paymentReference: string;
+
+  @IsUUID()
+  @IsOptional()
+  orderId?: UUID;
+}

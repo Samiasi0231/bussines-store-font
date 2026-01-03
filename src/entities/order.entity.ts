@@ -26,10 +26,20 @@ export const OrderStatus = [
   Status.PROCESSING,
   Status.CANCELLED,
   Status.COMPLETED,
+  Status.SUCCESSFUL,
+  Status.FAILED,
 ] as const;
 export type OrderStatus = (typeof OrderStatus)[number];
 
-const PaymentStatus = [Status.PAID, Status.PENDING, Status.FAILED] as const;
+const PaymentStatus = [
+  Status.PAID,
+  Status.PENDING,
+  Status.FAILED,
+  Status.CANCELLED,
+  Status.SUCCESSFUL,
+  Status.COMPLETED,
+  Status.PROCESSING,
+] as const;
 export type PaymentStatus = (typeof PaymentStatus)[number];
 
 @Entity('orders')

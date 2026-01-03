@@ -1,7 +1,3 @@
-export enum PaymentIntent {
-  ORDER = 'order',
-}
-
 export enum TransactionChannel {
   WALLET = 'wallet',
   CARD = 'card',
