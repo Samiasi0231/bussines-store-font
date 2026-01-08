@@ -26,10 +26,20 @@ export const OrderStatus = [
   Status.PROCESSING,
   Status.CANCELLED,
   Status.COMPLETED,
+  Status.SUCCESSFUL,
+  Status.FAILED,
 ] as const;
 export type OrderStatus = (typeof OrderStatus)[number];
 
-const PaymentStatus = [Status.PAID, Status.PENDING, Status.FAILED] as const;
+const PaymentStatus = [
+  Status.PAID,
+  Status.PENDING,
+  Status.FAILED,
+  Status.CANCELLED,
+  Status.SUCCESSFUL,
+  Status.COMPLETED,
+  Status.PROCESSING,
+] as const;
 export type PaymentStatus = (typeof PaymentStatus)[number];
 
 @Entity('orders')
@@ -115,8 +125,8 @@ export class Order extends BaseEntity {
   paymentMethod: PaymentMethod;
 
   @Column({
-    type: 'enum',
-    enum: PaymentStatus,
+    type: 'varchar',
+    length: 100,
     default: Status.PENDING,
     name: 'payment_status',
   })
@@ -149,4 +159,8 @@ export class Order extends BaseEntity {
   @ManyToOne(() => Cart, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'cart_id' })
   cart?: Cart | UUID;
+
+  @Index()
+  @Column({ type: 'uuid', name: 'transaction_id', nullable: true })
+  transactionId?: UUID;
 }

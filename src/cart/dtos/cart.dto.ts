@@ -62,6 +62,10 @@ export class PaymentDataDTO {
   @IsString()
   @IsNotEmpty()
   reference: string;
+
+  @IsString()
+  @IsNotEmpty()
+  redirectUrl: string;
 }
 
 export class CheckoutCartDTO {

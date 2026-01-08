@@ -67,6 +67,10 @@ import { BusinessCategoryRepository } from '../../repositories/business-category
 import { BusinessCategory } from '../../entities/business-category.entity';
 import { BusinessTypeRepository } from '../../repositories/business-type.repository';
 import { BusinessType } from '../../entities/business-type.entity';
+import { WebhookEvent } from '../../entities/webhook-event.entity';
+import { WebhookEventRepository } from '../../repositories/webhook-event.repository';
+import { TransactionLog } from '../../entities/transaction-log.entity';
+import { TransactionLogRepository } from '../../repositories/transaction-log.repository';
 
 const repositories = [
   IdentityVerificationRepository,
@@ -99,6 +103,8 @@ const repositories = [
   CheckoutPaymentRepository,
   BusinessCategoryRepository,
   BusinessTypeRepository,
+  WebhookEventRepository,
+  TransactionLogRepository
 ];
 
 const providers = [...repositories, ResponseService];
@@ -134,6 +140,8 @@ const DATABASE_ENTITIES = [
   CheckoutPayment,
   BusinessCategory,
   BusinessType,
+  WebhookEvent,
+  TransactionLog
 ];
 
 @Global()

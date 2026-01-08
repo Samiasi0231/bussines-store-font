@@ -19,7 +19,10 @@ import { TransactionReferencePrefix } from '../@common/constants/transaction.con
 import { uuidv7 } from 'uuidv7';
 import { Provider } from '../@common/constants/providers.constant';
 import { MonnifyProvider } from './providers/monnify.provider';
-import { ITransactionProvider } from './interfaces/transaction-provider.interface';
+import {
+  ITransactionProvider,
+  InitializeTransactionPayload,
+} from './interfaces/transaction-provider.interface';
 import { Transaction, TransactionType } from '../entities/transaction.entity';
 import {
   CreditBusinessWalletDTO,
@@ -34,6 +37,7 @@ import { TransactionSanitizer } from './sanitizers/transaction.sanitizer';
 import { FindOptionsWhere, In } from 'typeorm';
 import { Util } from '../@common/utilities/helpers.utility';
 import { nanoid } from 'nanoid';
+import { PaymentIntent } from '../@common/constants/payment-intent.constant';
 
 @Injectable()
 export class TransactionService {
@@ -62,10 +66,15 @@ export class TransactionService {
     }
   }
 
+  /**
+   * Initialize a checkout payment with the configured provider
+   * @param payload Payment initialization data
+   * @returns Checkout payment details with payment URL
+   */
   async initiateCheckoutPayment(payload: InitiateCheckoutPaymentDTO) {
-    const { intent } = payload;
+    const { intent, customerEmail, customerName } = payload;
 
-    const amount = Util.toKobo(payload.amount);
+    const amount = payload.amount;
 
     const provider = this.systemSettingsSevice.getDefaultProvider(
       DefaultProviderConfig.CHECKOUT,
@@ -85,39 +94,123 @@ export class TransactionService {
       );
     }
 
+    const reference = `${TransactionReferencePrefix.CHECKOUT}${uuidv7().replace(/-/g, '')}`;
+
     const checkoutPayment = await this.checkoutPaymentRepository.createStrict({
       amount,
       intent,
       provider,
-      reference: `${TransactionReferencePrefix.CHECKOUT}${uuidv7().replace(/-/g, '')}`,
+      reference,
     });
 
-    const data = this.checkoutSanitizer.formatCheckoutPayment(checkoutPayment);
+    const providerInstance = this.getProvider(provider as Provider);
 
-    return this.responseService.sendSuccess(
-      SuccessMessage.OPERATION_SUCCESSFUL,
-      data,
-    );
+    const initializePayload: InitializeTransactionPayload = {
+      amount,
+      customerName: customerName || 'Customer',
+      customerEmail: customerEmail || 'customer@example.com',
+      paymentReference: reference,
+      paymentDescription: `Payment for ${intent}`,
+      redirectUrl: payload.redirectUrl,
+      metadata: {
+        intent,
+        checkoutPaymentId: checkoutPayment.id,
+      },
+    };
+
+    try {
+      const initializeResponse =
+        await providerInstance.initializeTransaction(initializePayload);
+
+      if (!initializeResponse.success) {
+        this.logger.error({
+          process: SystemProcess.INITIATE_CHECKOUT_PAYMENT,
+          message: 'Failed to initialize payment with provider',
+          reference,
+          error: initializeResponse,
+        });
+
+        return this.responseService.sendError(
+          ErrorMessage.GENERIC_ERROR_CONTACT_SUPPORT,
+          null,
+          HttpStatus.BAD_GATEWAY,
+        );
+      }
+
+      await this.checkoutPaymentRepository.update(checkoutPayment.id, {
+        providerReference: initializeResponse.data.transactionReference,
+      });
+
+      const data = {
+        ...this.checkoutSanitizer.formatCheckoutPayment(checkoutPayment),
+        checkoutUrl: initializeResponse.data.checkoutUrl,
+        paymentMethods: initializeResponse.data.enabledPaymentMethods,
+        providerReference: initializeResponse.data.transactionReference,
+      };
+
+      return this.responseService.sendSuccess(
+        SuccessMessage.OPERATION_SUCCESSFUL,
+        data,
+      );
+    } catch (error) {
+      this.logger.error({
+        process: SystemProcess.INITIATE_CHECKOUT_PAYMENT,
+        message: 'Error initializing payment',
+        reference,
+        error,
+      });
+
+      return this.responseService.sendError(
+        ErrorMessage.GENERIC_ERROR_CONTACT_SUPPORT,
+        null,
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
   }
 
+  /**
+   * Check and update checkout payment status
+   * @param paymentReference Payment reference to check
+   * @returns Current payment status
+   */
   async checkCheckoutPaymentStatus(
     paymentReference: string,
   ): Promise<CheckoutPaymentStatus> {
-    //TODO: Integrate webhook listener for checkout payments/completed transactions
     const checkoutPayment = await this.checkoutPaymentRepository.findOne({
       where: { reference: paymentReference },
     });
 
-    if (!checkoutPayment) return Status.FAILED;
+    if (!checkoutPayment) {
+      this.logger.warn({
+        process: SystemProcess.CHECK_CHECKOUT_PAYMENT_STATUS,
+        message: 'Checkout payment not found',
+        reference: paymentReference,
+      });
+      return Status.FAILED;
+    }
+
 
     if (
-      checkoutPayment.status !== Status.SUCCESSFUL &&
-      checkoutPayment.status !== Status.FAILED
+      checkoutPayment.status === Status.SUCCESSFUL ||
+      checkoutPayment.status === Status.FAILED
     ) {
-      const getPaymentResponse = await this.getExternalTransaction(
+      return checkoutPayment.status;
+    }
+
+    try {
+      const getPaymentResponse = await this.requeryTransaction(
         paymentReference,
         checkoutPayment.provider,
       );
+
+      if (!getPaymentResponse.success) {
+        this.logger.error({
+          process: SystemProcess.CHECK_CHECKOUT_PAYMENT_STATUS,
+          message: 'Failed to query payment status',
+          reference: paymentReference,
+        });
+        return checkoutPayment.status;
+      }
 
       const paymentData = getPaymentResponse.data;
 
@@ -128,20 +221,67 @@ export class TransactionService {
           serviceResponse: paymentData.serviceResponse,
           channel: paymentData.method,
         });
+
+        this.logger.log({
+          process: SystemProcess.CHECK_CHECKOUT_PAYMENT_STATUS,
+          message: 'Payment status updated',
+          reference: paymentReference,
+          oldStatus: checkoutPayment.status,
+          newStatus: paymentData.status,
+        });
+
+        return paymentData.status as CheckoutPaymentStatus;
       }
 
       return checkoutPayment.status;
+    } catch (error) {
+      this.logger.error({
+        process: SystemProcess.CHECK_CHECKOUT_PAYMENT_STATUS,
+        message: 'Error checking payment status',
+        reference: paymentReference,
+        error,
+      });
+      return checkoutPayment.status;
     }
-
-    return checkoutPayment.status;
   }
 
+  /**
+   * Get transaction details from external provider
+   * @param reference Payment reference
+   * @param providerName Provider name
+   * @returns Transaction details
+   */
   getExternalTransaction(reference: string, providerName: string) {
     const provider = this.getProvider(providerName as Provider);
+    return provider.getTransactionByInternalReference(reference);
+  }
+
+  /**
+   * Requery transaction status from provider
+   * @param reference Payment reference
+   * @param providerName Provider name
+   * @returns Transaction status details
+   */
+  async requeryTransaction(reference: string, providerName?: string) {
+    const provider = providerName
+      ? this.getProvider(providerName as Provider)
+      : this.monnifyProvider;
+
+    this.logger.log({
+      process: SystemProcess.REQUERY_TRANSACTION,
+      message: 'Requerying transaction',
+      reference,
+      provider: providerName || Provider.MONNIFY,
+    });
 
     return provider.getTransactionByInternalReference(reference);
   }
 
+  /**
+   * Credit a business wallet
+   * @param payload Credit transaction data
+   * @returns Credit transaction result
+   */
   async creditBusinessWallet(payload: CreditBusinessWalletDTO) {
     const { businessId, ...creditPayload } = payload;
 
@@ -160,11 +300,17 @@ export class TransactionService {
     return this.credit({ ...creditPayload, walletId: wallet.id });
   }
 
+  /**
+   * Credit a wallet with pessimistic locking
+   * @param payload Credit transaction data
+   * @returns Credit transaction result
+   */
   async credit(payload: CreditTransactionDTO) {
     const { amount, walletId, purpose, channel, narration, metadata } = payload;
 
-    if (amount <= 0)
+    if (amount <= 0) {
       return this.responseService.sendError(ErrorMessage.INVALID_AMOUNT);
+    }
 
     const response = await this.dbTransactionManager.transaction(
       async (manager) => {
@@ -225,6 +371,11 @@ export class TransactionService {
     return response;
   }
 
+  /**
+   * Calculate balance after transaction
+   * @param params Transaction parameters
+   * @returns New balance
+   */
   async getBalanceAfter({
     amount,
     balanceBefore,
@@ -241,6 +392,11 @@ export class TransactionService {
     }
   }
 
+  /**
+   * Get transaction by reference
+   * @param payload Transaction query data
+   * @returns Transaction details
+   */
   async getTransaction(payload: GetTransactionByReferenceDTO) {
     const { reference } = payload;
 
@@ -264,6 +420,11 @@ export class TransactionService {
     );
   }
 
+  /**
+   * Get paginated list of transactions
+   * @param payload Transaction filter and pagination data
+   * @returns Paginated transactions
+   */
   async getTransactions(payload: GetTransactionsDTO) {
     const { sort, type, status, page, limit, wallet: walletId } = payload;
 
@@ -294,6 +455,13 @@ export class TransactionService {
     );
   }
 
+  /**
+   * Check if an order payment is duplicate
+   * @param externalReference External payment reference
+   * @param orderId Order ID
+   * @param orderItemId Order item ID
+   * @returns True if duplicate, false otherwise
+   */
   async isDuplicateOrderPayment(
     externalReference: string,
     orderId: string,
@@ -309,7 +477,12 @@ export class TransactionService {
     return !!transaction;
   }
 
-  private generateReference(type: 'transaction' | 'group') {
+  /**
+   * Generate unique transaction reference
+   * @param type Reference type
+   * @returns Generated reference
+   */
+  private generateReference(type: 'transaction' | 'group'): string {
     switch (type) {
       case 'transaction':
         return (

@@ -12,11 +12,13 @@ import { ProductVariantRepository } from '../repositories/product-variant.reposi
 import { Product } from '../entities/product.entity';
 import { ProductVariant } from '../entities/product-variant.entity';
 import { OrdersModule } from '../orders/orders.module';
+import { TransactionModule } from '../transaction/transaction.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Cart, CartItem, Product, ProductVariant]),
     OrdersModule,
+    TransactionModule
   ],
   controllers: [CartController],
   providers: [
