@@ -134,7 +134,7 @@ export class CartService {
         product: productId as any,
         productVariant: productVariantId ? (productVariantId as any) : null,
         quantity,
-        unitPrice: Util.toNaira(unitPrice),
+        unitPrice: unitPrice,
       });
       await this.cartItemRepository.save(cartItem);
     }

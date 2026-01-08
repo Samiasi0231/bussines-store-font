@@ -128,7 +128,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       const res = exception.getResponse() as any;
-      const message = typeof res === 'string' ? res : res.message;
+      // Safely extract message - ensure it's always a string
+      let message: string = ErrorMessage.AN_ERROR_OCCURRED;
+      if (typeof res === 'string') {
+        message = res;
+      } else if (res && typeof res === 'object') {
+        // Safely extract message property, ensuring it's a primitive type
+        const extractedMessage = extractSafeExceptionData(res.message);
+        if (typeof extractedMessage === 'string') {
+          message = extractedMessage;
+        } else if (Array.isArray(extractedMessage)) {
+          // Join array messages into a single string
+          message = extractedMessage.map((m) => String(m)).join(', ');
+        } else if (extractedMessage !== null && extractedMessage !== undefined) {
+          message = String(extractedMessage);
+        }
+      }
       exceptionResponse = {
         status: status || exception.getStatus(),
         success: false,

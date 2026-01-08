@@ -50,8 +50,8 @@ export class CheckoutPayment extends BaseEntity {
 
   @Index()
   @Column({
-    type: 'enum',
-    enum: Object.values(PaymentIntent),
+    type: 'varchar',
+    length: 100,
   })
   @IsNotEmpty()
   intent: PaymentIntent;
@@ -67,4 +67,8 @@ export class CheckoutPayment extends BaseEntity {
 
   @Column({ nullable: true, name: 'provider_reference', type: 'varchar' })
   providerReference?: string;
+
+  @Index()
+  @Column({ type: 'uuid', name: 'transaction_id', nullable: true })
+  transactionId?: UUID;
 }

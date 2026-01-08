@@ -125,8 +125,8 @@ export class Order extends BaseEntity {
   paymentMethod: PaymentMethod;
 
   @Column({
-    type: 'enum',
-    enum: PaymentStatus,
+    type: 'varchar',
+    length: 100,
     default: Status.PENDING,
     name: 'payment_status',
   })
@@ -159,4 +159,8 @@ export class Order extends BaseEntity {
   @ManyToOne(() => Cart, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'cart_id' })
   cart?: Cart | UUID;
+
+  @Index()
+  @Column({ type: 'uuid', name: 'transaction_id', nullable: true })
+  transactionId?: UUID;
 }

@@ -44,6 +44,8 @@ import {
   TransactionPurpose,
 } from '../@common/constants/transaction.constant';
 import { CreditBusinessWalletDTO } from '../transaction/dtos/transaction.dto';
+import { TransactionRepository } from '../repositories/transaction.repository';
+import { CheckoutPaymentRepository } from '../repositories/checkout-payment.repository';
 import { RmqProducerService } from '../@common/rmq/rmq.producer.service';
 import { RmqQueue } from '../@common/constants/queues.constant';
 import { SystemProcess } from '../@common/constants/system-process.constant';
@@ -67,6 +69,8 @@ export class OrdersService {
     private readonly transactionService: TransactionService,
     private readonly walletRepository: WalletRepository,
     private readonly rmqProducerService: RmqProducerService,
+    private readonly transactionRepository: TransactionRepository,
+    private readonly checkoutPaymentRepository: CheckoutPaymentRepository,
   ) {}
 
   async createOrderDeprecated(payload: CreateOrderDTO) {
@@ -1084,6 +1088,7 @@ export class OrdersService {
     }
 
     const results = [];
+    let firstTransactionId: UUID | undefined;
 
     for (const orderItem of orderItems) {
       const payableAmount = orderItem.subtotal - orderItem.discountAmount;
@@ -1152,6 +1157,10 @@ export class OrdersService {
           error: creditResult.message,
         });
       } else {
+        // Store the first transaction ID to link to Order and CheckoutPayment
+        if (!firstTransactionId && creditResult.data?.id) {
+          firstTransactionId = creditResult.data.id as UUID;
+        }
         this.logger.log({
           process: SystemProcess.PROCESS_ORDER_PAYMENT,
           message: 'Business wallet credited successfully',
@@ -1167,9 +1176,30 @@ export class OrdersService {
       }
     }
 
-    await this.orderRepository.update(order.id, {
-      status: Status.COMPLETED,
-    });
+   
+    if (firstTransactionId) {
+      await this.orderRepository.update(order.id, {
+        status: Status.COMPLETED,
+        transactionId: firstTransactionId,
+      });
+
+      
+      if (order.paymentReference) {
+        const checkoutPayment = await this.checkoutPaymentRepository.findOne({
+          where: { reference: order.paymentReference },
+        });
+
+        if (checkoutPayment && !checkoutPayment.transactionId) {
+          await this.checkoutPaymentRepository.update(checkoutPayment.id, {
+            transactionId: firstTransactionId,
+          });
+        }
+      }
+    } else {
+      await this.orderRepository.update(order.id, {
+        status: Status.COMPLETED,
+      });
+    }
 
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
