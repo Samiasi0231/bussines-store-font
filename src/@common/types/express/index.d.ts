@@ -14,6 +14,7 @@ declare global {
     export interface Request {
       file?: MulterFile;
       files?: MulterFile[] | { [fieldname: string]: MulterFile[] };
+      reqId?: string;
     }
   }
 }

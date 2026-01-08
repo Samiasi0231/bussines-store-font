@@ -435,53 +435,75 @@ export class KycService {
     >;
     const { type, userId, idNumber } = payload; // Removed image parameter
 
+    this.logger.log(
+      `Starting identity verification - Type: ${type}, UserId: ${userId}, DocumentNumber: ${idNumber?.substring(0, 3)}***`,
+    );
+
     const user = await this.userRepository.findById(userId);
 
-    if (!user)
+    if (!user) {
+      this.logger.warn(`User not found for identity verification - UserId: ${userId}`);
       return this.responseService.sendError(
         ErrorMessage.USER_NOT_FOUND,
         {},
         HttpStatus.NOT_FOUND,
       );
+    }
 
     const kyc = await this.kycRepository.findByUserId(userId);
 
     if (
       type === IdentityVerificationType.BVN &&
       kyc.bvnVerificationStatus === Status.VERIFIED
-    )
+    ) {
+      this.logger.warn(`BVN already verified for user - UserId: ${userId}`);
       return this.responseService.sendError(ErrorMessage.ALREADY_VERIFIED_BVN);
+    }
 
     if (
       type !== IdentityVerificationType.BVN &&
       kyc.identityVerificationStatus === Status.VERIFIED
-    )
+    ) {
+      this.logger.warn(`Identity already verified for user - UserId: ${userId}, Type: ${type}`);
       return this.responseService.sendError(
         ErrorMessage.ALREADY_VERIFIED_IDENTITY,
       );
+    }
+
+    this.logger.log(`Calling identity provider - Type: ${type}, Provider: ${this.identityProviderName}`);
+    const providerStartTime = Date.now();
 
     switch (type) {
       case IdentityVerificationType.BVN:
         providerResponse = await this.cacheService.remember(
           `BVN:${idNumber}`,
           DEFAULT_PROVIDER_RESPONSE_CACHE_TTL,
-          () =>
-            this.identityProvider.verifyBVN({
+          () => {
+            this.logger.log(`Calling Dojah BVN verification API for BVN: ${idNumber?.substring(0, 3)}***`);
+            return this.identityProvider.verifyBVN({
               bvn: idNumber,
-            }),
+            });
+          },
         );
         break;
       case IdentityVerificationType.NIN:
         providerResponse = await this.cacheService.remember(
           `NIN:${idNumber}`,
           DEFAULT_PROVIDER_RESPONSE_CACHE_TTL,
-          () =>
-            this.identityProvider.verifyNIN({
+          () => {
+            this.logger.log(`Calling Dojah NIN verification API for NIN: ${idNumber?.substring(0, 3)}***`);
+            return this.identityProvider.verifyNIN({
               nin: idNumber,
-            }),
+            });
+          },
         );
         break;
     }
+
+    const providerDuration = Date.now() - providerStartTime;
+    this.logger.log(
+      `Provider response received - Type: ${type}, Success: ${providerResponse.success}, Duration: ${providerDuration}ms`,
+    );
 
     const baseIdentityVerificationData = {
       provider: this.identityProviderName,
@@ -492,6 +514,9 @@ export class KycService {
     };
 
     if (!providerResponse.success) {
+      this.logger.error(
+        `Provider verification failed - Type: ${type}, UserId: ${userId}, Message: ${providerResponse.message}, Status: ${providerResponse.status}`,
+      );
       await this.identityVerificationRepository.createStrict({
         ...baseIdentityVerificationData,
         status: Status.FAILED,
@@ -581,9 +606,10 @@ export class KycService {
       weight: VERIFICATION_WEIGHTS.dateOfBirth
     };
 
-    console.log('Verification Score Breakdown:', scoreBreakdown);
-    console.log('Total Verification Score:', verificationScore);
-    console.log('Minimum Required Score:', MINIMUM_VERIFICATION_SCORE);
+    this.logger.log(
+      `Identity validation completed - Type: ${type}, UserId: ${userId}, Score: ${verificationScore}%, Minimum: ${MINIMUM_VERIFICATION_SCORE}%`,
+      { scoreBreakdown },
+    );
 
     // Check if verification score meets minimum threshold
     if (verificationScore < MINIMUM_VERIFICATION_SCORE) {
@@ -593,6 +619,15 @@ export class KycService {
       if (!lastNameMatch) failedFields.push('Last Name');
       if (!middleNameMatch) failedFields.push('Middle Name');
       if (!dobMatch) failedFields.push('Date of Birth');
+
+      this.logger.warn(
+        `Identity verification failed - Type: ${type}, UserId: ${userId}, Score: ${verificationScore}%, FailedFields: ${failedFields.join(', ')}`,
+        {
+          userData,
+          providerResponseData,
+          scoreBreakdown,
+        },
+      );
 
       await this.identityVerificationRepository.createStrict({
         ...baseIdentityVerificationData,
@@ -648,14 +683,21 @@ export class KycService {
 
       // BVN verification logic (without face verification)
       if (type === IdentityVerificationType.BVN) {
+        this.logger.log(
+          `Updating BVN in database - UserId: ${userId}, KYCId: ${kyc.id}, BVN: ${idNumber?.substring(0, 3)}***`,
+        );
         await this.kycRepository
           .withManager(entityManager)
           .findbyIdAndUpdate(kyc.id, {
             bvn: idNumber,
             bvnVerificationStatus: Status.VERIFIED,
           });
+        this.logger.log(`BVN successfully updated and verified - UserId: ${userId}`);
       } else {
         // NIN or other identity verification
+        this.logger.log(
+          `Updating identity document in database - UserId: ${userId}, KYCId: ${kyc.id}, Type: ${type}, DocumentNumber: ${idNumber?.substring(0, 3)}***`,
+        );
         await this.kycRepository
           .withManager(entityManager)
           .findbyIdAndUpdate(kyc.id, {
@@ -663,6 +705,7 @@ export class KycService {
             identityVerificationStatus: Status.VERIFIED,
             identityVerificationType: type,
           });
+        this.logger.log(`Identity document successfully updated and verified - UserId: ${userId}, Type: ${type}`);
       }
 
       const updatedKyc = await this.kycRepository
@@ -679,6 +722,7 @@ export class KycService {
 
       if (canUpgradeToTierTwo) {
         const tier = Tier.TWO;
+        this.logger.log(`Upgrading user to Tier ${tier} - UserId: ${userId}`);
         await this.kycRepository
           .withManager(entityManager)
           .findbyIdAndUpdate(kyc.id, {
@@ -690,7 +734,12 @@ export class KycService {
           entityManager,
           tier,
         });
+        this.logger.log(`User successfully upgraded to Tier ${tier} - UserId: ${userId}`);
       }
+
+      this.logger.log(
+        `Identity verification completed successfully - Type: ${type}, UserId: ${userId}`,
+      );
 
       return this.responseService.sendSuccess(
         SuccessMessage.GENERIC_IDENTITY_VERIFICATION,

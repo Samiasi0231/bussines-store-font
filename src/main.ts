@@ -8,6 +8,8 @@ import helmet from 'helmet';
 import { ConfigService } from '@nestjs/config';
 import { APIVersion } from './@common/constants/api-version.constant';
 import { HttpInterceptor } from './@common/interceptors/http.interceptor';
+import { RequestLoggingInterceptor } from './@common/interceptors/request-logging.interceptor';
+import { RequestIdMiddleware } from './@common/middleware/request-id.middleware';
 import { AppModule } from './app.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { RmqDeserializer } from './@common/microservices/rmq-queue-pattern.deserializer';
@@ -26,6 +28,10 @@ async function bootstrap() {
   const ENV = config.get<Environment>('ENV');
 
   app.get(HttpAdapterHost);
+  
+  // Add request ID middleware (must be before other middleware)
+  app.use(new RequestIdMiddleware().use.bind(new RequestIdMiddleware()));
+  
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
 
@@ -46,8 +52,10 @@ async function bootstrap() {
     defaultVersion: APIVersion.ONE,
   });
 
+  // Add request logging interceptor first to log all requests
+  app.useGlobalInterceptors(new RequestLoggingInterceptor());
   app.useGlobalInterceptors(new HttpInterceptor());
- app.useGlobalFilters(new MulterExceptionFilter());
+  app.useGlobalFilters(new MulterExceptionFilter());
   app.useGlobalPipes(new TrimPipe());
   app.useGlobalPipes(
     new ValidationPipe({
