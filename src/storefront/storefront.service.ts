@@ -158,14 +158,24 @@ export class StorefrontService {
 
     const storeId = storefront.store;
 
+    // const products = await this.productRepository.find({
+    //   where: {
+    //     store: storeId,
+    //     deletedAt: null,
+    //   },
+    //   order: { createdAt: 'DESC' },
+    //   take: 100,
+    // });
+
     const products = await this.productRepository.find({
-      where: {
-        store: storeId,
-        deletedAt: null,
-      },
-      order: { createdAt: 'DESC' },
-      take: 100,
-    });
+  where: {
+    storefrontId: storefront.id, 
+    deletedAt: null,
+  },
+  order: { createdAt: 'DESC' },
+  take: 100,
+});
+
 
     const productIds = products.map((p) => p.id);
 

@@ -83,7 +83,7 @@ export class Business extends BaseEntity {
     onDelete: 'SET NULL',
   })
   @JoinColumn({ name: 'business_type_id' })
-  @Column({ name: 'business_type_id', nullable: true })
+  // @Column({ name: 'business_type_id', nullable: true })
   businessType?: BusinessType | UUID;
 
   @Index()

@@ -259,6 +259,17 @@ export class ProductService {
         );
       }
 
+
+const storeWithStorefront = await this.storeRepository
+  .withManager(entityManager)
+  .createQueryBuilder('store')
+  .leftJoinAndSelect('store.storefront', 'storefront')
+  .where('store.id = :storeId', { storeId })
+  .getOne();
+
+const storefront = storeWithStorefront?.storefront;
+
+
       const subCategory = await this.productSubCategoryRepository
         .withManager(entityManager)
         .findById(subCategoryId);
@@ -293,6 +304,7 @@ export class ProductService {
           orderLimit,
           subCategory: subCategoryId,
           store: storeId,
+            storefrontId: storefront.id
         });
 
       for (const image of images || []) {

@@ -1,4 +1,5 @@
 import { UUID } from 'crypto';
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -11,6 +12,7 @@ import {
 import { uuidv7 } from 'uuidv7';
 import { ProductSubCategory } from './product-sub-category.entity';
 import { Store } from './store.entity';
+import { Storefront } from './storefront.entity';
 import { ProductVariant } from './product-variant.entity';
 import { ProductImage } from './product-image.entity';
 import { ProductCollectionProduct } from './product-collection-product.entity';
@@ -67,6 +69,16 @@ export class Product extends BaseEntity {
     cascade: true,
   })
   images?: ProductImage[];
+
+
+
+  @ManyToOne(() => Storefront, { nullable: true, onDelete: 'SET NULL' })
+@JoinColumn({ name: 'storefront_id' })
+storefront?: Storefront | UUID;
+
+@Column({ type: 'uuid', nullable: true, name: 'storefront_id' })
+storefrontId?: UUID;
+
 
   @OneToMany(
     () => ProductCollectionProduct,
