@@ -1,6 +1,7 @@
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { Logger, VersioningType, ValidationPipe } from '@nestjs/common';
 import { json, urlencoded } from 'express';
+import session from 'express-session';
 // import morgan from 'morgan-body';
 import { TrimPipe } from './@common/pipes/trim-pipe';
 import { Environment } from './@common/constants/environment.constant';
@@ -38,12 +39,28 @@ async function bootstrap() {
   app.enableCors({
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     origin: [], //TODO: update after deployment
-    credentials: false,
+    credentials: true, // Enable credentials for session cookies
     ...(ENV !== Environment.PRODUCTION && {
       origin: '*',
       credentials: true,
     }),
   });
+
+  const sessionSecret = config.get<string>('SESSION_SECRET') || config.get<string>('jwt.secret') || 'your-super-secret-session-key-change-in-production';
+  app.use(
+    session({
+      secret: sessionSecret,
+      resave: false,
+      saveUninitialized: true,
+      cookie: {
+        secure: ENV === Environment.PRODUCTION,
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        sameSite: ENV === Environment.PRODUCTION ? 'strict' : 'lax',
+      },
+      name: 'cart.session.id',
+    }),
+  );
 
   app.setGlobalPrefix('api');
 

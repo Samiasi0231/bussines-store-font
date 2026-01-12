@@ -228,7 +228,11 @@ export class UserService {
     email: string,
     manager: EntityManager,
   ): Promise<IResponse<User>> {
-    let user = await this.userRepository.findOne({
+    const userRepo = manager
+      ? this.userRepository.withManager(manager)
+      : this.userRepository;
+
+    let user = await userRepo.findOne({
       where: { email },
     });
 
@@ -239,10 +243,6 @@ export class UserService {
       );
 
     if (!user) {
-      const userRepo = manager
-        ? this.userRepository.withManager(manager)
-        : this.userRepository;
-
       user = await userRepo.createStrict({ email, isGuest: true });
     }
 

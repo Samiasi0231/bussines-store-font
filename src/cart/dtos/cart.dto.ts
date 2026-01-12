@@ -77,6 +77,16 @@ export class CheckoutCartDTO {
   @IsString()
   note?: string;
 
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  name?: string;
+
   @ValidateNested()
   @Type(() => ShippingAddressDTO)
   shippingAddress?: ShippingAddressDTO;

@@ -12,6 +12,7 @@ import { uuidv7 } from 'uuidv7';
 import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
 import { CartItem } from './cart-item.entity';
+import { CartStatus } from './cart-status.constant';
 
 @Entity('carts')
 export class Cart extends BaseEntity {
@@ -19,10 +20,14 @@ export class Cart extends BaseEntity {
   id = uuidv7() as UUID;
 
   @Index()
-  @Column({ type: 'uuid', name: 'user_id' })
-  @ManyToOne(() => User, { onDelete: 'CASCADE', nullable: false })
+  @Column({ type: 'uuid', name: 'user_id', nullable: true })
+  @ManyToOne(() => User, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'user_id' })
-  user: User | UUID;
+  user?: User | UUID;
+
+  @Index()
+  @Column({ type: 'varchar', name: 'session_id', nullable: true, length: 255 })
+  sessionId?: string;
 
   @Column({
     type: 'timestamptz',
@@ -30,6 +35,15 @@ export class Cart extends BaseEntity {
     nullable: true,
   })
   expiresAt?: Date;
+
+  @Index()
+  @Column({
+    type: 'enum',
+    enum: CartStatus,
+    default: CartStatus.ACTIVE,
+    name: 'status',
+  })
+  status: CartStatus;
 
   @OneToMany(() => CartItem, (cartItem) => cartItem.cart, { cascade: true })
   items: CartItem[];

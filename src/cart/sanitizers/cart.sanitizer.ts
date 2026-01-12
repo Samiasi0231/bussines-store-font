@@ -63,7 +63,7 @@ export class CartSanitizer {
 
     return {
       id: cart.id,
-      userId: (cart.user as any).id || (cart.user as string),
+      userId: (cart.user as any)?.id || (cart?.user as string),
       items: items.map((item) => this.formatCartItem(item)),
       itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
       subtotal: Util.toNaira(subtotal),
