@@ -126,13 +126,13 @@ export class AuthService {
 async register(payload: SignupDTO): Promise<any> {
   const { email, password, otp } = payload;
 
-  // Case-insensitive check
+  // Case-insensitive email check
   const existingUser = await this.userRepository
     .createQueryBuilder('user')
     .where('LOWER(user.email) = LOWER(:email)', { email })
     .getOne();
 
-  if (existingUser) {
+  if (existingUser && !existingUser.isGuest) {
     return this.responseService.sendError(
       ErrorMessage.USER_WITH_EMAIL_EXISTS,
       null,
@@ -162,9 +162,35 @@ async register(payload: SignupDTO): Promise<any> {
   const user = await this.dbTransactionManager.transaction<User>(
     async (manager) => {
       const entityManager = manager.entityManager;
-      return await this.userRepository
+      let user: User;
+
+      if (existingUser && existingUser.isGuest) {
+        
+        user = await this.userRepository
+          .withManager(entityManager)
+          .findbyIdAndUpdate(existingUser.id, {
+            ...userData,
+            isGuest: false,
+            isProfileComplete: false,
+          });
+      } else {
+        
+        user = await this.userRepository
+          .withManager(entityManager)
+          .createStrict({ ...userData, isProfileComplete: false });
+      }
+
+    
+      await this.kycRepository
         .withManager(entityManager)
-        .createStrict({ ...userData, isProfileComplete: false });
+        .createStrict({ user: user.id });
+
+    
+      await this.walletRepository
+        .withManager(entityManager)
+        .createStrict({ user: user.id });
+
+      return user;
     },
   );
 
