@@ -1,6 +1,6 @@
 export type CACLookupData = {
   companyName: string;
-  companyType: string;
+  businessType: string;
   address: string;
   status: string;
   registrationDate: string;
