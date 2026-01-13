@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CartController } from './cart.controller';
 import { CartService } from './cart.service';
+import { CartExpiryService } from './cart-expiry.service';
 import { CartSanitizer } from './sanitizers/cart.sanitizer';
 import { Cart } from '../entities/cart.entity';
 import { CartItem } from '../entities/cart-item.entity';
@@ -23,6 +24,7 @@ import { TransactionModule } from '../transaction/transaction.module';
   controllers: [CartController],
   providers: [
     CartService,
+    CartExpiryService,
     CartSanitizer,
     CartRepository,
     CartItemRepository,

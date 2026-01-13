@@ -5,7 +5,6 @@ import {
   Get,
   Patch,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
 import {
@@ -14,43 +13,40 @@ import {
   RemoveCartItemDTO,
   CheckoutCartDTO,
 } from './dtos/cart.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { User } from '../@common/decorators/user.decorator';
-import { UserProfile } from '../user/interfaces/user.interface';
+import { SessionId } from '../@common/decorators/session.decorator';
 
 @Controller('cart')
-@UseGuards(JwtAuthGuard)
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
   @Get()
-  getCart(@User() user: UserProfile) {
-    return this.cartService.getCart(user.id);
+  getCart(@SessionId() sessionId: string) {
+    return this.cartService.getCart(sessionId);
   }
 
   @Post('items')
-  addItem(@User() user: UserProfile, @Body() body: AddCartItemDTO) {
-    return this.cartService.addItem(user.id, body);
+  addItem(@SessionId() sessionId: string, @Body() body: AddCartItemDTO) {
+    return this.cartService.addItem(sessionId, body);
   }
 
   @Patch('items')
-  updateItem(@User() user: UserProfile, @Body() body: UpdateCartItemDTO) {
-    return this.cartService.updateItem(user.id, body);
+  updateItem(@SessionId() sessionId: string, @Body() body: UpdateCartItemDTO) {
+    return this.cartService.updateItem(sessionId, body);
   }
 
   @Delete('items')
-  removeItem(@User() user: UserProfile, @Body() body: RemoveCartItemDTO) {
-    return this.cartService.removeItem(user.id, body);
+  removeItem(@SessionId() sessionId: string, @Body() body: RemoveCartItemDTO) {
+    return this.cartService.removeItem(sessionId, body);
   }
 
   @Delete()
-  clearCart(@User() user: UserProfile) {
-    return this.cartService.clearCart(user.id);
+  clearCart(@SessionId() sessionId: string) {
+    return this.cartService.clearCart(sessionId);
   }
 
   @Post('checkout')
-  checkout(@User() user: UserProfile, @Body() body: CheckoutCartDTO) {
-    return this.cartService.checkout(user.id, body);
+  checkout(@SessionId() sessionId: string, @Body() body: CheckoutCartDTO) {
+    return this.cartService.checkout(sessionId, body);
   }
 }
 

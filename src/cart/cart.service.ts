@@ -46,17 +46,11 @@ export class CartService {
     private readonly transactionService: TransactionService,
   ) {}
 
-  async getCart(userId: UUID): Promise<IResponse<FormattedCart>> {
-    const userIdString =
-      typeof userId === 'string' ? userId : (userId as any)?.id || userId;
-    const cart = await this.cartRepository.findActiveCartByUserId(
-      userIdString as UUID,
-    );
+  async getCart(sessionId: string): Promise<IResponse<FormattedCart>> {
+    const cart = await this.cartRepository.findActiveCartBySessionId(sessionId);
 
     if (!cart) {
-      const newCart = await this.cartRepository.findOrCreateByUserId(
-        userIdString as UUID,
-      );
+      const newCart = await this.cartRepository.findOrCreateBySessionId(sessionId);
       const formatted = this.cartSanitizer.formatCart(newCart);
       return this.responseService.sendSuccess(
         SuccessMessage.OPERATION_SUCCESSFUL,
@@ -72,11 +66,9 @@ export class CartService {
   }
 
   async addItem(
-    userId: UUID,
+    sessionId: string,
     payload: AddCartItemDTO,
   ): Promise<IResponse<FormattedCart>> {
-    const userIdString =
-      typeof userId === 'string' ? userId : (userId as any)?.id || userId;
     const { productId, productVariantId, quantity } = payload;
 
     const product = await this.productRepository.findById(productId);
@@ -100,9 +92,7 @@ export class CartService {
       }
     }
 
-    const cart = await this.cartRepository.findOrCreateByUserId(
-      userIdString as UUID,
-    );
+    const cart = await this.cartRepository.findOrCreateBySessionId(sessionId);
     const cartId =
       typeof cart.id === 'string'
         ? cart.id
@@ -147,7 +137,7 @@ export class CartService {
         'items.productVariant.attributes',
       ],
     });
-
+console.log("updatedCart", updatedCart);
     const formatted = this.cartSanitizer.formatCart(updatedCart);
     return this.responseService.sendSuccess(
       SuccessMessage.OPERATION_SUCCESSFUL,
@@ -156,11 +146,9 @@ export class CartService {
   }
 
   async updateItem(
-    userId: UUID,
+    sessionId: string,
     payload: UpdateCartItemDTO,
   ): Promise<IResponse<FormattedCart>> {
-    const userIdString =
-      typeof userId === 'string' ? userId : (userId as any)?.id || userId;
     const { cartItemId, quantity } = payload;
 
     const cartItem = await this.cartItemRepository.findById(cartItemId, {
@@ -176,11 +164,8 @@ export class CartService {
       cart.id = (cart.id as any)?.id || String(cart.id);
     }
 
-    const cartUserId =
-      typeof (cart.user as any) === 'string'
-        ? (cart.user as any)
-        : (cart.user as any)?.id;
-    if (cartUserId !== userIdString) {
+    // Verify cart belongs to this session
+    if (cart.sessionId !== sessionId) {
       throw new BadRequestException(ErrorMessage.ACCESS_DENIED);
     }
 
@@ -214,11 +199,9 @@ export class CartService {
   }
 
   async removeItem(
-    userId: UUID,
+    sessionId: string,
     payload: RemoveCartItemDTO,
   ): Promise<IResponse<FormattedCart>> {
-    const userIdString =
-      typeof userId === 'string' ? userId : (userId as any)?.id || userId;
     const { cartItemId } = payload;
 
     const cartItem = await this.cartItemRepository.findById(cartItemId, {
@@ -234,11 +217,8 @@ export class CartService {
       cart.id = (cart.id as any)?.id || String(cart.id);
     }
 
-    const cartUserId =
-      typeof (cart.user as any) === 'string'
-        ? (cart.user as any)
-        : (cart.user as any)?.id;
-    if (cartUserId !== userIdString) {
+    // Verify cart belongs to this session
+    if (cart.sessionId !== sessionId) {
       throw new BadRequestException(ErrorMessage.ACCESS_DENIED);
     }
 
@@ -265,12 +245,8 @@ export class CartService {
     );
   }
 
-  async clearCart(userId: UUID): Promise<IResponse<{ message: string }>> {
-    const userIdString =
-      typeof userId === 'string' ? userId : (userId as any)?.id || userId;
-    const cart = await this.cartRepository.findActiveCartByUserId(
-      userIdString as UUID,
-    );
+  async clearCart(sessionId: string): Promise<IResponse<{ message: string }>> {
+    const cart = await this.cartRepository.findActiveCartBySessionId(sessionId);
 
     if (!cart) {
       return this.responseService.sendSuccess(
@@ -292,13 +268,11 @@ export class CartService {
   }
 
   async checkout(
-    userId: UUID,
+    sessionId: string,
     payload: CheckoutCartDTO,
   ): Promise<IResponse<any>> {
-    const userIdString =
-      typeof userId === 'string' ? userId : (userId as any)?.id || userId;
-    const cart = await this.cartRepository.findActiveCartByUserId(
-      userIdString as UUID,
+    const cart = await this.cartRepository.findActiveCartBySessionId(
+      sessionId,
       {
         relations: ['items', 'items.product', 'items.productVariant', 'user'],
       },
@@ -326,14 +300,15 @@ export class CartService {
         ? cart.id
         : (cart.id as any)?.id || String(cart.id);
 
-    if (payload.paymentData.method === PaymentMethod.CHECKOUT) {
-      const user = cart.user as any;
-      const customerEmail = user?.email || 'customer@example.com';
-      const customerName =
-        user?.firstName && user?.lastName
-          ? `${user.firstName} ${user.lastName}`
-          : 'Customer';
+    // Get customer info from cart user if available, otherwise use payload email or default
+    const user = cart.user as any;
+    const customerEmail = user?.email || payload.email || 'customer@example.com';
+    const customerName =
+      user?.firstName && user?.lastName
+        ? `${user.firstName} ${user.lastName}`
+        : payload.name || 'Customer';
 
+    if (payload.paymentData.method === PaymentMethod.CHECKOUT) {
       const paymentInitResult =
         await this.transactionService.initiateCheckoutPayment({
           amount: subtotal,
@@ -362,7 +337,8 @@ export class CartService {
 
       const createOrderDTO: CreateOrderDTO = {
         items: orderItems,
-        userId: userIdString as UUID,
+        userId: user?.id ? (user.id as UUID) : undefined, // userId is optional for anonymous users
+        email: user?.id ? undefined : customerEmail, // Use email if no user
         cartId: cartId as UUID,
         couponId: payload.couponId,
         note: payload.note,
@@ -378,6 +354,7 @@ export class CartService {
       const orderResult = await this.ordersService.createOrder(createOrderDTO);
       if (orderResult.success) {
         await this.cartItemRepository.softDeleteByCartId(cartId);
+        await this.cartRepository.markCartAsConverted(cartId as UUID);
       }
 
       return this.responseService.sendSuccess(
@@ -407,7 +384,8 @@ export class CartService {
 
     const createOrderDTO: CreateOrderDTO = {
       items: orderItems,
-      userId: userIdString as UUID,
+      userId: user?.id ? (user.id as UUID) : undefined, // userId is optional for anonymous users
+      email: user?.id ? undefined : customerEmail, // Use email if no user
       cartId: cartId as UUID,
       couponId: payload.couponId,
       note: payload.note,
@@ -424,6 +402,7 @@ export class CartService {
 
     if (orderResult.success) {
       await this.cartItemRepository.softDeleteByCartId(cartId);
+      await this.cartRepository.markCartAsConverted(cartId as UUID);
     }
 
     return orderResult;

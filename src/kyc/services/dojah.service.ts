@@ -274,7 +274,7 @@ export class DojahService implements IIdentityService {
 
     const data: CACLookupData = {
       companyName: response?.entity?.company_name,
-      companyType: response?.entity?.type_of_company,
+      businessType: response?.entity?.type_of_company,
       address: response?.entity?.address,
       status: response?.entity?.status,
       registrationDate: response?.entity?.date_of_registration,
