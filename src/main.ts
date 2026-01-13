@@ -75,7 +75,7 @@ async function bootstrap() {
         secure: ENV === Environment.PRODUCTION,
         httpOnly: true,
         maxAge: 30 * 24 * 60 * 60 * 1000,
-        sameSite: ENV === Environment.PRODUCTION ? 'strict' : 'lax',
+        sameSite: ENV === Environment.PRODUCTION ? 'strict' : 'none',
       },
       name: 'cart.session.id',
     }),
