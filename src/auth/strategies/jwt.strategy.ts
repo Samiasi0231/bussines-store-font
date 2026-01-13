@@ -37,6 +37,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const userId = payload.userId;
 
+    const cachedUserData = await this.userService.getCachedUserData(userId);
+    
+    if (!cachedUserData) {
+      throw new ForbiddenException(ErrorMessage.ACCESS_DENIED);
+    }
+
     const {
       hashedAccessToken,
       phoneNumber,
@@ -44,7 +50,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       firstName,
       lastName,
       avatar,
-    } = (await this.userService.getCachedUserData(userId)) || {};
+      roles,
+      permissions,
+    } = cachedUserData;
 
     if (!hashedAccessToken) {
       throw new ForbiddenException(ErrorMessage.ACCESS_DENIED);
@@ -63,6 +71,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       firstName,
       lastName,
       avatar,
+      roles: roles || [],
+      permissions: permissions || [],
       id: userId,
     };
   }

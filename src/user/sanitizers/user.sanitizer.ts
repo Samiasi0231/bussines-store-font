@@ -29,6 +29,8 @@ export class UserSanitizer {
       gender: userData.gender,
       phoneVerified: !!userData.phoneVerifiedAt,
       emailVerified: !!userData.emailVerifiedAt,
+      roles: userData.roles || [],
+      permissions: userData.permissions || [],
     };
   }
 

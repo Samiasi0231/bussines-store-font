@@ -37,16 +37,16 @@ export class ProductController {
     return this.productService.getProducts(query);
   }
 
-  //TODO: This will be made a protected endpoint only accessible by a admin. This must be done before going live
   @Post('categories')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
+  @AdminOnly()
   async addCategory(@Body() body: AddCategoryDTO) {
     return this.productService.addCategory(body);
   }
 
-  //TODO: This will be made a protected endpoint only accessible by a admin. This must be done before going live
   @Post('sub-categories')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AdminGuard)
+  @AdminOnly()
   async addSubCategory(@Body() body: AddSubCategoryDTO) {
     return this.productService.addSubCategory(body);
   }
