@@ -268,7 +268,13 @@ const storeWithStorefront = await this.storeRepository
   .getOne();
 
 const storefront = storeWithStorefront?.storefront;
-
+if (!storefront) {
+  return this.responseService.sendError(
+    ErrorMessage.NOT_FOUND('Storefront'),
+    null,
+    HttpStatus.BAD_REQUEST,
+  );
+}
 
       const subCategory = await this.productSubCategoryRepository
         .withManager(entityManager)
@@ -304,7 +310,9 @@ const storefront = storeWithStorefront?.storefront;
           orderLimit,
           subCategory: subCategoryId,
           store: storeId,
-            storefrontId: storefront.id
+          storefront: storefront.id,
+         storefrontId: storefront.id,
+        
         });
 
       for (const image of images || []) {
@@ -354,27 +362,27 @@ const storefront = storeWithStorefront?.storefront;
           );
       }
 
-      const defaultProductCollections =
-        this.systemSettingsService.getDefaultProductCollections() || [];
+      // const defaultProductCollections =
+      //   this.systemSettingsService.getDefaultProductCollections() || [];
 
-      for (const defaultCollection of defaultProductCollections) {
-        const { name, description } = defaultCollection;
+      // for (const defaultCollection of defaultProductCollections) {
+      //   const { name, description } = defaultCollection;
 
-        const collection = await this.productCollectionRepository
-          .withManager(entityManager)
-          .createStrict({
-            name,
-            description,
-            business: store.business.id,
-          });
+      //   const collection = await this.productCollectionRepository
+      //     .withManager(entityManager)
+      //     .createStrict({
+      //       name,
+      //       description,
+      //       business: store.business.id,
+      //     });
 
-        await this.productCollectionProductRepository
-          .withManager(entityManager)
-          .createStrict({
-            collection: collection.id,
-            product: product.id,
-          });
-      }
+      //   await this.productCollectionProductRepository
+      //     .withManager(entityManager)
+      //     .createStrict({
+      //       collection: collection.id,
+      //       product: product.id,
+      //     });
+      // }
 
       const productOptions = await this.productAttributeRepository
         .withManager(entityManager)

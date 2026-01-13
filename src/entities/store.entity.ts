@@ -22,7 +22,6 @@ export class Store extends BaseEntity {
   @ManyToOne(() => Business, { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'business_id' })
   @IsNotEmpty()
-  @Column({ name: 'business_id' })
   business: Business | UUID;
 
   // Storefront relation
