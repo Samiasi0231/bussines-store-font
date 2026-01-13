@@ -72,12 +72,12 @@ export class Product extends BaseEntity {
 
 
 
-@ManyToOne(() => Storefront, { nullable: true, onDelete: 'SET NULL' })
-@JoinColumn({ name: 'storefront_id' })
-storefront?: Storefront | UUID;
+// @ManyToOne(() => Storefront, { nullable: true, onDelete: 'SET NULL' })
+// @JoinColumn({ name: 'storefront_id' })
+// storefront?: Storefront | UUID;
 
-@Column({ type: 'uuid', nullable: true, name: 'storefront_id' })
-storefrontId?: UUID;
+// @Column({ type: 'uuid', nullable: true, name: 'storefront_id' })
+// storefrontId?: UUID;
 
 
   @OneToMany(

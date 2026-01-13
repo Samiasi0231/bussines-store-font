@@ -179,7 +179,6 @@ for (const defaultCollection of defaultProductCollections) {
 
     const storefront = await this.storefrontRepository.findOne({
       where: { slug: normalizedSlug },
-      // Remove relations entirely - we don't need them
     });
 
     if (!storefront)
@@ -189,25 +188,33 @@ for (const defaultCollection of defaultProductCollections) {
         HttpStatus.NOT_FOUND,
       );
 
-    const storeId = storefront.store;
+    
+    const storefrontWithStoreId = await this.storefrontRepository
+      .createQueryBuilder('storefront')
+      .select('storefront.store_id', 'store_id')
+      .where('storefront.slug = :slug', { slug: normalizedSlug })
+      .getRawOne();
 
-    // const products = await this.productRepository.find({
-    //   where: {
-    //     store: storeId,
-    //     deletedAt: null,
-    //   },
-    //   order: { createdAt: 'DESC' },
-    //   take: 100,
-    // });
+   
+    const storeId = storefrontWithStoreId?.store_id || 
+      (typeof storefront.store === 'string' ? storefront.store : storefront.store?.id);
+
+    if (!storeId) {
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Store'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+    }
 
     const products = await this.productRepository.find({
-  where: {
-    storefrontId: storefront.id, 
-    deletedAt: null,
-  },
-  order: { createdAt: 'DESC' },
-  take: 100,
-});
+      where: {
+        store: storeId,
+        deletedAt: null,
+      },
+      order: { createdAt: 'DESC' },
+      take: 100,
+    });
 
 
     const productIds = products.map((p) => p.id);

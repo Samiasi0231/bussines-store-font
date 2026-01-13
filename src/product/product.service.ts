@@ -310,8 +310,7 @@ if (!storefront) {
           orderLimit,
           subCategory: subCategoryId,
           store: storeId,
-          storefront: storefront.id,
-         storefrontId: storefront.id,
+        
         
         });
 
