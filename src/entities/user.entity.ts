@@ -31,6 +31,14 @@ export class User extends BaseEntity {
   @Index()
   @Column({ type: 'varchar', length: 150, unique: true })
   email: string;
+  
+  @BeforeInsert()
+@BeforeUpdate()
+normalizeEmail?() {
+  if (this.email) {
+    this.email = this.email.toLowerCase().trim();
+  }
+}
 
   @Index()
   @Column({

@@ -24,6 +24,10 @@ import { isUUID } from 'class-validator';
 import { ProductRepository } from '../repositories/product.repository';
 import { ProductSanitizer } from '../product/sanitizers/product.sanitizer';
 import { ProductImageRepository } from '../repositories/product-image.repository';
+import { ProductCollectionRepository } from '../repositories/product-collection.repository';
+import { SystemSettingsService } from '../system-settings/system-settings.service';
+import { EntityType } from '../@common/constants/entity.constant';
+
 
 @Injectable()
 export class StorefrontService {
@@ -37,6 +41,8 @@ export class StorefrontService {
     private readonly productRepository: ProductRepository,
     private readonly productSanitizer: ProductSanitizer,
     private readonly productImageRepository: ProductImageRepository,
+     private readonly productCollectionRepository: ProductCollectionRepository,
+  private readonly systemSettingsService: SystemSettingsService,
   ) { }
 
   private normalizeSlug(input: string): string {
@@ -105,6 +111,32 @@ export class StorefrontService {
       dataToSave as any,
     );
 
+
+const defaultProductCollections =
+  this.systemSettingsService.getDefaultProductCollections() || [];
+
+// Safely get the business ID
+const businessId =
+  typeof store.business === 'string' ? store.business : store.business.id;
+
+for (const defaultCollection of defaultProductCollections) {
+  const exists = await this.productCollectionRepository.collectionExists(
+    defaultCollection.name,
+    businessId, 
+  );
+
+  if (!exists) {
+    await this.productCollectionRepository.createStrict({
+      name: defaultCollection.name,
+      description: defaultCollection.description,
+      business: businessId, 
+      createdBy: EntityType.SYSTEM,
+    });
+  }
+}
+
+
+
     // Refetch without relations to avoid circular reference
     const createdStorefront = await this.storefrontRepository.findOne({
       where: { id: storefront.id },
@@ -118,6 +150,7 @@ export class StorefrontService {
       HttpStatus.CREATED,
     );
   }
+
 
   async getStorefront(id: UUID): Promise<IResponse<FormattedStorefront>> {
     const storefront = isUUID(id)
@@ -146,7 +179,6 @@ export class StorefrontService {
 
     const storefront = await this.storefrontRepository.findOne({
       where: { slug: normalizedSlug },
-      // Remove relations entirely - we don't need them
     });
 
     if (!storefront)
@@ -156,7 +188,24 @@ export class StorefrontService {
         HttpStatus.NOT_FOUND,
       );
 
-    const storeId = storefront.store;
+    
+    const storefrontWithStoreId = await this.storefrontRepository
+      .createQueryBuilder('storefront')
+      .select('storefront.store_id', 'store_id')
+      .where('storefront.slug = :slug', { slug: normalizedSlug })
+      .getRawOne();
+
+   
+    const storeId = storefrontWithStoreId?.store_id || 
+      (typeof storefront.store === 'string' ? storefront.store : storefront.store?.id);
+
+    if (!storeId) {
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Store'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+    }
 
     const products = await this.productRepository.find({
       where: {
@@ -166,6 +215,7 @@ export class StorefrontService {
       order: { createdAt: 'DESC' },
       take: 100,
     });
+
 
     const productIds = products.map((p) => p.id);
 
@@ -199,10 +249,14 @@ export class StorefrontService {
       products: formattedProducts,
     };
 
-    return this.responseService.sendSuccess(
-      SuccessMessage.OPERATION_SUCCESSFUL,
-      payload,
-    );
+  return this.responseService.sendSuccess(
+  SuccessMessage.OPERATION_SUCCESSFUL,
+  {
+    ...data,
+    products: formattedProducts,
+  },
+);
+
   }
 
   async editStorefront(
@@ -235,50 +289,53 @@ export class StorefrontService {
       data,
     );
   }
+async getStorefronts(payload: GetStorefrontsDTO) {
+  const {
+    business: businesses,
+    store: stores,
+    slug: slugs,
+    page,
+    limit,
+  } = payload;
 
-  async getStorefronts(payload: GetStorefrontsDTO) {
-    const {
-      business: businesses,
-      store: stores,
-      slug: slugs,
-      page,
-      limit,
-    } = payload;
+  // Ensure single values are treated as arrays
+  const storesArray = stores ? (Array.isArray(stores) ? stores : [stores]) : [];
+  const slugsArray = slugs ? (Array.isArray(slugs) ? slugs : [slugs]) : [];
+  const businessesArray = businesses ? (Array.isArray(businesses) ? businesses : [businesses]) : [];
 
-    const query: SelectQueryBuilder<Storefront> = this.storefrontRepository
-      .createQueryBuilder('storefront')
-      .where('storefront.deletedAt IS NULL');
-
-    if (stores?.length > 0) {
-      query.andWhere('storefront.store IN (:...stores)', { stores });
-    }
-
-    if (slugs?.length > 0) {
-      // Normalize slugs before querying
-      const normalizedSlugs = slugs.map((s) => this.normalizeSlug(s));
-      query.andWhere('storefront.slug IN (:...slugs)', {
-        slugs: normalizedSlugs,
-      });
-    }
-
-    if (businesses?.length > 0) {
-      query
-        .innerJoin('storefront.store', 'store')
-        .innerJoin('store.business', 'business')
-        .andWhere('business.id IN (:...businesses)', { businesses });
-    }
-
-    const { results: storefronts, pagination } =
-      await this.storefrontRepository.paginateWithQuery({
-        query,
-        pagination: { page, limit },
-      });
-
-    const results = this.storefrontSanitizer.formatMany(storefronts);
-
-    return this.responseService.sendSuccess(
-      SuccessMessage.OPERATION_SUCCESSFUL,
-      { results, pagination },
-    );
+  const query: SelectQueryBuilder<Storefront> = this.storefrontRepository
+    .createQueryBuilder('storefront')
+    .where('storefront.deletedAt IS NULL');
+  if (storesArray.length > 0 || businessesArray.length > 0) {
+    query.innerJoin('storefront.store', 'store');
   }
+  if (storesArray.length > 0) {
+    query.andWhere('store.id IN (:...stores)', { stores: storesArray });
+  }
+
+  if (businessesArray.length > 0) {
+    query.innerJoin('store.business', 'business');
+    query.andWhere('business.id IN (:...businesses)', { businesses: businessesArray });
+  }
+
+  if (slugsArray.length > 0) {
+    const normalizedSlugs = slugsArray.map((s) => this.normalizeSlug(s));
+    query.andWhere('storefront.slug IN (:...slugs)', { slugs: normalizedSlugs });
+  }
+
+  const { results: storefronts, pagination } =
+    await this.storefrontRepository.paginateWithQuery({
+      query,
+      pagination: { page, limit },
+    });
+
+  const results = this.storefrontSanitizer.formatMany(storefronts);
+
+  return this.responseService.sendSuccess(
+    SuccessMessage.OPERATION_SUCCESSFUL,
+    { results, pagination },
+  );
+}
+
+
 }

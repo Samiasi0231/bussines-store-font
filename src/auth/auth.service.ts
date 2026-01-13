@@ -44,82 +44,165 @@ export class AuthService {
     private readonly kycService: KycService,
   ) {}
 
-  async register(payload: SignupDTO): Promise<any> {
-    const { email, password, otp } = payload;
+//   async register(payload: SignupDTO): Promise<any> {
+//     const { email, password, otp } = payload;
 
-    const existingUser = await this.userRepository.findOne({
-      where: { email },
-    });
+//     const existingUser = await this.userRepository.findOne({
+//       where: { email },
+//     });
 
-    if (existingUser && !existingUser.isGuest) {
-      return this.responseService.sendError(
-        ErrorMessage.USER_WITH_EMAIL_EXISTS,
-        null,
-        HttpStatus.CONFLICT,
-      );
-    }
+//     if (existingUser && !existingUser.isGuest) {
+//       return this.responseService.sendError(
+//         ErrorMessage.USER_WITH_EMAIL_EXISTS,
+//         null,
+//         HttpStatus.CONFLICT,
+//       );
+//     }
 
-    const verificationResponse =
-      await this.verificationService.verifyVerification({
-        intent: VerificationIntent.EMAIL_ADDRESS,
-        entityId: email,
-        verificationData: otp,
-      });
+//     const verificationResponse =
+//       await this.verificationService.verifyVerification({
+//         intent: VerificationIntent.EMAIL_ADDRESS,
+//         entityId: email,
+//         verificationData: otp,
+//       });
 
-    if (!verificationResponse.success) return verificationResponse;
+//     if (!verificationResponse.success) return verificationResponse;
 
-    const userData = {
-      email,
-      password,
-      emailVerifiedAt: new Date(),
-      status: Status.ACTIVE,
-      signUpDate: new Date(),
-    };
+//     const userData = {
+//       email,
+//       password,
+//       emailVerifiedAt: new Date(),
+//       status: Status.ACTIVE,
+//       signUpDate: new Date(),
+//     };
 
- const user = await this.dbTransactionManager.transaction<User>(
-  async (manager) => {
-    const entityManager = manager.entityManager;
-    let user: User;
+//  const user = await this.dbTransactionManager.transaction<User>(
+//   async (manager) => {
+//     const entityManager = manager.entityManager;
+//     let user: User;
 
-    if (existingUser && existingUser.isGuest) {
-      user = await this.userRepository
-        .withManager(entityManager)
-        .findbyIdAndUpdate(existingUser.id, {
-          ...userData,
-          isGuest: false,
-          isProfileComplete: false, 
-        });
-    } else {
-      user = await this.userRepository
-        .withManager(entityManager)
-        .createStrict({
-          ...userData,
-          isProfileComplete: false,
-        });
-    }
+//     if (existingUser && existingUser.isGuest) {
+//       user = await this.userRepository
+//         .withManager(entityManager)
+//         .findbyIdAndUpdate(existingUser.id, {
+//           ...userData,
+//           isGuest: false,
+//           isProfileComplete: false, 
+//         });
+//     } else {
+//       user = await this.userRepository
+//         .withManager(entityManager)
+//         .createStrict({
+//           ...userData,
+//           isProfileComplete: false,
+//         });
+//     }
 
-    await this.kycRepository
-      .withManager(entityManager)
-      .createStrict({ user: user.id });
+//     await this.kycRepository
+//       .withManager(entityManager)
+//       .createStrict({ user: user.id });
 
-    await this.walletRepository
-      .withManager(entityManager)
-      .createStrict({ user: user.id });
+//     await this.walletRepository
+//       .withManager(entityManager)
+//       .createStrict({ user: user.id });
 
-    return user;
-  },
-);
+//     return user;
+//   },
+// );
 
 
 
-    return this.responseService.sendSuccess(
-      SuccessMessage.USER_REGISTERED,
-      {
-        id: user.id,
-      },
-      HttpStatus.CREATED,
+//     return this.responseService.sendSuccess(
+//       SuccessMessage.USER_REGISTERED,
+//       {
+//         id: user.id,
+//       },
+//       HttpStatus.CREATED,
+//     );
+//   }
+
+
+
+async register(payload: SignupDTO): Promise<any> {
+  const { email, password, otp } = payload;
+
+  // Case-insensitive email check
+  const existingUser = await this.userRepository
+    .createQueryBuilder('user')
+    .where('LOWER(user.email) = LOWER(:email)', { email })
+    .getOne();
+
+  if (existingUser && !existingUser.isGuest) {
+    return this.responseService.sendError(
+      ErrorMessage.USER_WITH_EMAIL_EXISTS,
+      null,
+      HttpStatus.CONFLICT,
     );
   }
+
+  // Verify OTP
+  const verificationResponse =
+    await this.verificationService.verifyVerification({
+      intent: VerificationIntent.EMAIL_ADDRESS,
+      entityId: email,
+      verificationData: otp,
+    });
+
+  if (!verificationResponse.success) return verificationResponse;
+
+  const userData = {
+    email,
+    password,
+    emailVerifiedAt: new Date(),
+    status: Status.ACTIVE,
+    signUpDate: new Date(),
+  };
+
+  
+  const user = await this.dbTransactionManager.transaction<User>(
+    async (manager) => {
+      const entityManager = manager.entityManager;
+      let user: User;
+
+      if (existingUser && existingUser.isGuest) {
+        
+        user = await this.userRepository
+          .withManager(entityManager)
+          .findbyIdAndUpdate(existingUser.id, {
+            ...userData,
+            isGuest: false,
+            isProfileComplete: false,
+          });
+      } else {
+        
+        user = await this.userRepository
+          .withManager(entityManager)
+          .createStrict({ ...userData, isProfileComplete: false });
+      }
+
+    
+      await this.kycRepository
+        .withManager(entityManager)
+        .createStrict({ user: user.id });
+
+    
+      await this.walletRepository
+        .withManager(entityManager)
+        .createStrict({ user: user.id });
+
+      return user;
+    },
+  );
+
+  return this.responseService.sendSuccess(
+    SuccessMessage.USER_REGISTERED,
+    { id: user.id },
+    HttpStatus.CREATED,
+  );
+}
+
+
+
 
   async login(loginDto: LoginDTO) {
     const user = await this.validateUser(

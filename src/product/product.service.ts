@@ -259,6 +259,23 @@ export class ProductService {
         );
       }
 
+
+const storeWithStorefront = await this.storeRepository
+  .withManager(entityManager)
+  .createQueryBuilder('store')
+  .leftJoinAndSelect('store.storefront', 'storefront')
+  .where('store.id = :storeId', { storeId })
+  .getOne();
+
+const storefront = storeWithStorefront?.storefront;
+if (!storefront) {
+  return this.responseService.sendError(
+    ErrorMessage.NOT_FOUND('Storefront'),
+    null,
+    HttpStatus.BAD_REQUEST,
+  );
+}
+
       const subCategory = await this.productSubCategoryRepository
         .withManager(entityManager)
         .findById(subCategoryId);
@@ -293,6 +310,8 @@ export class ProductService {
           orderLimit,
           subCategory: subCategoryId,
           store: storeId,
+        
+        
         });
 
       for (const image of images || []) {
@@ -342,27 +361,27 @@ export class ProductService {
           );
       }
 
-      const defaultProductCollections =
-        this.systemSettingsService.getDefaultProductCollections() || [];
+      // const defaultProductCollections =
+      //   this.systemSettingsService.getDefaultProductCollections() || [];
 
-      for (const defaultCollection of defaultProductCollections) {
-        const { name, description } = defaultCollection;
+      // for (const defaultCollection of defaultProductCollections) {
+      //   const { name, description } = defaultCollection;
 
-        const collection = await this.productCollectionRepository
-          .withManager(entityManager)
-          .createStrict({
-            name,
-            description,
-            business: store.business.id,
-          });
+      //   const collection = await this.productCollectionRepository
+      //     .withManager(entityManager)
+      //     .createStrict({
+      //       name,
+      //       description,
+      //       business: store.business.id,
+      //     });
 
-        await this.productCollectionProductRepository
-          .withManager(entityManager)
-          .createStrict({
-            collection: collection.id,
-            product: product.id,
-          });
-      }
+      //   await this.productCollectionProductRepository
+      //     .withManager(entityManager)
+      //     .createStrict({
+      //       collection: collection.id,
+      //       product: product.id,
+      //     });
+      // }
 
       const productOptions = await this.productAttributeRepository
         .withManager(entityManager)
