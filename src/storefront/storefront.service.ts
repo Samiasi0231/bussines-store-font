@@ -115,25 +115,26 @@ export class StorefrontService {
 const defaultProductCollections =
   this.systemSettingsService.getDefaultProductCollections() || [];
 
-// Safely get the business ID
-const businessId =
-  typeof store.business === 'string' ? store.business : store.business.id;
+// // Safely get the business ID
+// console.log('Store business:', store.business); 
+// const businessId =
+//   typeof store.business === 'string' ? store.business : store.business.id;
 
-for (const defaultCollection of defaultProductCollections) {
-  const exists = await this.productCollectionRepository.collectionExists(
-    defaultCollection.name,
-    businessId, 
-  );
+// for (const defaultCollection of defaultProductCollections) {
+//   const exists = await this.productCollectionRepository.collectionExists(
+//     defaultCollection.name,
+//     businessId, 
+//   );
 
-  if (!exists) {
-    await this.productCollectionRepository.createStrict({
-      name: defaultCollection.name,
-      description: defaultCollection.description,
-      business: businessId, 
-      createdBy: EntityType.SYSTEM,
-    });
-  }
-}
+//   if (!exists) {
+//     await this.productCollectionRepository.createStrict({
+//       name: defaultCollection.name,
+//       description: defaultCollection.description,
+//       business: businessId, 
+//       createdBy: EntityType.SYSTEM,
+//     });
+//   }
+// }
 
 
 

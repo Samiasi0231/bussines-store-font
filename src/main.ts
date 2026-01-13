@@ -38,14 +38,33 @@ async function bootstrap() {
 
   app.enableCors({
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    origin: [], //TODO: update after deployment
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+      
+      if (ENV !== Environment.PRODUCTION) {
+        return callback(null, true);
+      }
+      
+
+      const corsOrigins = config.get<string>('CORS_ORIGINS');
+      if (!corsOrigins) {
+      
+        return callback(new Error('CORS_ORIGINS must be configured in production'));
+      }
+      
+      const allowedOrigins = corsOrigins.split(',').map(o => o.trim());
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true, // Enable credentials for session cookies
-    ...(ENV !== Environment.PRODUCTION && {
-      origin: '*',
-      credentials: true,
-    }),
   });
 
+  
   const sessionSecret = config.get<string>('SESSION_SECRET') || config.get<string>('jwt.secret') || 'your-super-secret-session-key-change-in-production';
   app.use(
     session({

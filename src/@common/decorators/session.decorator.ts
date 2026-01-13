@@ -25,6 +25,7 @@ export const SessionId = createParamDecorator(
     
     if (!session.cartSessionId) {
       session.cartSessionId = randomUUID();
+      session.touch();
     }
     
     return session.cartSessionId as string;
