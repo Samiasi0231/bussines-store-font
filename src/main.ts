@@ -72,7 +72,7 @@ async function bootstrap() {
       resave: false,
       saveUninitialized: true,
       cookie: {
-        secure: ENV === Environment.PRODUCTION,
+        secure: true, // for now, once we enter prod, we set it to prod
         httpOnly: true,
         maxAge: 30 * 24 * 60 * 60 * 1000,
         sameSite: ENV === Environment.PRODUCTION ? 'strict' : 'none',
