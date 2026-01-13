@@ -25,10 +25,10 @@ export class Store extends BaseEntity {
   business: Business | UUID;
 
   // Storefront relation
-  @OneToOne(() => Storefront, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'storefront_id' })
-  storefront?: Storefront;
+  // @OneToOne(() => Storefront, { nullable: true, onDelete: 'SET NULL' })
+  // @JoinColumn({ name: 'storefront_id' })
+  // storefront?: Storefront;
 
-  @Column({ type: 'uuid', nullable: true })
-  storefront_id?: UUID;
+  // @Column({ type: 'uuid', nullable: true })
+  // storefront_id?: UUID;
 }

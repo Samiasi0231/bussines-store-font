@@ -260,21 +260,21 @@ export class ProductService {
       }
 
 
-const storeWithStorefront = await this.storeRepository
-  .withManager(entityManager)
-  .createQueryBuilder('store')
-  .leftJoinAndSelect('store.storefront', 'storefront')
-  .where('store.id = :storeId', { storeId })
-  .getOne();
+// const storeWithStorefront = await this.storeRepository
+//   .withManager(entityManager)
+//   .createQueryBuilder('store')
+//   .leftJoinAndSelect('store.storefront', 'storefront')
+//   .where('store.id = :storeId', { storeId })
+//   .getOne();
 
-const storefront = storeWithStorefront?.storefront;
-if (!storefront) {
-  return this.responseService.sendError(
-    ErrorMessage.NOT_FOUND('Storefront'),
-    null,
-    HttpStatus.BAD_REQUEST,
-  );
-}
+// const storefront = storeWithStorefront?.storefront;
+// if (!storefront) {
+//   return this.responseService.sendError(
+//     ErrorMessage.NOT_FOUND('Storefront'),
+//     null,
+//     HttpStatus.BAD_REQUEST,
+//   );
+// }
 
       const subCategory = await this.productSubCategoryRepository
         .withManager(entityManager)
