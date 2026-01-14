@@ -30,6 +30,25 @@ export class TokenService {
     };
   }
 
+  async generateDeviceToken(
+    deviceId: string,
+  ): Promise<{ accessToken: string }> {
+    const expiresIn =
+      this.configService.get<string | number>('deviceJwt.expiresIn') ||
+      this.configService.get<string | number>('jwt.expiresIn') ||
+      '24h';
+
+    const accessToken = await this.jwtService.signAsync(
+      { deviceId },
+      {
+        secret: this.configService.get('jwt.secret'),
+        expiresIn: expiresIn as any,
+      },
+    );
+
+    return { accessToken };
+  }
+
   async verifyToken(userToken: string, token: string): Promise<boolean> {
     if (!userToken) throw new ForbiddenException(ErrorMessage.ACCESS_DENIED);
     return Util.verifyHash(userToken, token);

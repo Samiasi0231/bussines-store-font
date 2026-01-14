@@ -18,6 +18,7 @@ import {
 } from './dtos/sub-category.dto';
 import { AddProductDTO, GetProductsQueryDTO } from './dtos/product.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { DeviceJwtAuthGuard } from '../auth/guards/device-jwt-auth.guard';
 import { User } from '../@common/decorators/user.decorator';
 import { UserProfile } from '../user/interfaces/user.interface';
 import { GetByIdParamDTO } from '../@common/dtos/general.dto';
@@ -30,6 +31,7 @@ export class ProductController {
 
   constructor(private readonly productService: ProductService) {}
 
+  @UseGuards(DeviceJwtAuthGuard)
   @Get()
   async getProducts(@Query() query: GetProductsQueryDTO) {
     return this.productService.getProducts(query);
@@ -65,6 +67,7 @@ export class ProductController {
     return this.productService.addProduct(body, user.id);
   }
 
+  @UseGuards(DeviceJwtAuthGuard)
   @Get(':id')
   async getProduct(@Param() param: GetByIdParamDTO) {
     return this.productService.getProduct(param.id as UUID);

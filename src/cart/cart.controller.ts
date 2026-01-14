@@ -5,6 +5,7 @@ import {
   Get,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
 import {
@@ -13,40 +14,42 @@ import {
   RemoveCartItemDTO,
   CheckoutCartDTO,
 } from './dtos/cart.dto';
-import { SessionId } from '../@common/decorators/session.decorator';
+import { DeviceJwtAuthGuard } from '../auth/guards/device-jwt-auth.guard';
+import { DeviceId } from '../@common/decorators/device.decorator';
 
+@UseGuards(DeviceJwtAuthGuard)
 @Controller('cart')
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
   @Get()
-  getCart(@SessionId() sessionId: string) {
-    return this.cartService.getCart(sessionId);
+  getCart(@DeviceId() deviceId: string) {
+    return this.cartService.getCart(deviceId);
   }
 
   @Post('items')
-  addItem(@SessionId() sessionId: string, @Body() body: AddCartItemDTO) {
-    return this.cartService.addItem(sessionId, body);
+  addItem(@DeviceId() deviceId: string, @Body() body: AddCartItemDTO) {
+    return this.cartService.addItem(deviceId, body);
   }
 
   @Patch('items')
-  updateItem(@SessionId() sessionId: string, @Body() body: UpdateCartItemDTO) {
-    return this.cartService.updateItem(sessionId, body);
+  updateItem(@DeviceId() deviceId: string, @Body() body: UpdateCartItemDTO) {
+    return this.cartService.updateItem(deviceId, body);
   }
 
   @Delete('items')
-  removeItem(@SessionId() sessionId: string, @Body() body: RemoveCartItemDTO) {
-    return this.cartService.removeItem(sessionId, body);
+  removeItem(@DeviceId() deviceId: string, @Body() body: RemoveCartItemDTO) {
+    return this.cartService.removeItem(deviceId, body);
   }
 
   @Delete()
-  clearCart(@SessionId() sessionId: string) {
-    return this.cartService.clearCart(sessionId);
+  clearCart(@DeviceId() deviceId: string) {
+    return this.cartService.clearCart(deviceId);
   }
 
   @Post('checkout')
-  checkout(@SessionId() sessionId: string, @Body() body: CheckoutCartDTO) {
-    return this.cartService.checkout(sessionId, body);
+  checkout(@DeviceId() deviceId: string, @Body() body: CheckoutCartDTO) {
+    return this.cartService.checkout(deviceId, body);
   }
 }
 

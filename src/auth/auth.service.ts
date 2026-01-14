@@ -248,6 +248,20 @@ async register(payload: SignupDTO): Promise<any> {
     );
   }
 
+  async createDeviceToken(deviceId: string) {
+    const { accessToken } = await this.tokenService.generateDeviceToken(
+      deviceId,
+    );
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        accessToken,
+        deviceId,
+      },
+    );
+  }
+
   async logout(userId: UUID) {
     await this.cacheService.del(userId);
     return this.responseService.sendSuccess(SuccessMessage.LOGOUT);

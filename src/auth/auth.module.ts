@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { DeviceJwtStrategy } from './strategies/device-jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { TokenService } from './token/token.service';
 import { UserModule } from '../user/user.module';
@@ -33,7 +34,14 @@ import { AddressRepository } from '../repositories/address.repository';
     TypeOrmModule.forFeature([Address]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy, TokenService, AddressRepository],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    DeviceJwtStrategy,
+    LocalStrategy,
+    TokenService,
+    AddressRepository,
+  ],
   exports: [AuthService],
 })
 export class AuthModule {}

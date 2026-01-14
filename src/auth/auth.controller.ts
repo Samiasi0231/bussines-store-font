@@ -1,9 +1,17 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Headers,
+  BadRequestException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDTO } from './dto/register.dto';
 import { LoginDTO } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LocalAuthGuard } from './guards/local-auth.guard';
+import { BasicAuthGuard } from './guards/basic-auth.guard';
 import { User } from '../@common/decorators/user.decorator';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -53,4 +61,15 @@ export class AuthController {
   ) {
     return await this.authService.compareAddress(user.id, body);
   }
+
+  @UseGuards(BasicAuthGuard)
+  @Post('device/token')
+  async createDeviceToken(@Headers('device-id') deviceId: string) {
+    if (!deviceId) {
+      throw new BadRequestException('device-id header is required');
+    }
+
+    return this.authService.createDeviceToken(deviceId);
+  }
 }
+

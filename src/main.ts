@@ -1,7 +1,6 @@
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { Logger, VersioningType, ValidationPipe } from '@nestjs/common';
 import { json, urlencoded } from 'express';
-import session from 'express-session';
 // import morgan from 'morgan-body';
 import { TrimPipe } from './@common/pipes/trim-pipe';
 import { Environment } from './@common/constants/environment.constant';
@@ -54,32 +53,15 @@ async function bootstrap() {
         return callback(new Error('CORS_ORIGINS must be configured in production'));
       }
       
-      const allowedOrigins = corsOrigins.split(',').map(o => o.trim());
+      const allowedOrigins = corsOrigins.split(',').map((o) => o.trim());
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
       
       callback(new Error('Not allowed by CORS'));
     },
-    credentials: true, // Enable credentials for session cookies
+    credentials: false,
   });
-
-  
-  const sessionSecret = config.get<string>('SESSION_SECRET') || config.get<string>('jwt.secret') || 'your-super-secret-session-key-change-in-production';
-  app.use(
-    session({
-      secret: sessionSecret,
-      resave: false,
-      saveUninitialized: true,
-      cookie: {
-        secure: true, // for now, once we enter prod, we set it to prod
-        httpOnly: true,
-        maxAge: 30 * 24 * 60 * 60 * 1000,
-        sameSite: ENV === Environment.PRODUCTION ? 'strict' : 'none',
-      },
-      name: 'cart.session.id',
-    }),
-  );
 
   app.setGlobalPrefix('api');
 
