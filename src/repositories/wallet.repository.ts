@@ -16,4 +16,14 @@ export class WalletRepository extends EntityRepository<Wallet> {
   async decreaseBalance(walletId: UUID, amount: number) {
     await this.decrement({ id: walletId }, 'balance', amount);
   }
+   async existsByUserId(userId: UUID): Promise<boolean> {
+    const count = await this.createQueryBuilder('wallet')
+      .where('wallet.user_id = :userId', { userId })
+      .andWhere('wallet.deleted_at IS NULL')
+      .getCount();
+
+    return count > 0;
+  }
 }
+
+

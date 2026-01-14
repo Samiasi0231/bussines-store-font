@@ -24,4 +24,13 @@ export class BusinessRepository extends EntityRepository<Business> {
     if (!userId) return null;
     return this.find({ ...options, where: { user: userId } });
   }
+
+   async findByUserWithStores(userId: UUID) {
+    return this.createQueryBuilder('business')
+      .leftJoinAndSelect('business.stores', 'stores')
+      .where('business.user_id = :userId', { userId })
+      .andWhere('business.deleted_at IS NULL')
+      .getOne();
+  }
 }
+

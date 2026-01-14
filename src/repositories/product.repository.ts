@@ -29,4 +29,12 @@ export class ProductRepository extends EntityRepository<Product> {
 
     return query.getExists();
   }
+
+    async countByStore(storeId: UUID): Promise<number> {
+    return this.createQueryBuilder('product')
+      .where('product.store_id = :storeId', { storeId })
+      .andWhere('product.deleted_at IS NULL')
+      .getCount();
+  }
 }
+
