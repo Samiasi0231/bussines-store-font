@@ -51,8 +51,6 @@ const config = appConfig();
 
         const synchronize = config.get<boolean>('db.synchronize') || false;
         const env = config.get<string>('ENV');
-
-        // Warn if synchronize is enabled in production
         if (synchronize && env === 'production') {
           throw new Error(
             'DB_SYNCHRONIZE cannot be enabled in production. Use migrations instead.',
@@ -68,13 +66,12 @@ const config = appConfig();
           database: config.get<string>('db.name'),
           entities: [__dirname + '/entities/*.entity{.ts,.js}'],
           autoLoadEntities: true,
-          // Synchronize: Only enable in development (auto-creates tables from entities)
-          // WARNING: This will drop and recreate tables. Use migrations in production.
+         
           synchronize,
-          // Retry configuration for connection attempts
+         
           retryAttempts,
           retryDelay,
-          // Connection pool configuration with retry support
+         
           extra: {
             connectionLimit: config.get<number>('db.connectionLimit'),
             max: config.get<number>('db.connectionLimit') || 10,
