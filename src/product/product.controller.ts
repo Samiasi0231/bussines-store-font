@@ -38,15 +38,11 @@ export class ProductController {
   }
 
   @Post('categories')
-  @UseGuards(AdminGuard)
-  @AdminOnly()
   async addCategory(@Body() body: AddCategoryDTO) {
     return this.productService.addCategory(body);
   }
 
   @Post('sub-categories')
-  @UseGuards(AdminGuard)
-  @AdminOnly()
   async addSubCategory(@Body() body: AddSubCategoryDTO) {
     return this.productService.addSubCategory(body);
   }
