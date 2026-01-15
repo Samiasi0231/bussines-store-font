@@ -30,7 +30,7 @@ export class BusinessRepository extends EntityRepository<Business> {
       .leftJoinAndSelect('business.stores', 'stores')
       .where('business.user_id = :userId', { userId })
       .andWhere('business.deleted_at IS NULL')
-      .getOne();
+      .getOne()
   }
 }
 

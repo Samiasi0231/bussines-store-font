@@ -1,38 +1,33 @@
 import { Injectable, HttpStatus, Logger } from '@nestjs/common';
-import { BusinessRepository } from '../repositories/business.repository';
-import { UserRepository  } from '../repositories/user.repository';
-import { WalletRepository } from '../repositories/wallet.repository';
-import { ProductRepository } from '../repositories/product.repository';
-import { OrderRepository } from '../repositories/order.repository';
-import { ResponseService, IResponse } from '../@common/response';
-import {
-  SuccessMessage,
-  ErrorMessage,
-} from '../@common/constants/message.constant';
-import {
-  DashboardSanitizer,
-  FormattedDashboard,
-} from './dasdboard.sanitizer';
 import { UUID } from 'crypto';
+import { WalletService } from '../wallet/wallet.service';
+import { BusinessService } from '../business/business.service';
+import { ProductService } from '../product/product.service';
+import { OrdersService } from '../orders/orders.service';
+import { DashboardSanitizer, FormattedDashboard } from './dasdboard.sanitizer';
+import { ResponseService, IResponse } from '../@common/response';
+import { SuccessMessage, ErrorMessage } from '../@common/constants/message.constant';
 
 @Injectable()
 export class DashboardService {
   private readonly logger = new Logger(DashboardService.name);
 
   constructor(
-    private readonly userRepo: UserRepository,
-    private readonly businessRepo: BusinessRepository,
-    private readonly walletRepo: WalletRepository,
-    private readonly productRepo: ProductRepository,
-    private readonly orderRepo: OrderRepository,
+    private readonly walletService: WalletService,
+    private readonly businessService: BusinessService,
+    private readonly productService: ProductService,
+    private readonly ordersService: OrdersService,
     private readonly dashboardSanitizer: DashboardSanitizer,
     private readonly responseService: ResponseService,
   ) {}
+
   async getDashboard(userId: UUID): Promise<IResponse<FormattedDashboard>> {
     try {
+      this.logger.log(`Fetching dashboard for user: ${userId}`);
+
       const [hasWallet, business] = await Promise.all([
-        this.walletRepo.existsByUserId(userId),
-        this.businessRepo.findByUserWithStores(userId),
+        this.walletService.checkUserHasWallet(userId),
+        this.businessService.getUserBusinessWithStores(userId),
       ]);
 
       let metrics = {
@@ -42,27 +37,18 @@ export class DashboardService {
         totalSold: 0,
       };
 
-      if (business?.stores?.length) {
+      if (business?.stores?.length > 0) {
         const storeId = business.stores[0].id;
 
-        const [
-          totalProducts,
-          newCustomersThisWeek,
-          ordersThisWeek,
-          totalSold,
-        ] = await Promise.all([
-          this.productRepo.countByStore(storeId),
-          this.orderRepo.countUniqueCustomersThisWeek(storeId),
-          this.orderRepo.countOrdersThisWeek(storeId),
-          this.orderRepo.calculateTotalSales(storeId),
-        ]);
+        const [totalProducts, newCustomersThisWeek, ordersThisWeek, totalSold] =
+          await Promise.all([
+            this.productService.getStoreProductCount(storeId),
+            this.ordersService.getWeeklyCustomersCount(storeId),
+            this.ordersService.getWeeklyOrdersCount(storeId),
+            this.ordersService.getStoreTotalSales(storeId),
+          ]);
 
-        metrics = {
-          totalProducts,
-          newCustomersThisWeek,
-          ordersThisWeek,
-          totalSold,
-        };
+        metrics = { totalProducts, newCustomersThisWeek, ordersThisWeek, totalSold };
       }
 
       const data = this.dashboardSanitizer.formatDashboard({
@@ -77,7 +63,7 @@ export class DashboardService {
         HttpStatus.OK,
       );
     } catch (error) {
-      this.logger.error(error.message, error.stack);
+      this.logger.error(`Error fetching dashboard: ${error.message}`, error.stack);
       return this.responseService.sendError(
         ErrorMessage.AN_ERROR_OCCURRED,
         null,
@@ -85,77 +71,101 @@ export class DashboardService {
       );
     }
   }
-  async getAccountSetup(userId: UUID) {
-    const [hasAccount,hasWallet, business] = await Promise.all([
-     this.userRepo.existsById(userId),
-      this.walletRepo.existsByUserId(userId),
-      this.businessRepo.findByUserWithStores(userId),
-    ]);
 
-    return this.responseService.sendSuccess(
-      SuccessMessage.OPERATION_SUCCESSFUL,
-      {hasAccount,
-        hasWallet,
-        hasBusiness: !!business,
-      },
-      HttpStatus.OK,
-    );
+  async getAccountSetup(userId: UUID) {
+    try {
+      const [hasWallet, business] = await Promise.all([
+        this.walletService.checkUserHasWallet(userId),
+        this.businessService.getUserBusinessWithStores(userId),
+      ]);
+
+      const steps = { registration: true, wallet: hasWallet, business: !!business };
+      const completedSteps = Object.values(steps).filter(Boolean).length;
+
+      return this.responseService.sendSuccess(
+        SuccessMessage.OPERATION_SUCCESSFUL,
+        { completedSteps, totalSteps: 3, steps },
+        HttpStatus.OK,
+      );
+    } catch (error) {
+      this.logger.error(`Error: ${error.message}`);
+      return this.responseService.sendError(
+        ErrorMessage.AN_ERROR_OCCURRED,
+        null,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   async getProductCount(userId: UUID) {
-    const business = await this.businessRepo.findByUserWithStores(userId);
+    try {
+      const business = await this.businessService.getUserBusinessWithStores(userId);
+      const count = business?.stores?.[0]?.id
+        ? await this.productService.getStoreProductCount(business.stores[0].id)
+        : 0;
 
-    const count = business?.stores?.length
-      ? await this.productRepo.countByStore(business.stores[0].id)
-      : 0;
-
-    return this.responseService.sendSuccess(
-      SuccessMessage.OPERATION_SUCCESSFUL,
-      { totalProducts: count },
-      HttpStatus.OK,
-    );
+      return this.responseService.sendSuccess(
+        SuccessMessage.OPERATION_SUCCESSFUL,
+        { totalProducts: count },
+        HttpStatus.OK,
+      );
+    } catch (error) {
+      this.logger.error(`Error: ${error.message}`);
+      return this.responseService.sendError(ErrorMessage.AN_ERROR_OCCURRED, null, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
+
   async getWeeklyCustomers(userId: UUID) {
-    const business = await this.businessRepo.findByUserWithStores(userId);
+    try {
+      const business = await this.businessService.getUserBusinessWithStores(userId);
+      const count = business?.stores?.[0]?.id
+        ? await this.ordersService.getWeeklyCustomersCount(business.stores[0].id)
+        : 0;
 
-    const count = business?.stores?.length
-      ? await this.orderRepo.countUniqueCustomersThisWeek(
-          business.stores[0].id,
-        )
-      : 0;
-
-    return this.responseService.sendSuccess(
-      SuccessMessage.OPERATION_SUCCESSFUL,
-      { newCustomersThisWeek: count },
-      HttpStatus.OK,
-    );
+      return this.responseService.sendSuccess(
+        SuccessMessage.OPERATION_SUCCESSFUL,
+        { newCustomersThisWeek: count },
+        HttpStatus.OK,
+      );
+    } catch (error) {
+      this.logger.error(`Error: ${error.message}`);
+      return this.responseService.sendError(ErrorMessage.AN_ERROR_OCCURRED, null, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
+
   async getWeeklyOrders(userId: UUID) {
-    const business = await this.businessRepo.findByUserWithStores(userId);
+    try {
+      const business = await this.businessService.getUserBusinessWithStores(userId);
+      const count = business?.stores?.[0]?.id
+        ? await this.ordersService.getWeeklyOrdersCount(business.stores[0].id)
+        : 0;
 
-    const count = business?.stores?.length
-      ? await this.orderRepo.countOrdersThisWeek(business.stores[0].id)
-      : 0;
-
-    return this.responseService.sendSuccess(
-      SuccessMessage.OPERATION_SUCCESSFUL,
-      { ordersThisWeek: count },
-      HttpStatus.OK,
-    );
+      return this.responseService.sendSuccess(
+        SuccessMessage.OPERATION_SUCCESSFUL,
+        { ordersThisWeek: count },
+        HttpStatus.OK,
+      );
+    } catch (error) {
+      this.logger.error(`Error: ${error.message}`);
+      return this.responseService.sendError(ErrorMessage.AN_ERROR_OCCURRED, null, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
-
 
   async getTotalSales(userId: UUID) {
-    const business = await this.businessRepo.findByUserWithStores(userId);
+    try {
+      const business = await this.businessService.getUserBusinessWithStores(userId);
+      const total = business?.stores?.[0]?.id
+        ? await this.ordersService.getStoreTotalSales(business.stores[0].id)
+        : 0;
 
-    const total = business?.stores?.length
-      ? await this.orderRepo.calculateTotalSales(business.stores[0].id)
-      : 0;
-
-    return this.responseService.sendSuccess(
-      SuccessMessage.OPERATION_SUCCESSFUL,
-      { totalSold: total },
-      HttpStatus.OK,
-    );
+      return this.responseService.sendSuccess(
+        SuccessMessage.OPERATION_SUCCESSFUL,
+        { totalSold: total },
+        HttpStatus.OK,
+      );
+    } catch (error) {
+      this.logger.error(`Error: ${error.message}`);
+      return this.responseService.sendError(ErrorMessage.AN_ERROR_OCCURRED, null, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 }

@@ -1272,4 +1272,18 @@ export class OrdersService {
       },
     );
   }
+
+// src/orders/orders.service.ts
+async getWeeklyCustomersCount(storeId: UUID): Promise<number> {
+  return this.orderRepository.countUniqueCustomersThisWeek(storeId);
+}
+
+async getWeeklyOrdersCount(storeId: UUID): Promise<number> {
+  return this.orderRepository.countOrdersThisWeek(storeId);
+}
+
+async getStoreTotalSales(storeId: UUID): Promise<number> {
+  return this.orderRepository.calculateTotalSales(storeId);
+}
+  
 }

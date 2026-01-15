@@ -1,32 +1,15 @@
 import { Module } from '@nestjs/common';
-import { User } from '../entities/user.entity';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { DashboardController } from './dashboard.controller';
 import { DashboardService } from './dashboard.service';
 import { DashboardSanitizer } from './dasdboard.sanitizer';
-import { UserRepository } from '../repositories/user.repository';
-import { BusinessRepository } from '../repositories/business.repository';
-import { WalletRepository } from '../repositories/wallet.repository';
-import { ProductRepository } from '../repositories/product.repository';
-import { OrderRepository } from '../repositories/order.repository';
-import { Business } from '../entities/business.entity';
-import { Wallet } from '../entities/wallet.entity';
-import { Product } from '../entities/product.entity';
-import { Order } from '../entities/order.entity';
+import { WalletModule } from '../wallet/wallet.module';
+import { BusinessModule } from '../business/business.module';
+import { ProductModule } from '../product/product.module';
+import { OrdersModule } from '../orders/orders.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([User,Business, Wallet, Product, Order]),
-  ],
+  imports: [WalletModule, BusinessModule, ProductModule, OrdersModule],
   controllers: [DashboardController],
-  providers: [
-    DashboardService,
-    DashboardSanitizer,
-    UserRepository,
-    BusinessRepository,
-    WalletRepository,
-    ProductRepository,
-    OrderRepository,
-  ],
+  providers: [DashboardService, DashboardSanitizer],
 })
 export class DashboardModule {}
