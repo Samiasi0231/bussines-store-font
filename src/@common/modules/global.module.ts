@@ -71,6 +71,8 @@ import { WebhookEvent } from '../../entities/webhook-event.entity';
 import { WebhookEventRepository } from '../../repositories/webhook-event.repository';
 import { TransactionLog } from '../../entities/transaction-log.entity';
 import { TransactionLogRepository } from '../../repositories/transaction-log.repository';
+import { Partner } from '../../entities/partner.entity';
+import { PartnerRepository } from '../../repositories/partner.repository';
 
 const repositories = [
   IdentityVerificationRepository,
@@ -104,7 +106,8 @@ const repositories = [
   BusinessCategoryRepository,
   BusinessTypeRepository,
   WebhookEventRepository,
-  TransactionLogRepository
+  TransactionLogRepository,
+  PartnerRepository,
 ];
 
 const providers = [...repositories, ResponseService];
@@ -141,7 +144,8 @@ const DATABASE_ENTITIES = [
   BusinessCategory,
   BusinessType,
   WebhookEvent,
-  TransactionLog
+  TransactionLog,
+  Partner,
 ];
 
 @Global()

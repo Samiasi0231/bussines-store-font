@@ -1,7 +1,10 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { UserProfile } from '../user/interfaces/user.interface';
 import { IResponse, ResponseService } from '../@common/response';
-import { SuccessMessage, ErrorMessage } from '../@common/constants/message.constant';
+import {
+  SuccessMessage,
+  ErrorMessage,
+} from '../@common/constants/message.constant';
 import { UserRepository } from '../repositories/user.repository';
 import { BusinessRepository } from '../repositories/business.repository';
 import { OrderRepository } from '../repositories/order.repository';
@@ -11,19 +14,19 @@ import {
   GetUsersQueryDTO,
   UpdateUserRolesDTO,
   GetBusinessesQueryDTO,
+  GetPartnersQueryDTO,
   GetRequestsQueryDTO,
   GetTransactionsQueryDTO,
   UpdateBusinessStatusDTO,
   AssignRequestDTO,
   UpdateRequestStatusDTO,
+  OnboardPartnerDTO,
 } from './dtos/admin.dto';
 import { UUID } from 'crypto';
-import { FindOptionsWhere } from 'typeorm';
-import { User } from '../entities/user.entity';
-import { Business } from '../entities/business.entity';
-import { Order } from '../entities/order.entity';
 import { Paginated } from '../@common/types/pagination.type';
 import { Status } from '../@common/constants/status.constant';
+import { PartnerRepository } from '../repositories/partner.repository';
+import { Partner } from '../entities/partner.entity';
 
 @Injectable()
 export class AdminService {
@@ -33,6 +36,7 @@ export class AdminService {
     private readonly businessRepository: BusinessRepository,
     private readonly orderRepository: OrderRepository,
     private readonly transactionRepository: TransactionRepository,
+    private readonly partnerRepository: PartnerRepository,
   ) {}
 
   async getDashboard(user: UserProfile): Promise<IResponse<any>> {
@@ -42,6 +46,10 @@ export class AdminService {
       totalBusinesses,
       totalActiveBusinesses,
       totalPendingBusinesses,
+      totalPartners,
+      totalActivePartners,
+      totalPendingPartners,
+      totalSuspendedPartners,
       totalPendingRequests,
       totalProcessingRequests,
       completedTodayCount,
@@ -54,12 +62,16 @@ export class AdminService {
       this.businessRepository.count(),
       this.businessRepository.count({ where: { status: Status.ACTIVE } }),
       this.businessRepository.count({ where: { status: Status.PENDING } }),
+      this.partnerRepository.count(),
+      this.partnerRepository.count({ where: { status: Status.ACTIVE } }),
+      this.partnerRepository.count({ where: { status: Status.PENDING } }),
+      this.partnerRepository.count({ where: { status: Status.BLOCKED } }),
       this.businessRepository.count({ where: { status: Status.PENDING } }),
       this.businessRepository.count({ where: { status: Status.PROCESSING } }),
       this.businessRepository
         .createQueryBuilder('business')
         .where('business.status = :status', { status: Status.COMPLETED })
-        .andWhere("DATE(business.created_at) = CURRENT_DATE")
+        .andWhere('DATE(business.created_at) = CURRENT_DATE')
         .getCount(),
       this.orderRepository.count(),
       this.transactionRepository.count(),
@@ -99,49 +111,69 @@ export class AdminService {
 
     const formattedRecentRequests = recentRequests.map((business) => ({
       id: business.id,
-      requestId: formatRequestId(business.id as string, business.createdAt || new Date()),
-      type: typeof business.businessType === 'object' ? business.businessType?.name : 'Business Registration',
+      requestId: formatRequestId(
+        business.id as string,
+        business.createdAt || new Date(),
+      ),
+      type:
+        typeof business.businessType === 'object'
+          ? business.businessType?.name
+          : 'Business Registration',
       businessName: business.name,
       businessId: business.id,
       status: business.status,
-      userId: typeof business.user === 'object' ? business.user?.id : business.user,
-      userEmail: typeof business.user === 'object' ? business.user?.email : null,
+      userId:
+        typeof business.user === 'object' ? business.user?.id : business.user,
+      userEmail:
+        typeof business.user === 'object' ? business.user?.email : null,
       createdAt: business.createdAt,
     }));
 
-    // Calculate average partner score (placeholder - implement actual calculation based on reviews/ratings)
-    const avgPartnerScore = 4.6;
+    // Average partner score from partners table
+    const avgPartnerScoreRow = await this.partnerRepository
+      .createQueryBuilder('partner')
+      .select('COALESCE(AVG(partner.rating), 0)', 'avg')
+      .where('partner.deletedAt IS NULL')
+      .getRawOne<{ avg: string }>();
+    const avgPartnerScore = Number(avgPartnerScoreRow?.avg ?? 0);
 
-    return this.responseService.sendSuccess(SuccessMessage.OPERATION_SUCCESSFUL, {
-      stats: {
-        // User & Business Stats
-        totalUsers,
-        totalBusinesses,
-        totalActiveBusinesses,
-        totalPendingBusinesses,
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        stats: {
+          // User & Business Stats
+          totalUsers,
+          totalBusinesses,
+          totalActiveBusinesses,
+          totalPendingBusinesses,
+          totalPartners,
+          totalActivePartners,
+          totalPendingPartners,
+          totalSuspendedPartners,
 
-        // Request Stats
-        totalPendingRequests,
-        totalProcessingRequests,
-        completedToday: completedTodayCount,
-        totalOrders,
+          // Request Stats
+          totalPendingRequests,
+          totalProcessingRequests,
+          completedToday: completedTodayCount,
+          totalOrders,
 
-        // Financial Stats
-        partnerPayoutsComplete: completedPayoutsCount,
-        pendingPayouts: pendingPayoutsCount,
-        totalTransactions,
+          // Financial Stats
+          partnerPayoutsComplete: completedPayoutsCount,
+          pendingPayouts: pendingPayoutsCount,
+          totalTransactions,
 
-        // Performance Stats
-        avgPartnerScore,
-        slaBreachesThisWeek: slaBreaches,
+          // Performance Stats
+          avgPartnerScore,
+          slaBreachesThisWeek: slaBreaches,
+        },
+        recentRequests: formattedRecentRequests,
+        user: {
+          id: user.id,
+          email: user.email,
+          roles: user.roles,
+        },
       },
-      recentRequests: formattedRecentRequests,
-      user: {
-        id: user.id,
-        email: user.email,
-        roles: user.roles,
-      },
-    });
+    );
   }
 
   async getUsers(query: GetUsersQueryDTO): Promise<IResponse<Paginated<any>>> {
@@ -151,7 +183,9 @@ export class AdminService {
     queryBuilder.where('user.deletedAt IS NULL');
 
     if (email) {
-      queryBuilder.andWhere('LOWER(user.email) LIKE LOWER(:email)', { email: `%${email}%` });
+      queryBuilder.andWhere('LOWER(user.email) LIKE LOWER(:email)', {
+        email: `%${email}%`,
+      });
     }
 
     if (status) {
@@ -162,10 +196,12 @@ export class AdminService {
       queryBuilder.andWhere('user.roles && :roles', { roles });
     }
 
-    const { results, pagination } = await this.userRepository.paginateWithQuery({
-      query: queryBuilder,
-      pagination: { page, limit },
-    });
+    const { results, pagination } = await this.userRepository.paginateWithQuery(
+      {
+        query: queryBuilder,
+        pagination: { page, limit },
+      },
+    );
 
     const formattedResults = results.map((user) => ({
       id: user.id,
@@ -177,17 +213,27 @@ export class AdminService {
       createdAt: user.createdAt,
     }));
 
-    return this.responseService.sendSuccess(SuccessMessage.OPERATION_SUCCESSFUL, {
-      results: formattedResults,
-      pagination,
-    });
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        results: formattedResults,
+        pagination,
+      },
+    );
   }
 
-  async updateUserRoles(userId: UUID, data: UpdateUserRolesDTO): Promise<IResponse<any>> {
+  async updateUserRoles(
+    userId: UUID,
+    data: UpdateUserRolesDTO,
+  ): Promise<IResponse<any>> {
     const user = await this.userRepository.findById(userId);
 
     if (!user) {
-      return this.responseService.sendError(ErrorMessage.USER_NOT_FOUND, null, HttpStatus.NOT_FOUND);
+      return this.responseService.sendError(
+        ErrorMessage.USER_NOT_FOUND,
+        null,
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     await this.userRepository
@@ -197,13 +243,18 @@ export class AdminService {
       .where('id = :id', { id: userId })
       .execute();
 
-    return this.responseService.sendSuccess(SuccessMessage.OPERATION_SUCCESSFUL, {
-      id: userId,
-      roles: data.roles,
-    });
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        id: userId,
+        roles: data.roles,
+      },
+    );
   }
 
-  async getBusinesses(query: GetBusinessesQueryDTO): Promise<IResponse<Paginated<any>>> {
+  async getBusinesses(
+    query: GetBusinessesQueryDTO,
+  ): Promise<IResponse<Paginated<any>>> {
     const { page, limit, name, status, cacNumber } = query;
 
     const queryBuilder = this.businessRepository
@@ -214,7 +265,9 @@ export class AdminService {
       .where('business.deletedAt IS NULL');
 
     if (name) {
-      queryBuilder.andWhere('LOWER(business.name) LIKE LOWER(:name)', { name: `%${name}%` });
+      queryBuilder.andWhere('LOWER(business.name) LIKE LOWER(:name)', {
+        name: `%${name}%`,
+      });
     }
     if (status) {
       queryBuilder.andWhere('business.status = :status', { status });
@@ -223,12 +276,13 @@ export class AdminService {
       queryBuilder.andWhere('business.cac_number = :cacNumber', { cacNumber });
     }
 
-    const { results, pagination } = await this.businessRepository.paginateWithQuery({
-      query: queryBuilder,
-      pagination: { page, limit },
-    });
+    const { results, pagination } =
+      await this.businessRepository.paginateWithQuery({
+        query: queryBuilder.orderBy('business.createdAt', 'DESC'),
+        pagination: { page, limit },
+      });
 
-    // Get statistics
+    // Business statistics
     const [total, active, pending, suspended] = await Promise.all([
       this.businessRepository.count(),
       this.businessRepository.count({ where: { status: Status.ACTIVE } }),
@@ -238,29 +292,178 @@ export class AdminService {
 
     const formattedResults = results.map((business) => ({
       id: business.id,
-      partnerId: `PTR-${business.id?.toString().substring(0, 8).toUpperCase()}`,
+      businessId: `BIZ-${business.id?.toString().substring(0, 8).toUpperCase()}`,
       name: business.name,
       cacNumber: business.cacNumber,
       status: business.status,
-      userId: typeof business.user === 'object' ? business.user?.id : business.user,
-      userEmail: typeof business.user === 'object' ? business.user?.email : null,
-      businessType: typeof business.businessType === 'object' ? business.businessType?.name : null,
-      category: typeof business.category === 'object' ? business.category?.name : null,
+      userId:
+        typeof business.user === 'object' ? business.user?.id : business.user,
+      userEmail:
+        typeof business.user === 'object' ? business.user?.email : null,
+      businessType:
+        typeof business.businessType === 'object'
+          ? business.businessType?.name
+          : null,
+      category:
+        typeof business.category === 'object' ? business.category?.name : null,
       logo: business.logo,
       createdAt: business.createdAt,
-      // TODO: Add rating, location, services, internal owner when those fields exist
     }));
 
-    return this.responseService.sendSuccess(SuccessMessage.OPERATION_SUCCESSFUL, {
-      results: formattedResults,
-      pagination,
-      stats: {
-        total,
-        active,
-        pending,
-        suspended,
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        results: formattedResults,
+        pagination,
+        stats: { total, active, pending, suspended },
       },
+    );
+  }
+
+  async getPartners(
+    query: GetPartnersQueryDTO,
+  ): Promise<IResponse<Paginated<any>>> {
+    const { page, limit, name, status, email } = query;
+
+    const queryBuilder = this.partnerRepository
+      .createQueryBuilder('partner')
+      .where('partner.deletedAt IS NULL');
+
+    if (name) {
+      queryBuilder.andWhere('LOWER(partner.name) LIKE LOWER(:name)', {
+        name: `%${name}%`,
+      });
+    }
+    if (email) {
+      queryBuilder.andWhere('LOWER(partner.email) LIKE LOWER(:email)', {
+        email: `%${email}%`,
+      });
+    }
+    if (status) {
+      queryBuilder.andWhere('partner.status = :status', { status });
+    }
+
+    const { results, pagination } =
+      await this.partnerRepository.paginateWithQuery({
+        query: queryBuilder.orderBy('partner.createdAt', 'DESC'),
+        pagination: { page, limit },
+      });
+
+    const [total, active, pending, suspended] = await Promise.all([
+      this.partnerRepository.count(),
+      this.partnerRepository.count({ where: { status: Status.ACTIVE } }),
+      this.partnerRepository.count({ where: { status: Status.PENDING } }),
+      this.partnerRepository.count({ where: { status: Status.BLOCKED } }),
+    ]);
+
+    const formatPartnerCode = (partnerNo?: number) => {
+      if (!partnerNo || Number.isNaN(Number(partnerNo))) return null;
+      return `PTR-${String(partnerNo).padStart(3, '0')}`;
+    };
+
+    const formattedResults = results.map((partner) => {
+      const location = [partner.city, partner.country]
+        .filter(Boolean)
+        .join(', ');
+      return {
+        id: partner.id,
+        partnerId: partner.code || formatPartnerCode(partner.partnerNo),
+        name: partner.name,
+        status: partner.status,
+        email: partner.email,
+        phone: partner.phone || null,
+        location: location || null,
+        services: partner.services || [],
+        rating:
+          typeof partner.rating === 'string'
+            ? Number(partner.rating)
+            : partner.rating,
+        createdAt: partner.createdAt,
+      };
     });
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        results: formattedResults,
+        pagination,
+        stats: { total, active, pending, suspended },
+      },
+    );
+  }
+
+  async onboardPartner(data: OnboardPartnerDTO): Promise<IResponse<any>> {
+    const existing = await this.partnerRepository.findByEmail(data.email);
+    if (existing) {
+      return this.responseService.sendError(
+        ErrorMessage.ALREADY_EXISTS('Partner'),
+        null,
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    const partner = await this.partnerRepository.createStrict({
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      city: data.city,
+      state: data.state,
+      country: data.country,
+      services: data.services,
+      rating: (data.rating as any) ?? 0,
+      status: data.status ?? Status.PENDING,
+    } as unknown as Omit<Partner, 'id' | 'createdAt' | 'updatedAt'>);
+
+    const partnerNo = partner.partnerNo;
+    const code =
+      partner.code ||
+      (partnerNo ? `PTR-${String(partnerNo).padStart(3, '0')}` : null);
+
+    if (code && partner.code !== code) {
+      await this.partnerRepository.update(partner.id as any, { code } as any);
+      partner.code = code;
+    }
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        id: partner.id,
+        partnerId: partner.code,
+        name: partner.name,
+        email: partner.email,
+        status: partner.status,
+      },
+    );
+  }
+
+  async updatePartnerStatus(
+    partnerId: UUID,
+    data: UpdateBusinessStatusDTO,
+  ): Promise<IResponse<any>> {
+    const partner = await this.partnerRepository.findById(partnerId);
+
+    if (!partner) {
+      return this.responseService.sendError(
+        ErrorMessage.NOT_FOUND('Partner'),
+        null,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    await this.partnerRepository
+      .createQueryBuilder()
+      .update()
+      .set({ status: data.status })
+      .where('id = :id', { id: partnerId })
+      .execute();
+
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        id: partnerId,
+        status: data.status,
+      },
+    );
   }
 
   async updateBusinessStatus(
@@ -284,14 +487,20 @@ export class AdminService {
       .where('id = :id', { id: businessId })
       .execute();
 
-    return this.responseService.sendSuccess(SuccessMessage.OPERATION_SUCCESSFUL, {
-      id: businessId,
-      status: data.status,
-    });
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        id: businessId,
+        status: data.status,
+      },
+    );
   }
 
-  async getRequests(query: GetRequestsQueryDTO): Promise<IResponse<Paginated<any>>> {
-    const { page, limit, requestId, status, businessId, userId, assigneeId } = query;
+  async getRequests(
+    query: GetRequestsQueryDTO,
+  ): Promise<IResponse<Paginated<any>>> {
+    const { page, limit, requestId, status, businessId, userId, assigneeId } =
+      query;
 
     // Requests are business registration requests (businesses with status PENDING/PROCESSING)
     const queryBuilder = this.businessRepository
@@ -323,10 +532,11 @@ export class AdminService {
 
     // TODO: Add assignee filtering when assignee field is added to business entity
 
-    const { results, pagination } = await this.businessRepository.paginateWithQuery({
-      query: queryBuilder,
-      pagination: { page, limit },
-    });
+    const { results, pagination } =
+      await this.businessRepository.paginateWithQuery({
+        query: queryBuilder,
+        pagination: { page, limit },
+      });
 
     const formattedResults = results.map((business, index) => {
       const requestNumber = index + 1;
@@ -334,7 +544,10 @@ export class AdminService {
       return {
         id: business.id,
         requestId: `REQ-${year}-${String(requestNumber).padStart(3, '0')}`,
-        type: typeof business.businessType === 'object' ? business.businessType?.name : 'Business Registration',
+        type:
+          typeof business.businessType === 'object'
+            ? business.businessType?.name
+            : 'Business Registration',
         businessName: business.name,
         businessId: `BIZ-${business.id?.toString().substring(0, 8).toUpperCase()}`,
         status: business.status,
@@ -342,19 +555,26 @@ export class AdminService {
         assignee: null, // TODO: Add assignee field
         partner: null, // TODO: Add partner relationship
         sla: '7d', // TODO: Calculate SLA based on created date
-        userId: typeof business.user === 'object' ? business.user?.id : business.user,
-        userEmail: typeof business.user === 'object' ? business.user?.email : null,
+        userId:
+          typeof business.user === 'object' ? business.user?.id : business.user,
+        userEmail:
+          typeof business.user === 'object' ? business.user?.email : null,
         createdAt: business.createdAt,
       };
     });
 
-    return this.responseService.sendSuccess(SuccessMessage.OPERATION_SUCCESSFUL, {
-      results: formattedResults,
-      pagination,
-    });
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        results: formattedResults,
+        pagination,
+      },
+    );
   }
 
-  async getTransactions(query: GetTransactionsQueryDTO): Promise<IResponse<Paginated<any>>> {
+  async getTransactions(
+    query: GetTransactionsQueryDTO,
+  ): Promise<IResponse<Paginated<any>>> {
     const { page, limit, reference, status, userId, businessId } = query;
 
     const queryBuilder = this.transactionRepository
@@ -377,10 +597,11 @@ export class AdminService {
       queryBuilder.andWhere('user.id = :userId', { userId });
     }
 
-    const { results, pagination } = await this.transactionRepository.paginateWithQuery({
-      query: queryBuilder,
-      pagination: { page, limit },
-    });
+    const { results, pagination } =
+      await this.transactionRepository.paginateWithQuery({
+        query: queryBuilder,
+        pagination: { page, limit },
+      });
 
     const formattedResults = results.map((transaction: any) => ({
       id: transaction.id,
@@ -393,17 +614,19 @@ export class AdminService {
       createdAt: transaction.createdAt,
     }));
 
-    return this.responseService.sendSuccess(SuccessMessage.OPERATION_SUCCESSFUL, {
-      results: formattedResults,
-      pagination,
-    });
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        results: formattedResults,
+        pagination,
+      },
+    );
   }
 
   async updateRequestStatus(
     requestId: UUID,
     data: UpdateRequestStatusDTO,
   ): Promise<IResponse<any>> {
-    // Request is a business with status PENDING/PROCESSING
     const business = await this.businessRepository.findById(requestId);
 
     if (!business) {
@@ -421,13 +644,19 @@ export class AdminService {
       .where('id = :id', { id: requestId })
       .execute();
 
-    return this.responseService.sendSuccess(SuccessMessage.OPERATION_SUCCESSFUL, {
-      id: requestId,
-      status: data.status,
-    });
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        id: requestId,
+        status: data.status,
+      },
+    );
   }
 
-  async assignRequest(requestId: UUID, data: AssignRequestDTO): Promise<IResponse<any>> {
+  async assignRequest(
+    requestId: UUID,
+    data: AssignRequestDTO,
+  ): Promise<IResponse<any>> {
     const business = await this.businessRepository.findById(requestId);
 
     if (!business) {
@@ -438,7 +667,9 @@ export class AdminService {
       );
     }
 
-    const assignee = await this.userRepository.findById(data.assigneeId as UUID);
+    const assignee = await this.userRepository.findById(
+      data.assigneeId as UUID,
+    );
 
     if (!assignee) {
       return this.responseService.sendError(
@@ -457,16 +688,20 @@ export class AdminService {
     //   .where('id = :id', { id: requestId })
     //   .execute();
 
-    return this.responseService.sendSuccess(SuccessMessage.OPERATION_SUCCESSFUL, {
-      id: requestId,
-      assigneeId: data.assigneeId,
-      assignee: {
-        id: assignee.id,
-        email: assignee.email,
-        firstName: assignee.firstName,
-        lastName: assignee.lastName,
+    return this.responseService.sendSuccess(
+      SuccessMessage.OPERATION_SUCCESSFUL,
+      {
+        id: requestId,
+        assigneeId: data.assigneeId,
+        assignee: {
+          id: assignee.id,
+          email: assignee.email,
+          firstName: assignee.firstName,
+          lastName: assignee.lastName,
+        },
+        message:
+          'Request assignment updated (assignee field needs to be added to business entity)',
       },
-      message: 'Request assignment updated (assignee field needs to be added to business entity)',
-    });
+    );
   }
 }

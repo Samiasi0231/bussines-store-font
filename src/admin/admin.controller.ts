@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Param, Query, UseGuards, Body, Patch } from '@nestjs/common';
+import { Controller, Get, Put, Param, Query, UseGuards, Body, Patch, Post } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -7,23 +7,37 @@ import { Permissions } from '../@common/decorators/permissions.decorator';
 import { AdminPermission } from '../@common/constants/permission.constant';
 import { User } from '../@common/decorators/user.decorator';
 import { UserProfile } from '../user/interfaces/user.interface';
+import { Public } from '../@common/decorators/public.decorator';
 import {
   GetUsersQueryDTO,
   UpdateUserRolesDTO,
   GetBusinessesQueryDTO,
+  GetPartnersQueryDTO,
   GetRequestsQueryDTO,
   GetTransactionsQueryDTO,
   UpdateBusinessStatusDTO,
   AssignRequestDTO,
   UpdateRequestStatusDTO,
+  OnboardPartnerDTO,
 } from './dtos/admin.dto';
 import { GetByIdParamDTO } from '../@common/dtos/general.dto';
 import { UUID } from 'crypto';
+import { AuthService } from '../auth/auth.service';
+import { LoginDTO } from '../auth/dto/login.dto';
 
 @Controller('admin')
 @UseGuards(AdminGuard)
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly authService: AuthService,
+  ) {}
+
+  @Public()
+  @Post('login')
+  async adminLogin(@Body() body: LoginDTO) {
+    return this.authService.adminLogin(body);
+  }
 
   @Get('dashboard')
   @AdminOnly()
@@ -56,6 +70,20 @@ export class AdminController {
     return this.adminService.getBusinesses(query);
   }
 
+  @Get('partners')
+  @UseGuards(PermissionsGuard)
+  @Permissions(AdminPermission.VIEW_PARTNERS)
+  async getPartners(@Query() query: GetPartnersQueryDTO) {
+    return this.adminService.getPartners(query);
+  }
+
+  @Post('partners')
+  @UseGuards(PermissionsGuard)
+  @Permissions(AdminPermission.CREATE_PARTNER)
+  async onboardPartner(@Body() body: OnboardPartnerDTO) {
+    return this.adminService.onboardPartner(body);
+  }
+
   @Patch('businesses/:id/status')
   @UseGuards(PermissionsGuard)
   @Permissions(AdminPermission.UPDATE_PARTNER)
@@ -64,6 +92,16 @@ export class AdminController {
     @Body() body: UpdateBusinessStatusDTO,
   ) {
     return this.adminService.updateBusinessStatus(param.id as UUID, body);
+  }
+
+  @Patch('partners/:id/status')
+  @UseGuards(PermissionsGuard)
+  @Permissions(AdminPermission.UPDATE_PARTNER)
+  async updatePartnerStatus(
+    @Param() param: GetByIdParamDTO,
+    @Body() body: UpdateBusinessStatusDTO,
+  ) {
+    return this.adminService.updatePartnerStatus(param.id as UUID, body);
   }
 
   @Get('requests')

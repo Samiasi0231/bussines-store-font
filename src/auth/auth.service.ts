@@ -27,6 +27,7 @@ import {
   CompareAddressDTO,
   AddressComparisonResult,
 } from './dto/compare-address.dto';
+import { AdminRole } from '../@common/constants/role.constant';
 
 @Injectable()
 export class AuthService {
@@ -214,6 +215,33 @@ async register(payload: SignupDTO): Promise<any> {
       return this.responseService.sendError(ErrorMessage.INVALID_CREDENTIALS);
     }
 
+    return this.issueLogin(user);
+  }
+
+  async adminLogin(loginDto: LoginDTO) {
+    const user = await this.validateUser(loginDto.identifier, loginDto.password);
+
+    if (!user) {
+      return this.responseService.sendError(ErrorMessage.INVALID_CREDENTIALS);
+    }
+
+    const userRoles = user.roles || [];
+    const hasAdminRole = userRoles.some((role) =>
+      Object.values(AdminRole).includes(role),
+    );
+
+    if (!hasAdminRole) {
+      return this.responseService.sendError(
+        ErrorMessage.ACCESS_DENIED,
+        null,
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    return this.issueLogin(user);
+  }
+
+  private async issueLogin(user: User) {
     await this.userRepository.findbyIdAndUpdate(user.id, {
       lastLoggedInAt: new Date(),
     });

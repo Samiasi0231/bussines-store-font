@@ -1,4 +1,13 @@
-import { IsOptional, IsEnum, IsString, IsUUID, IsArray, IsNumber } from 'class-validator';
+import {
+  IsOptional,
+  IsEnum,
+  IsString,
+  IsUUID,
+  IsArray,
+  IsNumber,
+  IsNotEmpty,
+  IsEmail,
+} from 'class-validator';
 import { Status } from '../../@common/constants/status.constant';
 import { AdminRole } from '../../@common/constants/role.constant';
 import { PaginationDTO } from '../../@common/dtos/pagination.dto';
@@ -36,6 +45,58 @@ export class GetBusinessesQueryDTO extends PaginationDTO {
   @IsOptional()
   @IsString()
   cacNumber?: string;
+}
+
+export class GetPartnersQueryDTO extends PaginationDTO {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsEnum(Status)
+  status?: Status;
+
+  @IsOptional()
+  @IsString()
+  email?: string;
+}
+
+export class OnboardPartnerDTO {
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  state?: string;
+
+  @IsOptional()
+  @IsString()
+  country?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  services?: string[];
+
+  @IsOptional()
+  @IsNumber()
+  rating?: number;
+
+  @IsOptional()
+  @IsEnum(Status)
+  status?: Status;
 }
 
 export class GetRequestsQueryDTO extends PaginationDTO {
