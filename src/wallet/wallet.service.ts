@@ -230,7 +230,6 @@ export class WalletService {
     });
   }
 
-  // src/wallet/wallet.service.ts
 async checkUserHasWallet(userId: UUID): Promise<boolean> {
   return this.walletRepository.existsByUserId(userId);
 }
