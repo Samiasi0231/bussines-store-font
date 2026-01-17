@@ -19,16 +19,18 @@ export class UserSanitizer {
       email: userData.email,
       phoneNumber: userData.phoneNumber,
       avatar: userData.avatar,
-      tier: kyc.tier,
-      bvnVerified: kyc.bvnVerificationStatus === Status.VERIFIED,
+      tier: kyc?.tier,
+      bvnVerified: kyc?.bvnVerificationStatus === Status.VERIFIED,
       nonBvnIdentityDocumentVerified:
-        kyc.identityVerificationStatus === Status.VERIFIED,
-      identityVerified: kyc.identityVerificationStatus === Status.VERIFIED,
+        kyc?.identityVerificationStatus === Status.VERIFIED,
+      identityVerified: kyc?.identityVerificationStatus === Status.VERIFIED,
       isProfileComplete: userData.isProfileComplete,
-      addressVerified: kyc.addressVerificationStatus === Status.VERIFIED,
+      addressVerified: kyc?.addressVerificationStatus === Status.VERIFIED,
       gender: userData.gender,
       phoneVerified: !!userData.phoneVerifiedAt,
       emailVerified: !!userData.emailVerifiedAt,
+      roles: userData.roles || [],
+      permissions: userData.permissions || [],
     };
   }
 

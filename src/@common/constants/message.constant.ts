@@ -72,6 +72,7 @@ export const ErrorMessage = {
   NO_CHECKOUT_PROVIDER_FOUND: 'No checkout provider found',
   INVALID_AMOUNT: 'Invalid amount',
   DUPLICATE_PAYMENT: 'Payment already processed',
+  ALREADY_EXISTS: (entity: string) => `${entity} already exists`,
 };
 
 export type ErrorMessage = (typeof ErrorMessage)[keyof typeof ErrorMessage];

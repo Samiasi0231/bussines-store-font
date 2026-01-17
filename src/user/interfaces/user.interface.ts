@@ -1,6 +1,8 @@
 import { UUID } from 'crypto';
 import { Tier } from '../../@common/constants/tier.constant';
 import { Gender } from '../../@common/constants/gender.constant';
+import { AdminRole } from '../../@common/constants/role.constant';
+import { AdminPermission } from '../../@common/constants/permission.constant';
 
 export interface UserProfile {
   phoneNumber: string;
@@ -18,6 +20,8 @@ export interface UserProfile {
   gender: Gender;
   phoneVerified: boolean;
   emailVerified: boolean;
+  roles?: AdminRole[];
+  permissions?: AdminPermission[];
 }
 
 export interface CachedUserProfileData extends UserProfile {
@@ -35,4 +39,6 @@ export interface UserDataForProfile {
   phoneVerifiedAt: Date;
   emailVerifiedAt: Date;
   isProfileComplete: boolean;
+  roles?: AdminRole[];
+  permissions?: AdminPermission[];
 }

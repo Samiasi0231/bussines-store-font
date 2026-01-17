@@ -32,6 +32,7 @@ import { CartModule } from './cart/cart.module';
 import { SmsModule } from './sms/sms.module';
 import { UploadModule } from './upload/upload.module';
 import { WebhookModule } from './webhooks/webhook.module';
+import { AdminModule } from './admin/admin.module';
 const config = appConfig();
 
 @Module({
@@ -121,7 +122,8 @@ const config = appConfig();
     TransactionModule,
     UploadModule,
     CartModule,
-    WebhookModule
+    WebhookModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [

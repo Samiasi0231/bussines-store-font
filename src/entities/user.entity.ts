@@ -13,6 +13,8 @@ import { UUID } from 'crypto';
 import { uuidv7 } from 'uuidv7';
 import { Status } from '../@common/constants/status.constant';
 import { Gender } from '../@common/constants/gender.constant';
+import { AdminRole } from '../@common/constants/role.constant';
+import { AdminPermission } from '../@common/constants/permission.constant';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -92,6 +94,24 @@ normalizeEmail?() {
     default: false,
   })
   isProfileComplete?: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: AdminRole,
+    array: true,
+    default: [],
+    nullable: true,
+  })
+  roles?: AdminRole[];
+
+  @Column({
+    type: 'enum',
+    enum: AdminPermission,
+    array: true,
+    default: [],
+    nullable: true,
+  })
+  permissions?: AdminPermission[];
 
   fullName?: string;
 

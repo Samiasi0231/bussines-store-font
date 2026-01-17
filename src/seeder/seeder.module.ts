@@ -6,6 +6,7 @@ import { DefaultProviderSeeder } from './seeders/default-provider.seeder';
 import { DefaultProductCollectionSeeder } from './seeders/default-product-collection.seeder';
 import { BusinessCategorySeeder } from './seeders/business-category.seeder';
 import { BusinessTypeSeeder } from './seeders/business-type.seeder';
+import { AdminUserSeeder } from './seeders/admin-user.seeder';
 
 export const SEEDERS: (new (...args: any[]) => Seeder)[] = [
   ProductCategorySeeder,
@@ -13,7 +14,8 @@ export const SEEDERS: (new (...args: any[]) => Seeder)[] = [
   DefaultProviderSeeder,
   DefaultProductCollectionSeeder,
   BusinessCategorySeeder,
-  BusinessTypeSeeder
+  BusinessTypeSeeder,
+  AdminUserSeeder,
 ];
 
 @Module({
