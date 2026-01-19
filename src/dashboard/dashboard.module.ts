@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { User } from '../entities/user.entity';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { DashboardController } from './dashboard.controller';
 import { DashboardService } from './dashboard.service';
 import { DashboardSanitizer } from './dasdboard.sanitizer';

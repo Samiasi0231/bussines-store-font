@@ -1,4 +1,5 @@
 import { Injectable, HttpStatus, Logger } from '@nestjs/common';
+
 import { UUID } from 'crypto';
 import { WalletService } from '../wallet/wallet.service';
 import { BusinessService } from '../business/business.service';
@@ -20,11 +21,8 @@ export class DashboardService {
     private readonly dashboardSanitizer: DashboardSanitizer,
     private readonly responseService: ResponseService,
   ) {}
-
   async getDashboard(userId: UUID): Promise<IResponse<FormattedDashboard>> {
     try {
-      this.logger.log(`Fetching dashboard for user: ${userId}`);
-
       const [hasWallet, business] = await Promise.all([
         this.walletService.checkUserHasWallet(userId),
         this.businessService.getUserBusinessWithStores(userId),
@@ -47,7 +45,6 @@ export class DashboardService {
             this.ordersService.getWeeklyOrdersCount(storeId),
             this.ordersService.getStoreTotalSales(storeId),
           ]);
-
         metrics = { totalProducts, newCustomersThisWeek, ordersThisWeek, totalSold };
       }
 
@@ -114,14 +111,12 @@ export class DashboardService {
       return this.responseService.sendError(ErrorMessage.AN_ERROR_OCCURRED, null, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
-
   async getWeeklyCustomers(userId: UUID) {
     try {
       const business = await this.businessService.getUserBusinessWithStores(userId);
       const count = business?.stores?.[0]?.id
         ? await this.ordersService.getWeeklyCustomersCount(business.stores[0].id)
         : 0;
-
       return this.responseService.sendSuccess(
         SuccessMessage.OPERATION_SUCCESSFUL,
         { newCustomersThisWeek: count },
@@ -132,7 +127,6 @@ export class DashboardService {
       return this.responseService.sendError(ErrorMessage.AN_ERROR_OCCURRED, null, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
-
   async getWeeklyOrders(userId: UUID) {
     try {
       const business = await this.businessService.getUserBusinessWithStores(userId);
@@ -150,6 +144,7 @@ export class DashboardService {
       return this.responseService.sendError(ErrorMessage.AN_ERROR_OCCURRED, null, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
 
   async getTotalSales(userId: UUID) {
     try {
