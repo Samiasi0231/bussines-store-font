@@ -33,6 +33,7 @@ import { SmsModule } from './sms/sms.module';
 import { UploadModule } from './upload/upload.module';
 import { WebhookModule } from './webhooks/webhook.module';
 import { AdminModule } from './admin/admin.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 const config = appConfig();
 
 @Module({
@@ -124,6 +125,7 @@ const config = appConfig();
     CartModule,
     WebhookModule,
     AdminModule,
+    DashboardModule
   ],
   controllers: [AppController],
   providers: [

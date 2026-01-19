@@ -819,4 +819,11 @@ export class BusinessService {
 
     return response;
   }
+
+  // src/business/business.service.ts
+async getUserBusinessWithStores(userId: string) {
+  const uId = userId as `${string}-${string}-${string}-${string}-${string}`;
+  return this.businessRepository.findByUserWithStores(uId);
+}
+
 }

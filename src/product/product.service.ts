@@ -753,4 +753,11 @@ export class ProductService {
         .execute();
     });
   }
+
+// src/product/product.service.ts
+async getStoreProductCount(storeId: UUID): Promise<number> {
+  return this.productRepository.countByStore(storeId);
+}
+
+
 }

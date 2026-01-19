@@ -15,6 +15,7 @@ import { ProductCollectionController } from './product-collection.controller';
     ProductSubCategorySanitizer,
   ],
   exports: [
+    ProductService,
     ProductCategorySanitizer,
     ProductSanitizer,
     ProductSubCategorySanitizer,
